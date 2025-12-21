@@ -11,16 +11,16 @@ interface ServerCardProps {
   name: string;
   type: string;
   ram: string;
-  status: 'Online' | 'Offline' | 'Restarting';
+  status: 'stopped' | 'starting' | 'running';
   index: number;
 }
 
 export default function ServerCard({ id, name, type, ram, status, index }: ServerCardProps) {
   const { startServer, stopServer } = useServerContext();
   const [isHovered, setIsHovered] = useState(false);
-  const isOnline = status === 'Online';
-  const isOffline = status === 'Offline';
-  const isRestarting = status === 'Restarting';
+  const isRunning = status === 'running';
+  const isStopped = status === 'stopped';
+  const isStarting = status === 'starting';
 
   const handleStart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -35,9 +35,9 @@ export default function ServerCard({ id, name, type, ram, status, index }: Serve
   };
 
   const getStatusColor = () => {
-    if (isOnline) return 'bg-green-500';
-    if (isRestarting) return 'bg-yellow-500';
-    return 'bg-gray-500';
+    if (isRunning) return 'bg-green-500';
+    if (isStarting) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
   return (
@@ -71,14 +71,14 @@ export default function ServerCard({ id, name, type, ram, status, index }: Serve
             {/* Status badge - always visible */}
             <span
               className={`px-2.5 py-1 rounded text-xs font-medium ${
-                isOnline
+                isRunning
                   ? 'bg-green-500/20 text-green-400'
-                  : isRestarting
+                  : isStarting
                   ? 'bg-yellow-500/20 text-yellow-400'
-                  : 'bg-foreground/10 text-muted'
+                  : 'bg-red-500/20 text-red-400'
               }`}
             >
-              {status}
+              {status === 'running' ? 'Running' : status === 'starting' ? 'Starting' : 'Stopped'}
             </span>
 
             {/* Hover actions */}
@@ -93,7 +93,7 @@ export default function ServerCard({ id, name, type, ram, status, index }: Serve
                   onClick={(e) => e.preventDefault()}
                 >
                   {/* Start/Stop button - only show when applicable */}
-                  {isOffline && !isRestarting && (
+                  {isStopped && !isStarting && (
                     <motion.button
                       type="button"
                       onClick={handleStart}
@@ -104,7 +104,7 @@ export default function ServerCard({ id, name, type, ram, status, index }: Serve
                       Start
                     </motion.button>
                   )}
-                  {isOnline && !isRestarting && (
+                  {isRunning && !isStarting && (
                     <motion.button
                       type="button"
                       onClick={handleStop}

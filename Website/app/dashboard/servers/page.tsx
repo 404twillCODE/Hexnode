@@ -134,7 +134,7 @@ interface ServerCardWithActionsProps {
   name: string;
   type: string;
   ram: string;
-  status: 'Online' | 'Offline' | 'Restarting';
+  status: 'stopped' | 'starting' | 'running';
   index: number;
   onDelete: () => void;
 }
@@ -149,9 +149,15 @@ function ServerCardWithActions({
   onDelete,
 }: ServerCardWithActionsProps) {
   const getStatusColor = () => {
-    if (status === 'Online') return 'bg-green-500';
-    if (status === 'Restarting') return 'bg-yellow-500';
-    return 'bg-gray-500';
+    if (status === 'running') return 'bg-green-500';
+    if (status === 'starting') return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const getStatusText = () => {
+    if (status === 'running') return 'Running';
+    if (status === 'starting') return 'Starting';
+    return 'Stopped';
   };
 
   return (
@@ -182,14 +188,14 @@ function ServerCardWithActions({
           {/* Status badge */}
           <span
             className={`px-2.5 py-1 rounded text-xs font-medium ${
-              status === 'Online'
+              status === 'running'
                 ? 'bg-green-500/20 text-green-400'
-                : status === 'Restarting'
+                : status === 'starting'
                 ? 'bg-yellow-500/20 text-yellow-400'
-                : 'bg-foreground/10 text-muted'
+                : 'bg-red-500/20 text-red-400'
             }`}
           >
-            {status}
+            {getStatusText()}
           </span>
 
           {/* Action buttons */}

@@ -21,7 +21,7 @@ export default function DashboardSidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-60 bg-background border-r border-foreground/10 flex flex-col z-40">
+    <aside className="fixed left-0 top-16 bottom-0 w-60 bg-background border-r border-foreground/10 flex flex-col z-40">
       {/* Brand Section */}
       <div className="p-6 border-b border-foreground/10">
         <div className="flex items-center gap-3">

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { ServerProvider } from "@/components/context/ServerContext";
 import { AssistantProvider } from "@/components/context/AssistantContext";
-import FloatingAssistant from "@/components/assistant/FloatingAssistant";
+import DashboardAssistant from "@/components/assistant/DashboardAssistant";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import PageTransition from "@/components/PageTransition";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -18,15 +19,18 @@ export default function DashboardLayout({
   return (
     <ServerProvider>
       <AssistantProvider>
-        <div className="flex min-h-screen bg-background pt-16">
+        <div className="flex min-h-full bg-background pt-16">
           <DashboardSidebar />
-          <main className="flex-1 ml-60">
-            <PageTransition>
-              {children}
-            </PageTransition>
-          </main>
+          <div className="flex-1 ml-60 flex flex-col">
+            <main className="flex-1">
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </main>
+            <Footer />
+          </div>
         </div>
-        <FloatingAssistant />
+        <DashboardAssistant />
       </AssistantProvider>
     </ServerProvider>
   );

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import ConditionalFooter from "@/components/ConditionalFooter";
 import { ResourcePoolConfigProvider } from "@/components/context/ResourcePoolConfigContext";
 
 export const metadata: Metadata = {
@@ -33,11 +33,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-background text-foreground font-sans antialiased">
+      <body className="bg-background text-foreground font-sans antialiased min-h-screen flex flex-col">
         <ResourcePoolConfigProvider>
           <Navbar />
-          {children}
-          <Footer />
+          <main className="flex-1">
+            {children}
+          </main>
+          <ConditionalFooter />
         </ResourcePoolConfigProvider>
       </body>
     </html>

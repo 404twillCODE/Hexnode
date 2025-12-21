@@ -3,13 +3,13 @@
 import { motion } from "framer-motion";
 
 interface StatusBadgeProps {
-  status: 'Online' | 'Offline' | 'Restarting';
+  status: 'stopped' | 'starting' | 'running';
   size?: 'sm' | 'md' | 'lg';
 }
 
 export default function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
-  const isOnline = status === 'Online';
-  const isRestarting = status === 'Restarting';
+  const isRunning = status === 'running';
+  const isStarting = status === 'starting';
   
   const sizeClasses = {
     sm: 'px-2 py-1 text-xs',
@@ -18,13 +18,19 @@ export default function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
   };
 
   const getStatusClasses = () => {
-    if (isOnline) {
-      return 'bg-accent/20 text-accent';
+    if (isRunning) {
+      return 'bg-green-500/20 text-green-400';
     }
-    if (isRestarting) {
-      return 'bg-accent/30 text-accent';
+    if (isStarting) {
+      return 'bg-yellow-500/20 text-yellow-400';
     }
-    return 'bg-foreground/10 text-muted';
+    return 'bg-red-500/20 text-red-400';
+  };
+
+  const getDisplayText = () => {
+    if (status === 'running') return 'Running';
+    if (status === 'starting') return 'Starting';
+    return 'Stopped';
   };
 
   return (
@@ -34,17 +40,17 @@ export default function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
       animate={{
         opacity: 1,
         scale: 1,
-        ...(isRestarting && {
+        ...(isStarting && {
           opacity: [1, 0.7, 1],
         }),
       }}
       transition={{
-        duration: isRestarting ? 1.5 : 0.2,
-        repeat: isRestarting ? Infinity : 0,
+        duration: isStarting ? 1.5 : 0.2,
+        repeat: isStarting ? Infinity : 0,
         ease: 'easeInOut',
       }}
     >
-      {status}
+      {getDisplayText()}
     </motion.span>
   );
 }

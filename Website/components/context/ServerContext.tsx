@@ -9,7 +9,7 @@ export interface Server {
   type: string;
   version: string;
   ram: number; // in GB
-  status: 'Online' | 'Offline' | 'Restarting';
+  status: 'stopped' | 'starting' | 'running';
 }
 
 interface ResourcePool {
@@ -25,6 +25,7 @@ interface ServerContextType {
   stopServer: (serverId: string) => void;
   restartServer: (serverId: string) => void;
   deleteServer: (serverId: string) => void;
+  updateServerRam: (serverId: string, newRam: number) => void;
 }
 
 const ServerContext = createContext<ServerContextType | undefined>(undefined);
@@ -58,7 +59,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     const newServer: Server = {
       ...serverData,
       id: `server-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      status: 'Online',
+      status: 'stopped', // Default status
     };
 
     setServers((prev) => [...prev, newServer]);
@@ -66,41 +67,61 @@ export function ServerProvider({ children }: { children: ReactNode }) {
   };
 
   const startServer = (serverId: string) => {
+    // Set to starting
     setServers((prev) =>
       prev.map((server) =>
-        server.id === serverId ? { ...server, status: 'Online' } : server
+        server.id === serverId ? { ...server, status: 'starting' } : server
       )
     );
+
+    // After ~2 seconds, set to running
+    setTimeout(() => {
+      setServers((prev) =>
+        prev.map((server) =>
+          server.id === serverId ? { ...server, status: 'running' } : server
+        )
+      );
+    }, 2000);
   };
 
   const stopServer = (serverId: string) => {
+    // Immediately set to stopped
     setServers((prev) =>
       prev.map((server) =>
-        server.id === serverId ? { ...server, status: 'Offline' } : server
+        server.id === serverId ? { ...server, status: 'stopped' } : server
       )
     );
   };
 
   const restartServer = (serverId: string) => {
-    // Set to Restarting
+    // Set to starting
     setServers((prev) =>
       prev.map((server) =>
-        server.id === serverId ? { ...server, status: 'Restarting' } : server
+        server.id === serverId ? { ...server, status: 'starting' } : server
       )
     );
 
-    // After 1.5 seconds, set to Online
+    // After ~2 seconds, set to running
     setTimeout(() => {
       setServers((prev) =>
         prev.map((server) =>
-          server.id === serverId ? { ...server, status: 'Online' } : server
+          server.id === serverId ? { ...server, status: 'running' } : server
         )
       );
-    }, 1500);
+    }, 2000);
   };
 
   const deleteServer = (serverId: string) => {
     setServers((prev) => prev.filter((s) => s.id !== serverId));
+    // usedRam will be recalculated by useEffect
+  };
+
+  const updateServerRam = (serverId: string, newRam: number) => {
+    setServers((prev) =>
+      prev.map((server) =>
+        server.id === serverId ? { ...server, ram: newRam } : server
+      )
+    );
     // usedRam will be recalculated by useEffect
   };
 
@@ -114,6 +135,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
         stopServer,
         restartServer,
         deleteServer,
+        updateServerRam,
       }}
     >
       {children}

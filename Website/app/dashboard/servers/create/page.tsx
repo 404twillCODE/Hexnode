@@ -30,6 +30,10 @@ export default function CreateServerPage() {
   const currentlyUsed = resourcePool.usedRam * 1024; // Convert GB to MB
   const available = totalPool - currentlyUsed; // Available in MB
 
+  // Calculate remaining RAM after this allocation
+  const remainingAfterCreation = available - ramAllocation;
+  const wouldExceedPool = ramAllocation > available;
+
   const versions = ['1.21', '1.20.4', '1.19.4'];
 
   // Handle AI auto-fill
@@ -79,7 +83,7 @@ export default function CreateServerPage() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!serverType || !version) return;
+    if (!serverType || !version || wouldExceedPool) return;
 
     // Add server to context
     addServer({
@@ -94,7 +98,7 @@ export default function CreateServerPage() {
   };
 
   return (
-    <div className="p-8 min-h-screen">
+    <div className="p-8">
         <motion.div
           className="max-w-4xl mx-auto"
           initial="hidden"
@@ -171,6 +175,7 @@ export default function CreateServerPage() {
               max={available}
               totalPool={totalPool}
               currentlyUsed={currentlyUsed}
+              isEditing={false}
             />
 
             {/* Summary Card */}
@@ -190,14 +195,14 @@ export default function CreateServerPage() {
             >
               <motion.button
                 type="submit"
-                disabled={!serverType}
+                disabled={!serverType || !version || wouldExceedPool}
                 className={`px-6 py-3 font-medium rounded-lg transition-colors ${
-                  serverType
+                  serverType && version && !wouldExceedPool
                     ? 'bg-accent text-foreground hover:bg-accent/90'
                     : 'bg-foreground/10 text-muted cursor-not-allowed'
                 }`}
-                whileHover={serverType ? buttonHover : {}}
-                whileTap={serverType ? buttonTap : {}}
+                whileHover={serverType && version && !wouldExceedPool ? buttonHover : {}}
+                whileTap={serverType && version && !wouldExceedPool ? buttonTap : {}}
               >
                 Create Server
               </motion.button>
