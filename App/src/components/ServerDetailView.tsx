@@ -22,7 +22,7 @@ interface ConsoleLine {
 }
 
 export default function ServerDetailView({ serverName, onBack }: ServerDetailViewProps) {
-  const { servers, sendCommand, startServer, stopServer, restartServer, killServer, deleteServer, getServerUsage, loading } = useServerManager();
+  const { servers, sendCommand, startServer, stopServer, restartServer, killServer, deleteServer, getServerUsage, updateServerRAM, refreshServers, loading } = useServerManager();
   const [isRestarting, setIsRestarting] = useState(false);
   const [showKillConfirm, setShowKillConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -32,9 +32,25 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const [autoScroll, setAutoScroll] = useState(true);
   const [settings, setSettings] = useState<any>(null);
   const [serverUsage, setServerUsage] = useState<{ cpu: number; ram: number; ramMB: number } | null>(null);
+  const [ramGB, setRamGB] = useState<number>(4);
+  const [savingRAM, setSavingRAM] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const server = servers.find(s => s.name === serverName);
+  
+  // Define status variables early so they can be used in useEffect hooks
+  const isRunning = server?.status === "RUNNING";
+  const isStopped = server?.status === "STOPPED";
+  const isStarting = server?.status === "STARTING";
+
+  // Initialize RAM from server
+  useEffect(() => {
+    if (server?.ramGB !== undefined) {
+      setRamGB(server.ramGB);
+    } else if (!server?.ramGB) {
+      setRamGB(4); // Default to 4GB if not set
+    }
+  }, [server?.ramGB]);
 
   useEffect(() => {
     // Load console settings
@@ -158,11 +174,6 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       </div>
     );
   }
-
-  // Define status variables after loading check (not hooks, so this is safe)
-  const isRunning = server?.status === "RUNNING";
-  const isStopped = server?.status === "STOPPED";
-  const isStarting = server?.status === "STARTING";
 
   const handleSendCommand = async () => {
     if (!input.trim() || !serverName) return;
@@ -355,15 +366,6 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                 </motion.button>
               </>
             )}
-            <div className="h-8 w-px bg-border mx-2"></div>
-            <motion.button
-              onClick={handleDelete}
-              className={showDeleteConfirm ? "bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-mono text-sm uppercase tracking-wider transition-colors" : "btn-secondary"}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {showDeleteConfirm ? "CONFIRM DELETE" : "DELETE"}
-            </motion.button>
           </div>
         </div>
       </div>
@@ -478,46 +480,153 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
 
         {activeTab === "settings" && (
           <div className="h-full overflow-y-auto p-8 custom-scrollbar">
-            <div className="max-w-2xl">
+            <div className="max-w-2xl mx-auto">
               <h2 className="text-xl font-semibold text-text-primary font-mono mb-6">
                 Server Settings
               </h2>
               <div className="space-y-6">
+                {/* Server Information */}
                 <div className="system-card p-6">
                   <h3 className="text-sm font-semibold text-text-primary font-mono mb-4 uppercase tracking-wider">
                     Server Information
                   </h3>
                   <div className="space-y-3 text-sm text-text-secondary font-mono">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span>Name:</span>
                       <span className="text-text-primary">{server.name}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span>Version:</span>
                       <span className="text-text-primary">{server.version}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span>Port:</span>
                       <span className="text-text-primary">{server.port}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>RAM:</span>
-                      <span className="text-text-primary">{server.ramGB || 4}GB</span>
-                    </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span>Status:</span>
                       <StatusBadge status={server.status} />
                     </div>
                   </div>
                 </div>
 
+                {/* RAM Configuration */}
                 <div className="system-card p-6">
                   <h3 className="text-sm font-semibold text-text-primary font-mono mb-4 uppercase tracking-wider">
                     RAM Configuration
                   </h3>
-                  <p className="text-xs text-text-muted font-mono mb-4">
-                    Server RAM allocation settings coming soon
-                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm text-text-secondary font-mono mb-2">
+                        Allocated RAM (GB)
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="number"
+                          min="1"
+                          max="64"
+                          value={ramGB}
+                          onChange={(e) => setRamGB(Math.max(1, Math.min(64, parseInt(e.target.value) || 1)))}
+                          disabled={isRunning || savingRAM}
+                          className="flex-1 bg-background border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <span className="text-text-muted font-mono text-sm">GB</span>
+                      </div>
+                      <p className="text-xs text-text-muted font-mono mt-2">
+                        {isRunning 
+                          ? "Stop the server to change RAM allocation" 
+                          : "This setting will be applied the next time you start the server"}
+                      </p>
+                    </div>
+                    <motion.button
+                      onClick={async () => {
+                        if (!server) return;
+                        setSavingRAM(true);
+                        const result = await updateServerRAM(serverName, ramGB);
+                        if (result.success) {
+                          // Refresh servers to get updated RAM value
+                          await refreshServers();
+                          alert(`RAM allocation updated to ${ramGB}GB. This will take effect on the next server start.`);
+                        } else {
+                          alert(`Failed to update RAM: ${result.error}`);
+                        }
+                        setSavingRAM(false);
+                      }}
+                      disabled={isRunning || savingRAM || ramGB === (server?.ramGB ?? 4)}
+                      className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                      whileHover={{ scale: isRunning || savingRAM || ramGB === (server?.ramGB ?? 4) ? 1 : 1.02 }}
+                      whileTap={{ scale: isRunning || savingRAM || ramGB === (server?.ramGB ?? 4) ? 1 : 0.98 }}
+                    >
+                      {savingRAM ? "SAVING..." : "SAVE RAM SETTINGS"}
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Performance Metrics */}
+                {isRunning && serverUsage && (
+                  <div className="system-card p-6">
+                    <h3 className="text-sm font-semibold text-text-primary font-mono mb-4 uppercase tracking-wider">
+                      Performance Metrics
+                    </h3>
+                    <div className="space-y-3 text-sm text-text-secondary font-mono">
+                      <div className="flex justify-between items-center">
+                        <span>CPU Usage:</span>
+                        <span className="text-text-primary">
+                          {serverUsage.cpu > 0 ? `${serverUsage.cpu.toFixed(1)}%` : '< 0.1%'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Current RAM Usage:</span>
+                        <span className="text-text-primary">
+                          {serverUsage.ramMB.toFixed(0)} MB ({serverUsage.ram.toFixed(2)} GB)
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Allocated RAM:</span>
+                        <span className="text-text-primary font-semibold">{server.ramGB || 4} GB</span>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <div className="flex justify-between items-center">
+                          <span>Usage Percentage:</span>
+                          <span className="text-text-primary">
+                            {((serverUsage.ramMB / ((server.ramGB || 4) * 1024)) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-text-muted font-mono mt-4">
+                      Note: CPU usage may show 0% on Windows. RAM usage reflects actual memory consumption by the server process.
+                    </p>
+                  </div>
+                )}
+
+                {/* Danger Zone */}
+                <div className="system-card p-6 border-2 border-red-500/30">
+                  <h3 className="text-sm font-semibold text-red-400 font-mono mb-4 uppercase tracking-wider">
+                    Danger Zone
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs text-text-muted font-mono mb-4">
+                        Permanently delete this server and all its files. This action cannot be undone.
+                      </p>
+                      <motion.button
+                        onClick={handleDelete}
+                        className={showDeleteConfirm 
+                          ? "bg-red-500 hover:bg-red-600 px-6 py-3 rounded font-mono text-sm uppercase tracking-wider transition-colors text-white w-full" 
+                          : "bg-red-500/20 hover:bg-red-500/30 border-2 border-red-500/50 px-6 py-3 rounded font-mono text-sm uppercase tracking-wider transition-colors text-red-400 w-full"}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {showDeleteConfirm ? "CONFIRM DELETE SERVER" : "DELETE SERVER"}
+                      </motion.button>
+                      {showDeleteConfirm && (
+                        <p className="text-xs text-red-400 font-mono mt-2 text-center">
+                          Click again to confirm deletion
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
