@@ -1,23 +1,61 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
+import { useServerManager } from "../hooks/useServerManager";
 
 interface ConsoleLine {
   id: string;
   text: string;
   timestamp: string;
+  type?: 'stdout' | 'stderr' | 'command';
 }
 
-const mockConsoleLines: ConsoleLine[] = [
-  { id: "1", text: "> Starting server...", timestamp: "12:34:56" },
-  { id: "2", text: "> Loading world data...", timestamp: "12:34:57" },
-  { id: "3", text: "> Server initialized successfully", timestamp: "12:34:58" },
-  { id: "4", text: "> Ready for connections on port 25565", timestamp: "12:34:59" },
-];
-
 export default function ConsolePanel() {
-  const [lines, setLines] = useState<ConsoleLine[]>(mockConsoleLines);
+  const { servers, sendCommand } = useServerManager();
+  const [lines, setLines] = useState<ConsoleLine[]>([]);
   const [input, setInput] = useState("");
+  const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const activeServer = servers.find(s => s.status === 'ACTIVE');
+
+  useEffect(() => {
+    if (activeServer && !selectedServer) {
+      setSelectedServer(activeServer.name);
+    } else if (!activeServer) {
+      setSelectedServer(null);
+    }
+  }, [activeServer, selectedServer]);
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+
+    const handleLog = (data: { serverName: string; type: 'stdout' | 'stderr'; data: string }) => {
+      if (data.serverName === selectedServer) {
+        const logLines = data.data.split('\n');
+        logLines.forEach((line, index) => {
+          if (line.trim() || index === logLines.length - 1) {
+            const newLine: ConsoleLine = {
+              id: Date.now().toString() + Math.random() + index,
+              text: line || ' ',
+              timestamp: new Date().toLocaleTimeString(),
+              type: data.type,
+            };
+            setLines(prev => {
+              // Limit to last 1000 lines to prevent memory issues
+              const newLines = [...prev, newLine];
+              return newLines.slice(-1000);
+            });
+          }
+        });
+      }
+    };
+
+    window.electronAPI.server.onServerLog(handleLog);
+
+    return () => {
+      window.electronAPI?.server.removeServerLogListener();
+    };
+  }, [selectedServer]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -25,16 +63,30 @@ export default function ConsolePanel() {
     }
   }, [lines]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !selectedServer) return;
 
-    const newLine: ConsoleLine = {
+    const command = input.trim();
+    const commandLine: ConsoleLine = {
       id: Date.now().toString(),
-      text: `> ${input}`,
+      text: `> ${command}`,
       timestamp: new Date().toLocaleTimeString(),
+      type: 'command',
     };
-    setLines([...lines, newLine]);
+    setLines(prev => [...prev, commandLine]);
+
+    const result = await sendCommand(selectedServer, command);
+    if (!result.success) {
+      const errorLine: ConsoleLine = {
+        id: Date.now().toString() + 'error',
+        text: `Error: ${result.error}`,
+        timestamp: new Date().toLocaleTimeString(),
+        type: 'stderr',
+      };
+      setLines(prev => [...prev, errorLine]);
+    }
+
     setInput("");
   };
 
@@ -46,44 +98,74 @@ export default function ConsolePanel() {
         transition={{ type: "spring", stiffness: 100, damping: 15 }}
         className="mb-6"
       >
-        <h1 className="text-3xl font-semibold text-text-primary font-mono mb-2">
-          CONSOLE
-        </h1>
-        <p className="text-text-secondary font-mono text-sm">
-          System output and command interface
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-semibold text-text-primary font-mono mb-2">
+              CONSOLE
+            </h1>
+            <p className="text-text-secondary font-mono text-sm">
+              System output and command interface
+            </p>
+          </div>
+          {servers.length > 0 && (
+            <select
+              value={selectedServer || ''}
+              onChange={(e) => setSelectedServer(e.target.value || null)}
+              className="bg-background-secondary border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
+            >
+              <option value="">Select server...</option>
+              {servers.map(server => (
+                <option key={server.id} value={server.name}>
+                  {server.name} ({server.status})
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </motion.div>
       <div className="flex-1 system-card p-6 flex flex-col">
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto font-mono text-sm text-text-secondary space-y-1 mb-4"
         >
-          {lines.map((line, index) => (
-            <motion.div
-              key={line.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: index * 0.05 }}
-              className="flex gap-3"
-            >
-              <span className="text-text-muted text-xs">{line.timestamp}</span>
-              <span>{line.text}</span>
-            </motion.div>
-          ))}
+          {lines.length === 0 ? (
+            <div className="text-text-muted text-sm">
+              {selectedServer
+                ? `Console for ${selectedServer}. Start the server to see output.`
+                : "Select a server to view console output."}
+            </div>
+          ) : (
+            lines.map((line) => (
+              <motion.div
+                key={line.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`flex gap-3 ${
+                  line.type === 'stderr' ? 'text-red-400' : 
+                  line.type === 'command' ? 'text-accent' : ''
+                }`}
+              >
+                <span className="text-text-muted text-xs">{line.timestamp}</span>
+                <span className="whitespace-pre-wrap break-words">{line.text}</span>
+              </motion.div>
+            ))
+          )}
         </div>
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="> Enter command..."
-            className="flex-1 bg-background-secondary border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50"
+            placeholder={selectedServer ? `> Enter command for ${selectedServer}...` : "> Select a server first..."}
+            disabled={!selectedServer}
+            className="flex-1 bg-background-secondary border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <motion.button
             type="submit"
-            className="btn-primary"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            disabled={!selectedServer || !input.trim()}
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            whileHover={{ scale: !selectedServer || !input.trim() ? 1 : 1.02 }}
+            whileTap={{ scale: !selectedServer || !input.trim() ? 1 : 0.98 }}
           >
             SEND
           </motion.button>
