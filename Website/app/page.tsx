@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useRef, useState } from "react";
+import Link from "next/link";
 import BootSequence from "@/components/BootSequence";
 import HexNodeTyping from "@/components/HexNodeTyping";
 
@@ -48,7 +49,102 @@ function AnimatedSection({
 }
 
 function FloatingCard({ children, delay = 0, bootComplete = false }: { children: React.ReactNode; delay?: number; bootComplete?: boolean }) {
-  return <>{children}</>;
+return <>{children}</>;
+}
+
+const allFeatures = [
+  "Create servers with multiple server types (Paper, Spigot, Vanilla, Fabric, Forge, and more)",
+  "Full server lifecycle management (start, stop, restart, kill)",
+  "Integrated server console with command execution and real-time output",
+  "World manager for organizing and managing multiple world files",
+  "Plugin manager for installing and managing server plugins",
+  "File editor for direct server configuration file editing",
+  "Resource monitoring with CPU, RAM, and disk usage tracking",
+  "Local-first architecture - all data stored on your machine, no cloud dependencies"
+];
+
+const defaultFeatures = [
+  "Create servers with multiple server types (Paper, Spigot, Vanilla, Fabric, Forge, and more)",
+  "Integrated server console with command execution and real-time output",
+  "Local-first architecture - all data stored on your machine, no cloud dependencies"
+];
+
+function FeatureList() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hiddenFeatures = allFeatures.filter(f => !defaultFeatures.includes(f));
+
+  return (
+    <div className="space-y-3 border-t border-border pt-6">
+      {/* Always show default features */}
+      {defaultFeatures.map((feature, index) => (
+        <motion.div
+          key={feature}
+          initial={{ opacity: 0, x: -10 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 + (index * 0.1), type: "spring", stiffness: 200, damping: 25 }}
+          className="flex items-start gap-3"
+        >
+          <span className="mt-0.5 text-accent">→</span>
+          <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
+            {feature}
+          </span>
+        </motion.div>
+      ))}
+      
+      {/* Expandable hidden features */}
+      <AnimatePresence mode="wait">
+        {isExpanded && (
+          <motion.div
+            key="expanded-features"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden space-y-3"
+          >
+            {hiddenFeatures.map((feature, index) => (
+              <motion.div
+                key={feature}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ 
+                  delay: index * 0.05, 
+                  type: "spring", 
+                  stiffness: 200, 
+                  damping: 25 
+                }}
+                className="flex items-start gap-3"
+              >
+                <span className="mt-0.5 text-accent">→</span>
+                <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
+                  {feature}
+                </span>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      <motion.button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="mt-4 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-accent hover:text-accent/80 transition-colors"
+        whileHover={{ x: 4 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      >
+        <motion.span
+          animate={{ rotate: isExpanded ? 180 : 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="inline-block"
+        >
+          ▼
+        </motion.span>
+        {isExpanded ? "Show Less" : "Show More Features"}
+      </motion.button>
+    </div>
+  );
 }
 
 export default function Home() {
@@ -204,7 +300,7 @@ export default function Home() {
                         >
                           <div className="h-1.5 w-1.5 bg-border rounded-full"></div>
                           <span className="text-sm text-text-muted font-mono">
-                            Hosting
+                            Recycle Host
                           </span>
                         </motion.div>
                         <motion.div
@@ -215,7 +311,7 @@ export default function Home() {
                         >
                           <div className="h-1.5 w-1.5 bg-border rounded-full"></div>
                           <span className="text-sm text-text-muted font-mono">
-                            Recycle Host
+                            Hosting
                           </span>
                         </motion.div>
                       </div>
@@ -274,55 +370,33 @@ export default function Home() {
             transition={{ type: "spring", stiffness: 100, damping: 25 }}
             className="mb-10"
           >
-            <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
-              SOFTWARE
-            </h2>
+            <div className="flex items-center gap-4 mb-3">
+              <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
+                SOFTWARE
+              </h2>
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-mono uppercase tracking-wider text-accent"
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
+                </span>
+                Development
+              </motion.span>
+            </div>
           </motion.div>
           <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
-            <div>
+            <div className="order-1">
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
                 Desktop application for creating and managing Minecraft servers.
                 Handles server lifecycle, world management, backups, and version
                 control. All data stored locally on host machine.
               </p>
-              <div className="space-y-3 border-t border-border pt-6">
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 25 }}
-                  className="flex items-start gap-3"
-                >
-                  <span className="mt-0.5 text-accent">→</span>
-                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Server creation and lifecycle management
-                  </span>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 25 }}
-                  className="flex items-start gap-3"
-                >
-                  <span className="mt-0.5 text-accent">→</span>
-                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    World data management and backup operations
-                  </span>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 25 }}
-                  className="flex items-start gap-3"
-                >
-                  <span className="mt-0.5 text-accent">→</span>
-                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Version selection and server console access
-                  </span>
-                </motion.div>
-              </div>
+              <FeatureList />
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -330,53 +404,57 @@ export default function Home() {
                 transition={{ delay: 0.4, type: "spring", stiffness: 100, damping: 25 }}
                 className="mt-8"
               >
-                <motion.button
-                  disabled
-                  className="btn-primary inline-block relative cursor-not-allowed"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="relative z-20 font-mono flex items-center gap-3">
-                    DOWNLOAD
-                    <motion.span
-                      animate={{ 
-                        opacity: [0.7, 1, 0.7],
-                        scale: [1, 1.05, 1]
-                      }}
-                      transition={{ 
-                        duration: 2, 
-                        repeat: Infinity, 
-                        ease: "easeInOut" 
-                      }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono uppercase tracking-wider bg-accent/25 border border-accent/50 text-accent backdrop-blur-sm"
+                <div className="flex flex-col items-start gap-3">
+                  <div className="flex items-center gap-4">
+                    <motion.button
+                      disabled
+                      className="btn-primary relative cursor-not-allowed opacity-70"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <span className="relative flex h-1.5 w-1.5">
-                        <motion.span
-                          animate={{ 
-                            scale: [1, 1.5, 1],
-                            opacity: [0.75, 0, 0.75]
-                          }}
-                          transition={{ 
-                            duration: 2, 
-                            repeat: Infinity, 
-                            ease: "easeInOut" 
-                          }}
-                          className="absolute inline-flex h-full w-full rounded-full bg-accent"
-                        ></motion.span>
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
-                      </span>
-                      COMING SOON
-                    </motion.span>
-                  </span>
-                </motion.button>
+                      <span className="relative z-20 font-mono">DOWNLOAD</span>
+                    </motion.button>
+                    <Link
+                      href="/software"
+                      className="btn-secondary"
+                    >
+                      <span className="relative z-20 font-mono">LEARN MORE</span>
+                    </Link>
+                  </div>
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                    className="text-xs font-mono uppercase tracking-wider text-text-muted flex items-center gap-1.5"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <motion.span
+                        animate={{ 
+                          scale: [1, 1.5, 1],
+                          opacity: [0.75, 0, 0.75]
+                        }}
+                        transition={{ 
+                          duration: 2, 
+                          repeat: Infinity, 
+                          ease: "easeInOut" 
+                        }}
+                        className="absolute inline-flex h-full w-full rounded-full bg-accent/60"
+                      ></motion.span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent/60"></span>
+                    </span>
+                    Coming soon
+                  </motion.span>
+                </div>
               </motion.div>
             </div>
-            <FloatingCard delay={0.5} bootComplete={bootComplete}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="system-card p-6"
-              >
+            <div className="order-2">
+              <FloatingCard delay={0.5} bootComplete={bootComplete}>
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="system-card p-6"
+                >
                 <div className="card-content space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="h-5 w-32 bg-text-primary/20 rounded"></div>
@@ -405,41 +483,82 @@ export default function Home() {
                 </div>
               </motion.div>
             </FloatingCard>
+            </div>
           </div>
         </div>
       </AnimatedSection>
 
-      {/* Module: Hosting */}
+      {/* Module: Recycle Host */}
       <AnimatedSection bootComplete={bootComplete} className="full-width-section relative">
         <div className="section-content mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ type: "spring", stiffness: 100, damping: 25 }}
-            className="mb-10"
-          >
-            <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
-              HOSTING
-            </h2>
-          </motion.div>
           <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
-            <div className="order-2 lg:order-1">
+            <div className="order-2 lg:order-1 lg:pt-16">
               <FloatingCard delay={0.3} bootComplete={bootComplete}>
-                <div className="system-card p-6 opacity-40">
-                  <div className="space-y-3">
-                    <div className="h-3 w-3/4 bg-border rounded"></div>
-                    <div className="h-3 w-full bg-border rounded"></div>
-                    <div className="h-3 w-5/6 bg-border rounded"></div>
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="system-card p-6 opacity-60"
+                >
+                  <div className="card-content space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-5 w-28 bg-text-primary/15 rounded"></div>
+                      <div className="h-4 w-20 bg-border/50 rounded-full"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4 text-xs font-mono">
+                        <div className="flex items-center gap-1">
+                          <span className="text-text-muted">Region:</span>
+                          <span className="h-3 w-16 bg-text-primary/15 rounded"></span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-text-muted">Status:</span>
+                          <span className="h-3 w-12 bg-border/50 rounded"></span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-mono">
+                        <span className="text-text-muted">Resources:</span>
+                        <span className="h-3 w-20 bg-text-primary/15 rounded"></span>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2 border-t border-border pt-4">
+                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
+                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               </FloatingCard>
             </div>
             <div className="order-1 lg:order-2">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", stiffness: 100, damping: 25 }}
+                className="mb-10"
+              >
+                <div className="flex items-center gap-4 mb-3">
+                  <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
+                    RECYCLE HOST
+                  </h2>
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-mono uppercase tracking-wider text-accent"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
+                    </span>
+                    Planned
+                  </motion.span>
+                </div>
+              </motion.div>
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
-                Planned hosting infrastructure for Minecraft servers. Two deployment
-                options under development: premium hardware and recycled business PC
-                infrastructure. Status: planning phase.
+                Sustainable hosting powered by recycled and repurposed hardware.
+                Eco-friendly alternative without compromising on reliability. Perfect
+                for development, staging, and budget-conscious deployments.
               </p>
               <div className="space-y-3 border-t border-border pt-6">
                 <motion.div
@@ -451,7 +570,7 @@ export default function Home() {
                 >
                   <span className="mt-0.5 text-text-muted">→</span>
                   <span className="text-sm leading-relaxed text-text-muted sm:text-base">
-                    Premium hosting on high-end hardware
+                    Repurposed enterprise hardware for reduced environmental impact
                   </span>
                 </motion.div>
                 <motion.div
@@ -463,10 +582,154 @@ export default function Home() {
                 >
                   <span className="mt-0.5 text-text-muted">→</span>
                   <span className="text-sm leading-relaxed text-text-muted sm:text-base">
-                    Budget hosting using recycled business PCs
+                    Cost-effective pricing for budget-conscious projects
+                  </span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 25 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="mt-0.5 text-text-muted">→</span>
+                  <span className="text-sm leading-relaxed text-text-muted sm:text-base">
+                    Standard DDoS protection and security features
                   </span>
                 </motion.div>
               </div>
+            </div>
+          </div>
+        </div>
+      </AnimatedSection>
+
+      {/* Module: Hosting */}
+      <AnimatedSection bootComplete={bootComplete} className="full-width-section relative bg-background-secondary">
+        <motion.div
+          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
+          className="section-background depth-layer"
+        />
+        <motion.div
+          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "8%"]) }}
+          className="absolute inset-0 opacity-15 pointer-events-none"
+        >
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 70% 60%, rgba(46, 242, 162, 0.008) 0%, transparent 50%)
+              `,
+            }}
+          />
+        </motion.div>
+        <div className="section-content mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ type: "spring", stiffness: 100, damping: 25 }}
+            className="mb-10"
+          >
+            <div className="flex items-center gap-4 mb-3">
+              <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
+                HOSTING
+              </h2>
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-mono uppercase tracking-wider text-accent"
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
+                </span>
+                Planned
+              </motion.span>
+            </div>
+          </motion.div>
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+            <div className="order-1">
+              <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
+                Premium hosting infrastructure built for demanding applications.
+                Delivers exceptional performance, reliability, and support for
+                mission-critical workloads on global edge network.
+              </p>
+              <div className="space-y-3 border-t border-border pt-6">
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 25 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="mt-0.5 text-text-muted">→</span>
+                  <span className="text-sm leading-relaxed text-text-muted sm:text-base">
+                    Global edge network with 50+ locations worldwide
+                  </span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 25 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="mt-0.5 text-text-muted">→</span>
+                  <span className="text-sm leading-relaxed text-text-muted sm:text-base">
+                    Dedicated resources with guaranteed performance SLAs
+                  </span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 25 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="mt-0.5 text-text-muted">→</span>
+                  <span className="text-sm leading-relaxed text-text-muted sm:text-base">
+                    Built-in CDN and DDoS protection
+                  </span>
+                </motion.div>
+              </div>
+            </div>
+            <div className="order-2">
+              <FloatingCard delay={0.5} bootComplete={bootComplete}>
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="system-card p-6 opacity-60"
+                >
+                  <div className="card-content space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-5 w-32 bg-text-primary/15 rounded"></div>
+                      <div className="h-4 w-16 bg-border/50 rounded-full"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4 text-xs font-mono">
+                        <div className="flex items-center gap-1">
+                          <span className="text-text-muted">Region:</span>
+                          <span className="h-3 w-16 bg-text-primary/15 rounded"></span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-text-muted">Status:</span>
+                          <span className="h-3 w-12 bg-border/50 rounded"></span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-mono">
+                        <span className="text-text-muted">Resources:</span>
+                        <span className="h-3 w-20 bg-text-primary/15 rounded"></span>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2 border-t border-border pt-4">
+                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
+                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
+                    </div>
+                  </div>
+                </motion.div>
+              </FloatingCard>
             </div>
           </div>
         </div>
@@ -493,9 +756,9 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.1, type: "spring", stiffness: 100, damping: 25 }}
               >
-                Local-first architecture. All server data remains on user-controlled
-                hardware. No cloud dependencies or platform lock-in. Portable data
-                formats enable migration and backup operations.
+                Local-first, always. All server data remains on user-controlled hardware
+                by default. No cloud dependencies or platform lock-in. When you need cloud
+                hosting, we provide that option—but local ownership is the foundation.
               </motion.p>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -503,9 +766,9 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 100, damping: 25 }}
               >
-                Minimal complexity. Each module provides essential functionality
-                without unnecessary abstraction. System designed for direct control
-                and clear operational boundaries.
+                Environmental responsibility through recycled hardware. Recycle Host repurposes
+                enterprise PCs, reducing electronic waste while delivering reliable hosting.
+                Sustainable infrastructure that doesn't compromise on performance or reliability.
               </motion.p>
           </div>
           <motion.div
