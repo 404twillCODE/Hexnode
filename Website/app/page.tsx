@@ -56,8 +56,9 @@ export default function Home() {
             transition={{ delay: 0.1, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
             className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl"
           >
-            Infrastructure management reimagined. Powerful, minimal, and built
-            for developers who demand precision.
+            Run Minecraft servers easily — locally, portably, and eventually
+            hosted. Powerful, minimal, and built for server owners who demand
+            precision.
           </motion.p>
           <motion.div
             {...fadeInUp}
@@ -101,28 +102,27 @@ export default function Home() {
                 Software
               </h2>
               <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
-                Deploy and manage your applications with ease. Our platform
-                provides the tools you need to run your software stack
-                efficiently, with monitoring, scaling, and management all in
-                one place.
+                A local desktop application for creating and managing Minecraft
+                servers. Create servers, manage worlds, handle backups, and
+                control everything from one simple interface.
               </p>
               <ul className="mt-8 space-y-3">
                 <li className="flex items-start gap-3">
                   <span className="mt-0.5 text-accent">→</span>
                   <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Automated deployment pipelines
+                    Create and manage multiple Minecraft servers
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-0.5 text-accent">→</span>
                   <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Real-time monitoring and alerts
+                    World management, backups, and version selection
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-0.5 text-accent">→</span>
                   <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Resource scaling and optimization
+                    Simple start/stop controls and console access
                   </span>
                 </li>
               </ul>
@@ -176,27 +176,21 @@ export default function Home() {
                 Hosting
               </h2>
               <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
-                Enterprise-grade hosting infrastructure designed for
-                performance and reliability. Deploy your applications on our
-                global network with automatic scaling and redundancy.
+                Minecraft server hosting is planned for the future. We're working
+                on two hosting options to give you flexibility in how you run
+                your Minecraft servers.
               </p>
               <ul className="mt-8 space-y-3">
                 <li className="flex items-start gap-3">
                   <span className="mt-0.5 text-accent">→</span>
                   <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Global edge network deployment
+                    Premium hosting on high-end hardware
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-0.5 text-accent">→</span>
                   <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Automatic failover and redundancy
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-0.5 text-accent">→</span>
-                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Built-in CDN and DDoS protection
+                    Budget hosting using recycled business PCs
                   </span>
                 </li>
               </ul>
@@ -214,27 +208,27 @@ export default function Home() {
                 USB Server
               </h2>
               <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
-                Remotely access and manage USB devices over the network. Share
-                USB peripherals across your infrastructure with secure,
-                low-latency connections.
+                A complete Minecraft server stored entirely on a USB drive. The
+                server, worlds, configs, and backups all live on the USB—just plug
+                it into any PC to run your server.
               </p>
               <ul className="mt-8 space-y-3">
                 <li className="flex items-start gap-3">
                   <span className="mt-0.5 text-accent">→</span>
                   <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Network-based USB device sharing
+                    Perfect for LAN parties and travel
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-0.5 text-accent">→</span>
                   <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Low-latency remote access
+                    Portable worlds and private servers
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-0.5 text-accent">→</span>
                   <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
-                    Secure device management
+                    Everything portable—plug and play anywhere
                   </span>
                 </li>
               </ul>
@@ -270,33 +264,33 @@ export default function Home() {
         <div className="mx-auto w-full max-w-4xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
           <div className="text-center">
             <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl">
-              Built for Developers
+              Your Server, Your Control
             </h2>
             <p className="mt-6 text-base leading-relaxed text-text-secondary sm:text-lg">
-              HexNode is built on the principle that infrastructure management
-              should be powerful yet simple. We believe in minimal interfaces,
-              clear abstractions, and giving developers the control they need
-              without the complexity they don't.
+              HexNode is built on the principle that running Minecraft servers
+              should be simple and you should own what you create. Run servers on
+              your own hardware, keep your worlds portable, and never get locked
+              into a platform.
             </p>
             <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
-              Every feature is designed with precision and purpose. No bloat, no
-              unnecessary complexity—just the tools you need to build and deploy
-              with confidence.
+              Every feature is designed with simplicity and ownership in mind. No
+              cloud lock-in, no unnecessary complexity—just the tools you need to
+              run your servers the way you want.
             </p>
             <div className="mt-10 flex items-center justify-center gap-8 border-t border-border pt-10">
               <div className="text-center">
-                <div className="text-2xl font-semibold text-accent sm:text-3xl">99.9%</div>
-                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">Uptime SLA</div>
+                <div className="text-2xl font-semibold text-accent sm:text-3xl">Software</div>
+                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">First</div>
               </div>
               <div className="h-10 w-px bg-border"></div>
               <div className="text-center">
-                <div className="text-2xl font-semibold text-accent sm:text-3xl">24/7</div>
-                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">Monitoring</div>
+                <div className="text-2xl font-semibold text-accent sm:text-3xl">Local</div>
+                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">Ownership</div>
               </div>
               <div className="h-10 w-px bg-border"></div>
               <div className="text-center">
-                <div className="text-2xl font-semibold text-accent sm:text-3xl">API</div>
-                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">First Design</div>
+                <div className="text-2xl font-semibold text-accent sm:text-3xl">Future</div>
+                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">Expandable</div>
               </div>
             </div>
           </div>
