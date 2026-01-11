@@ -1,28 +1,16 @@
 import { motion } from "framer-motion";
 
-declare global {
-  interface Window {
-    electronAPI?: {
-      windowControls: {
-        minimize: () => void;
-        maximize: () => void;
-        close: () => void;
-      };
-    };
-  }
-}
-
 export default function TitleBar() {
   const handleMinimize = () => {
-    window.electronAPI?.windowControls.minimize();
+    window.electronAPI?.windowControls?.minimize();
   };
 
   const handleMaximize = () => {
-    window.electronAPI?.windowControls.maximize();
+    window.electronAPI?.windowControls?.maximize();
   };
 
   const handleClose = () => {
-    window.electronAPI?.windowControls.close();
+    window.electronAPI?.windowControls?.close();
   };
 
   return (

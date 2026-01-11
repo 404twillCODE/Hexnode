@@ -9,23 +9,57 @@ interface ConsoleLine {
   type?: 'stdout' | 'stderr' | 'command';
 }
 
-export default function ConsolePanel() {
+interface ConsolePanelProps {
+  selectedServer?: string | null;
+}
+
+export default function ConsolePanel({ selectedServer: propSelectedServer }: ConsolePanelProps) {
   const { servers, sendCommand } = useServerManager();
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const [input, setInput] = useState("");
-  const [selectedServer, setSelectedServer] = useState<string | null>(null);
+  const [internalSelectedServer, setInternalSelectedServer] = useState<string | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [settings, setSettings] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const activeServer = servers.find(s => s.status === 'ACTIVE' || s.status === 'RUNNING');
+  
+  // Use prop if provided, otherwise use internal state
+  const selectedServer = propSelectedServer !== undefined ? propSelectedServer : internalSelectedServer;
 
   useEffect(() => {
-    if (activeServer && !selectedServer) {
-      setSelectedServer(activeServer.name);
-    } else if (!activeServer) {
-      setSelectedServer(null);
+    // Load console settings
+    const loadSettings = async () => {
+      if (window.electronAPI) {
+        try {
+          const appSettings = await window.electronAPI.server.getAppSettings();
+          setSettings(appSettings);
+          setAutoScroll(appSettings.consoleAutoScroll !== false);
+        } catch (error) {
+          console.error('Failed to load settings:', error);
+        }
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const activeServer = servers.find(s => s.status === 'RUNNING');
+
+  useEffect(() => {
+    // Only auto-select if no prop is provided
+    if (propSelectedServer === undefined) {
+      if (activeServer && !internalSelectedServer) {
+        setInternalSelectedServer(activeServer.name);
+      } else if (!activeServer) {
+        setInternalSelectedServer(null);
+      }
     }
-  }, [activeServer, selectedServer]);
+  }, [activeServer, internalSelectedServer, propSelectedServer]);
+
+  // Clear console when selected server changes (from prop)
+  useEffect(() => {
+    if (propSelectedServer !== undefined) {
+      setLines([]);
+    }
+  }, [propSelectedServer]);
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -42,9 +76,10 @@ export default function ConsolePanel() {
               type: data.type,
             };
             setLines(prev => {
-              // Limit to last 1000 lines to prevent memory issues
+              // Limit to maxConsoleLines from settings (default 1000)
+              const maxLines = settings?.maxConsoleLines || 1000;
               const newLines = [...prev, newLine];
-              return newLines.slice(-1000);
+              return newLines.slice(-maxLines);
             });
           }
         });
@@ -56,7 +91,7 @@ export default function ConsolePanel() {
     return () => {
       window.electronAPI?.server.removeServerLogListener();
     };
-  }, [selectedServer]);
+  }, [selectedServer, settings]);
 
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
@@ -117,9 +152,12 @@ export default function ConsolePanel() {
               <select
                 value={selectedServer || ''}
                 onChange={(e) => {
-                  setSelectedServer(e.target.value || null);
+                  if (propSelectedServer === undefined) {
+                    setInternalSelectedServer(e.target.value || null);
+                  }
                   setLines([]); // Clear console when switching servers
                 }}
+                disabled={propSelectedServer !== undefined}
                 className="bg-background-secondary border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
               >
                 <option value="">Select server...</option>
@@ -135,7 +173,18 @@ export default function ConsolePanel() {
                 <input
                   type="checkbox"
                   checked={autoScroll}
-                  onChange={(e) => setAutoScroll(e.target.checked)}
+                  onChange={(e) => {
+                    setAutoScroll(e.target.checked);
+                    // Save to settings
+                    if (window.electronAPI && settings) {
+                      window.electronAPI.server.saveAppSettings({
+                        ...settings,
+                        consoleAutoScroll: e.target.checked
+                      }).then(() => {
+                        setSettings({ ...settings, consoleAutoScroll: e.target.checked });
+                      });
+                    }
+                  }}
                   className="w-4 h-4 accent-accent cursor-pointer"
                 />
                 Auto-scroll
@@ -180,9 +229,16 @@ export default function ConsolePanel() {
                       ? 'bg-background-secondary/30' 
                       : ''
                   }`}
+                  style={{ fontSize: `${settings?.consoleFontSize || 12}px` }}
                 >
-                  <span className="text-text-muted text-xs flex-shrink-0">{line.timestamp}</span>
-                  <span className="whitespace-pre-wrap break-words flex-1">{line.text}</span>
+                  {settings?.showTimestamps !== false && (
+                    <span className="text-text-muted text-xs flex-shrink-0">{line.timestamp}</span>
+                  )}
+                  <span 
+                    className={`flex-1 ${settings?.consoleWordWrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'}`}
+                  >
+                    {line.text}
+                  </span>
                 </motion.div>
               ))}
             </div>

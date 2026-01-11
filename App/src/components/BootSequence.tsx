@@ -109,7 +109,7 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
   };
 
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
+    const handleKeyPress = () => {
       if (isVisible && !isComplete) {
         handleSkip();
       }

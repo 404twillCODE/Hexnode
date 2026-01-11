@@ -5,12 +5,11 @@ import SetupView from "./components/SetupView";
 import SetupOptionsView from "./components/SetupOptionsView";
 import Sidebar from "./components/Sidebar";
 import ServerList from "./components/ServerList";
-import ConsolePanel from "./components/ConsolePanel";
-import WorldsView from "./components/WorldsView";
+import ServerDetailView from "./components/ServerDetailView";
 import SettingsView from "./components/SettingsView";
 import TitleBar from "./components/TitleBar";
 
-type View = "servers" | "worlds" | "console" | "settings";
+type View = "servers" | "settings" | "server-detail";
 type SetupStep = "boot" | "detection" | "options" | "complete";
 
 function App() {
@@ -18,6 +17,7 @@ function App() {
   const [setupStep, setSetupStep] = useState<SetupStep>("boot");
   const [bootComplete, setBootComplete] = useState(false);
   const [currentView, setCurrentView] = useState<View>("servers");
+  const [selectedServer, setSelectedServer] = useState<string | null>(null);
 
   useEffect(() => {
     checkSetupStatus();
@@ -56,18 +56,28 @@ function App() {
     setBootComplete(true);
   };
 
+  const handleServerClick = (serverName: string) => {
+    setSelectedServer(serverName);
+    setCurrentView("server-detail");
+  };
+
+  const handleBackToServers = () => {
+    setSelectedServer(null);
+    setCurrentView("servers");
+  };
+
   const renderView = () => {
+    if (currentView === "server-detail" && selectedServer) {
+      return <ServerDetailView serverName={selectedServer} onBack={handleBackToServers} />;
+    }
+
     switch (currentView) {
       case "servers":
-        return <ServerList />;
-      case "worlds":
-        return <WorldsView />;
-      case "console":
-        return <ConsolePanel />;
+        return <ServerList onServerClick={handleServerClick} />;
       case "settings":
         return <SettingsView />;
       default:
-        return <ServerList />;
+        return <ServerList onServerClick={handleServerClick} />;
     }
   };
 
@@ -124,9 +134,11 @@ function App() {
           >
             <TitleBar />
             <div className="flex flex-1 overflow-hidden">
-              <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+              {currentView !== "server-detail" && (
+                <Sidebar currentView={currentView as "servers" | "settings"} onViewChange={setCurrentView} />
+              )}
               <motion.main
-                key={currentView}
+                key={currentView + (selectedServer || '')}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
