@@ -24,6 +24,10 @@ interface SystemInfo {
   platform: string;
   arch: string;
   hostname: string;
+  java?: {
+    installed: boolean;
+    version: string | null;
+  };
 }
 
 interface SetupViewProps {
@@ -33,6 +37,8 @@ interface SetupViewProps {
 export default function SetupView({ onNext }: SetupViewProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [javaStatus, setJavaStatus] = useState<{ installed: boolean; version: string | null } | null>(null);
+  const [showJavaWarning, setShowJavaWarning] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -82,7 +88,7 @@ export default function SetupView({ onNext }: SetupViewProps) {
       }
       
       // Resume updates after scroll stops
-      scrollTimeoutRef.current = setTimeout(() => {
+      scrollTimeoutRef.current = setTimeout(async () => {
         isScrollingRef.current = false;
         // Resume updates
         startUpdates();
@@ -90,6 +96,15 @@ export default function SetupView({ onNext }: SetupViewProps) {
         if (pendingUpdateRef.current) {
           setSystemInfo(pendingUpdateRef.current);
           pendingUpdateRef.current = null;
+        }
+        // Re-check Java status when scrolling stops (in case user installed it)
+        if (window.electronAPI) {
+          try {
+            const java = await window.electronAPI.server.checkJava();
+            setJavaStatus(java);
+          } catch (error) {
+            // Silent fail
+          }
         }
       }, 500); // Longer delay to ensure scroll is truly stopped
     };
@@ -119,12 +134,19 @@ export default function SetupView({ onNext }: SetupViewProps) {
 
     try {
       const info = await window.electronAPI.server.getSystemInfo();
+      // Check Java status
+      const java = await window.electronAPI.server.checkJava();
+      setJavaStatus(java);
+      
+      // Add Java info to system info
+      const infoWithJava = { ...info, java };
+      
       // Only update if not scrolling to prevent stutter
       if (!isScrollingRef.current) {
-        setSystemInfo(info);
+        setSystemInfo(infoWithJava);
       } else {
         // Queue update for when scrolling stops
-        pendingUpdateRef.current = info;
+        pendingUpdateRef.current = infoWithJava;
       }
     } catch (error) {
       console.error('Failed to load system info:', error);
@@ -134,7 +156,17 @@ export default function SetupView({ onNext }: SetupViewProps) {
   };
 
   const handleNext = () => {
+    // Check if Java is installed
+    if (!javaStatus?.installed) {
+      setShowJavaWarning(true);
+      return;
+    }
     onNext();
+  };
+
+  const handleDownloadJava = () => {
+    // Open Java download page
+    window.open('https://adoptium.net/', '_blank');
   };
 
   if (loading) {
@@ -292,6 +324,44 @@ export default function SetupView({ onNext }: SetupViewProps) {
               </div>
             )}
 
+            {/* Java Info */}
+            <div className="border border-border rounded p-4">
+              <h3 className="text-sm font-semibold text-text-primary font-mono mb-3 uppercase tracking-wider">
+                Java Runtime
+              </h3>
+              <div className="space-y-2 text-text-secondary font-mono text-sm">
+                <div className="flex justify-between items-center">
+                  <span>Status:</span>
+                  {javaStatus?.installed ? (
+                    <span className="text-green-400 font-semibold">INSTALLED</span>
+                  ) : (
+                    <span className="text-red-400 font-semibold">NOT INSTALLED</span>
+                  )}
+                </div>
+                {javaStatus?.installed && javaStatus?.version && (
+                  <div className="flex justify-between">
+                    <span>Version:</span>
+                    <span className="text-text-primary">{javaStatus.version}</span>
+                  </div>
+                )}
+                {!javaStatus?.installed && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-xs text-text-muted mb-2">
+                      Java is required to run Minecraft servers. Download Java to continue.
+                    </p>
+                    <motion.button
+                      onClick={handleDownloadJava}
+                      className="btn-primary text-xs"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      DOWNLOAD JAVA
+                    </motion.button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* System Info */}
             <div className="border border-border rounded p-4">
               <h3 className="text-sm font-semibold text-text-primary font-mono mb-3 uppercase tracking-wider">
@@ -325,6 +395,43 @@ export default function SetupView({ onNext }: SetupViewProps) {
             CONTINUE
           </motion.button>
         </div>
+
+        {/* Java Warning Modal */}
+        {showJavaWarning && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="border border-border bg-background-secondary p-6 rounded max-w-md w-full mx-4"
+            >
+              <h3 className="text-xl font-semibold text-text-primary font-mono mb-4">
+                Java Required
+              </h3>
+              <p className="text-text-secondary font-mono text-sm mb-6">
+                Java is not installed on your system. Java is required to run Minecraft servers.
+                Please download and install Java before continuing.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <motion.button
+                  onClick={() => setShowJavaWarning(false)}
+                  className="btn-secondary"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  CANCEL
+                </motion.button>
+                <motion.button
+                  onClick={handleDownloadJava}
+                  className="btn-primary"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  DOWNLOAD JAVA
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

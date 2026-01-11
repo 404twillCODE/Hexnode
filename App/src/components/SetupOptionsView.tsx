@@ -203,18 +203,27 @@ export default function SetupOptionsView({ onComplete }: SetupOptionsViewProps) 
             <div className="space-y-4 text-text-secondary font-mono text-sm">
               <div>
                 <label className="block mb-2 text-text-primary">Default RAM Allocation: {defaultRAM} GB</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="1"
-                    max={maxRAM}
-                    value={defaultRAM}
-                    onChange={(e) => setDefaultRAM(parseInt(e.target.value))}
-                    className="flex-1 h-2 bg-background-secondary rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed slider-custom"
-                    style={{
-                      background: `linear-gradient(to right, #2EF2A2 0%, #2EF2A2 ${(defaultRAM / maxRAM) * 100}%, #111111 ${(defaultRAM / maxRAM) * 100}%, #111111 100%)`
-                    }}
-                  />
+                <div className="flex items-center gap-4 relative">
+                  <div className="flex-1 relative h-2">
+                    {/* Filled portion - stops just before thumb */}
+                    <div 
+                      className="absolute inset-y-0 left-0 h-2 bg-accent rounded-l-lg pointer-events-none"
+                      style={{ 
+                        width: `min(calc(${(defaultRAM / maxRAM) * 100}% - 9px), calc(100% - 18px))`, 
+                        zIndex: 1
+                      }}
+                    ></div>
+                    {/* Slider input */}
+                    <input
+                      type="range"
+                      min="1"
+                      max={maxRAM}
+                      value={defaultRAM}
+                      onChange={(e) => setDefaultRAM(parseInt(e.target.value))}
+                      className="absolute inset-0 w-full h-2 appearance-none cursor-pointer slider-custom bg-transparent"
+                      style={{ zIndex: 5 }}
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-between text-xs text-text-muted font-mono mt-1">
                   <span>1GB</span>

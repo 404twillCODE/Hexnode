@@ -217,7 +217,19 @@ async function getAppSettings() {
       updates: true
     },
     defaultRAM: 4,
-    defaultPort: 25565
+    defaultPort: 25565,
+    devMode: false,
+    consoleAutoScroll: true,
+    maxConsoleLines: 1000,
+    showTimestamps: true,
+    statusRefreshRate: 2,
+    reduceAnimations: false,
+    autoUpdateCheck: true,
+    consoleWordWrap: false,
+    consoleFontSize: 12,
+    debugLogging: false,
+    showPerformanceMetrics: false,
+    logLevel: 'info'
   };
 }
 
@@ -433,7 +445,7 @@ async function saveServerConfig(serverName, config) {
 }
 
 // Create server
-async function createServer(serverName = 'default', version = null, ramGB = 4) {
+async function createServer(serverName = 'default', version = null, ramGB = null) {
   try {
     await ensureDirectories();
     // Get custom servers directory from settings, or use default
@@ -460,6 +472,10 @@ async function createServer(serverName = 'default', version = null, ramGB = 4) {
     const jarPath = await downloadPaper(serverPath, selectedVersion, build);
     const jarFile = path.basename(jarPath);
 
+    // Use provided RAM or default from settings
+    const serverRAM = ramGB !== null ? ramGB : (settings.defaultRAM || 4);
+    const serverPort = settings.defaultPort || 25565;
+
     // Create eula.txt
     const eulaPath = path.join(serverPath, 'eula.txt');
     await fs.writeFile(eulaPath, 'eula=true\n', 'utf8');
@@ -467,9 +483,9 @@ async function createServer(serverName = 'default', version = null, ramGB = 4) {
     // Save server config
     await saveServerConfig(serverName, {
       version: selectedVersion,
-      ramGB,
+      ramGB: serverRAM,
       status: 'STOPPED',
-      port: 25565
+      port: serverPort
     });
 
     return { success: true, path: serverPath, jarFile, version: selectedVersion, build };

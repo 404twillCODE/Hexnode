@@ -178,7 +178,8 @@
     -webkit-appearance: none;
     appearance: none;
     height: 2px;
-    background: transparent;
+    background: transparent !important;
+    position: relative;
   }
 
   .slider-custom::-webkit-slider-thumb {
@@ -209,12 +210,15 @@
 
   .slider-custom::-webkit-slider-runnable-track {
     height: 2px;
-    background: transparent;
+    background: transparent !important;
+    border: none;
+    -webkit-appearance: none;
   }
 
   .slider-custom::-moz-range-track {
     height: 2px;
-    background: transparent;
+    background: transparent !important;
+    border: none;
   }
 }
 
