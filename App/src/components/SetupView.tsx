@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface Drive {
   letter: string;
@@ -33,16 +33,72 @@ interface SetupViewProps {
 export default function SetupView({ onNext }: SetupViewProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingUpdateRef = useRef<SystemInfo | null>(null);
 
   useEffect(() => {
     loadSystemInfo();
     
-    // Set up real-time updates every 2 seconds
-    const interval = setInterval(() => {
-      loadSystemInfo();
-    }, 2000);
+    // Set up real-time updates every 3 seconds (less frequent to reduce stutter)
+    const startUpdates = () => {
+      if (updateIntervalRef.current) clearInterval(updateIntervalRef.current);
+      updateIntervalRef.current = setInterval(async () => {
+        if (!window.electronAPI) return;
+        
+        try {
+          const info = await window.electronAPI.server.getSystemInfo();
+          
+          // If scrolling, queue the update
+          if (isScrollingRef.current) {
+            pendingUpdateRef.current = info;
+          } else {
+            // Apply immediately if not scrolling
+            setSystemInfo(info);
+            pendingUpdateRef.current = null;
+          }
+        } catch (error) {
+          console.error('Failed to load system info:', error);
+        }
+      }, 3000);
+    };
 
-    return () => clearInterval(interval);
+    startUpdates();
+
+    // Handle scroll events
+    const handleScroll = () => {
+      isScrollingRef.current = true;
+      
+      // Clear existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // Set scrolling to false after scroll stops and apply pending updates
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false;
+        // Apply any pending updates when scrolling stops
+        if (pendingUpdateRef.current) {
+          setSystemInfo(pendingUpdateRef.current);
+          pendingUpdateRef.current = null;
+        }
+      }, 200);
+    };
+
+    const scrollElement = scrollContainerRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+    }
+
+    return () => {
+      if (updateIntervalRef.current) clearInterval(updateIntervalRef.current);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      if (scrollElement) {
+        scrollElement.removeEventListener('scroll', handleScroll);
+      }
+    };
   }, []);
 
   const loadSystemInfo = async () => {
@@ -53,7 +109,13 @@ export default function SetupView({ onNext }: SetupViewProps) {
 
     try {
       const info = await window.electronAPI.server.getSystemInfo();
-      setSystemInfo(info);
+      // Only update if not scrolling to prevent stutter
+      if (!isScrollingRef.current) {
+        setSystemInfo(info);
+      } else {
+        // Queue update for when scrolling stops
+        pendingUpdateRef.current = info;
+      }
     } catch (error) {
       console.error('Failed to load system info:', error);
     } finally {
@@ -104,6 +166,7 @@ export default function SetupView({ onNext }: SetupViewProps) {
 
         {systemInfo && (
           <div 
+            ref={scrollContainerRef}
             className="space-y-6 mb-6 flex-1 custom-scrollbar"
             style={{ 
               overflowY: 'auto',
