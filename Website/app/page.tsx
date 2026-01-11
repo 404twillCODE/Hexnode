@@ -5,15 +5,15 @@ import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
 const fadeInUp = {
-  initial: { opacity: 0, y: 30 },
+  initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+  transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
 };
 
 const sectionVariants = {
-  initial: { opacity: 0, y: 40 },
+  initial: { opacity: 0, y: 30 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
+  transition: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
 };
 
 function AnimatedSection({
@@ -24,7 +24,7 @@ function AnimatedSection({
   className?: string;
 }) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
     <motion.div
@@ -43,7 +43,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="mx-auto w-full max-w-7xl px-4 py-32 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
         <div className="text-center">
           <motion.h1
             {...fadeInUp}
@@ -53,40 +53,37 @@ export default function Home() {
           </motion.h1>
           <motion.p
             {...fadeInUp}
-            transition={{ delay: 0.1, duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-            className="mx-auto mt-8 max-w-2xl text-xl text-text-secondary"
+            transition={{ delay: 0.1, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl"
           >
             Infrastructure management reimagined. Powerful, minimal, and built
             for developers who demand precision.
           </motion.p>
           <motion.div
             {...fadeInUp}
-            transition={{ delay: 0.2, duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-            className="mt-12 flex items-center justify-center gap-4"
+            transition={{ delay: 0.2, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            className="mt-10 flex items-center justify-center gap-4"
           >
             <motion.div
               whileHover={{
-                boxShadow: "0 0 20px rgba(46, 242, 162, 0.3)",
-                scale: 1.02,
+                boxShadow: "0 0 16px rgba(46, 242, 162, 0.25)",
               }}
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             >
               <Link
                 href="/dashboard"
-                className="block rounded border border-accent/30 bg-accent/10 px-8 py-3 text-sm font-medium text-accent transition-all hover:border-accent/50 hover:bg-accent/20"
+                className="block rounded border border-accent/30 bg-accent/10 px-8 py-3 text-sm font-medium text-accent transition-colors hover:border-accent/50 hover:bg-accent/20"
               >
                 Get Started
               </Link>
             </motion.div>
             <motion.div
-              whileHover={{
-                scale: 1.02,
-              }}
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              whileHover={{ opacity: 0.9 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             >
               <Link
                 href="/docs"
-                className="block rounded border border-border px-8 py-3 text-sm font-medium text-text-secondary transition-all hover:border-border-hover hover:text-text-primary"
+                className="block rounded border border-border px-8 py-3 text-sm font-medium text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
               >
                 Documentation
               </Link>
@@ -97,34 +94,34 @@ export default function Home() {
 
       {/* Software Overview Section */}
       <AnimatedSection className="border-y border-border bg-background-secondary">
-        <div className="mx-auto w-full max-w-7xl px-4 py-32 sm:px-6 lg:px-8">
-          <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+        <div className="mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
             <div>
-              <h2 className="text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl">
+              <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl">
                 Software
               </h2>
-              <p className="mt-6 text-lg leading-relaxed text-text-secondary">
+              <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
                 Deploy and manage your applications with ease. Our platform
                 provides the tools you need to run your software stack
                 efficiently, with monitoring, scaling, and management all in
                 one place.
               </p>
-              <ul className="mt-8 space-y-4">
+              <ul className="mt-8 space-y-3">
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Automated deployment pipelines
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Real-time monitoring and alerts
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Resource scaling and optimization
                   </span>
                 </li>
@@ -132,9 +129,9 @@ export default function Home() {
             </div>
             <motion.div
               whileHover={{
-                y: -8,
-                transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+                y: -4,
               }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
               className="rounded border border-border bg-background p-8"
             >
               <div className="space-y-4">
@@ -154,14 +151,14 @@ export default function Home() {
 
       {/* Hosting Overview Section */}
       <AnimatedSection className="border-b border-border">
-        <div className="mx-auto w-full max-w-7xl px-4 py-32 sm:px-6 lg:px-8">
-          <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+        <div className="mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
             <div className="order-2 lg:order-1">
               <motion.div
                 whileHover={{
-                  y: -8,
-                  transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+                  y: -4,
                 }}
+                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                 className="rounded border border-border bg-background p-8 opacity-50"
               >
                 <div className="space-y-4">
@@ -175,30 +172,30 @@ export default function Home() {
               <div className="mb-4 inline-block rounded border border-accent/20 bg-accent/5 px-3 py-1 text-xs font-medium text-accent">
                 Coming Soon
               </div>
-              <h2 className="mt-4 text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl">
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl">
                 Hosting
               </h2>
-              <p className="mt-6 text-lg leading-relaxed text-text-secondary">
+              <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
                 Enterprise-grade hosting infrastructure designed for
                 performance and reliability. Deploy your applications on our
                 global network with automatic scaling and redundancy.
               </p>
-              <ul className="mt-8 space-y-4">
+              <ul className="mt-8 space-y-3">
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Global edge network deployment
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Automatic failover and redundancy
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Built-in CDN and DDoS protection
                   </span>
                 </li>
@@ -210,33 +207,33 @@ export default function Home() {
 
       {/* USB Server Overview Section */}
       <AnimatedSection className="border-b border-border bg-background-secondary">
-        <div className="mx-auto w-full max-w-7xl px-4 py-32 sm:px-6 lg:px-8">
-          <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+        <div className="mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
             <div>
-              <h2 className="text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl">
+              <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl">
                 USB Server
               </h2>
-              <p className="mt-6 text-lg leading-relaxed text-text-secondary">
+              <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
                 Remotely access and manage USB devices over the network. Share
                 USB peripherals across your infrastructure with secure,
                 low-latency connections.
               </p>
-              <ul className="mt-8 space-y-4">
+              <ul className="mt-8 space-y-3">
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Network-based USB device sharing
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Low-latency remote access
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-accent">→</span>
-                  <span className="text-text-secondary">
+                  <span className="mt-0.5 text-accent">→</span>
+                  <span className="text-sm leading-relaxed text-text-secondary sm:text-base">
                     Secure device management
                   </span>
                 </li>
@@ -244,9 +241,9 @@ export default function Home() {
             </div>
             <motion.div
               whileHover={{
-                y: -8,
-                transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+                y: -4,
               }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
               className="rounded border border-border bg-background p-8"
             >
               <div className="space-y-4">
@@ -270,36 +267,36 @@ export default function Home() {
 
       {/* Vision / Philosophy Section */}
       <AnimatedSection className="border-b border-border">
-        <div className="mx-auto w-full max-w-4xl px-4 py-32 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-4xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
           <div className="text-center">
-            <h2 className="text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl">
               Built for Developers
             </h2>
-            <p className="mt-8 text-lg leading-relaxed text-text-secondary">
+            <p className="mt-6 text-base leading-relaxed text-text-secondary sm:text-lg">
               HexNode is built on the principle that infrastructure management
               should be powerful yet simple. We believe in minimal interfaces,
               clear abstractions, and giving developers the control they need
               without the complexity they don't.
             </p>
-            <p className="mt-6 text-lg leading-relaxed text-text-secondary">
+            <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
               Every feature is designed with precision and purpose. No bloat, no
               unnecessary complexity—just the tools you need to build and deploy
               with confidence.
             </p>
-            <div className="mt-12 flex items-center justify-center gap-8 border-t border-border pt-12">
+            <div className="mt-10 flex items-center justify-center gap-8 border-t border-border pt-10">
               <div className="text-center">
-                <div className="text-3xl font-semibold text-accent">99.9%</div>
-                <div className="mt-2 text-sm text-text-muted">Uptime SLA</div>
+                <div className="text-2xl font-semibold text-accent sm:text-3xl">99.9%</div>
+                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">Uptime SLA</div>
               </div>
-              <div className="h-12 w-px bg-border"></div>
+              <div className="h-10 w-px bg-border"></div>
               <div className="text-center">
-                <div className="text-3xl font-semibold text-accent">24/7</div>
-                <div className="mt-2 text-sm text-text-muted">Monitoring</div>
+                <div className="text-2xl font-semibold text-accent sm:text-3xl">24/7</div>
+                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">Monitoring</div>
               </div>
-              <div className="h-12 w-px bg-border"></div>
+              <div className="h-10 w-px bg-border"></div>
               <div className="text-center">
-                <div className="text-3xl font-semibold text-accent">API</div>
-                <div className="mt-2 text-sm text-text-muted">First Design</div>
+                <div className="text-2xl font-semibold text-accent sm:text-3xl">API</div>
+                <div className="mt-1.5 text-xs text-text-muted sm:text-sm">First Design</div>
               </div>
             </div>
           </div>
