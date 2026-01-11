@@ -77,6 +77,26 @@ export default function Home() {
     <div ref={containerRef} className="relative flex flex-col">
       <BootSequence onComplete={() => setBootComplete(true)} />
 
+      {/* Development Notice Banner */}
+      {bootComplete && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="full-width-section relative z-50 border-b border-accent/20 bg-accent/5"
+        >
+          <div className="section-content mx-auto w-full max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider text-accent/80">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
+              </span>
+              <span>Website in active development</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Hero Section */}
       <section
         ref={heroRef}
