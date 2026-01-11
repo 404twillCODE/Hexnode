@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-type View = "servers" | "worlds" | "console" | "settings";
+type View = "servers" | "settings";
 
 interface SidebarProps {
   currentView: View;
@@ -9,8 +9,6 @@ interface SidebarProps {
 
 const menuItems: { id: View; label: string }[] = [
   { id: "servers", label: "SERVERS" },
-  { id: "worlds", label: "WORLDS" },
-  { id: "console", label: "CONSOLE" },
   { id: "settings", label: "SETTINGS" },
 ];
 

@@ -1,28 +1,16 @@
 import { motion } from "framer-motion";
 
-declare global {
-  interface Window {
-    electronAPI?: {
-      windowControls: {
-        minimize: () => void;
-        maximize: () => void;
-        close: () => void;
-      };
-    };
-  }
-}
-
 export default function TitleBar() {
   const handleMinimize = () => {
-    window.electronAPI?.windowControls.minimize();
+    window.electronAPI?.windowControls?.minimize();
   };
 
   const handleMaximize = () => {
-    window.electronAPI?.windowControls.maximize();
+    window.electronAPI?.windowControls?.maximize();
   };
 
   const handleClose = () => {
-    window.electronAPI?.windowControls.close();
+    window.electronAPI?.windowControls?.close();
   };
 
   return (
@@ -32,21 +20,64 @@ export default function TitleBar() {
         <span className="text-xs font-mono text-text-secondary">HEXNODE</span>
       </div>
       <div className="flex items-center gap-2 -webkit-app-region-no-drag">
+        {/* Minimize Button */}
         <motion.button
           onClick={handleMinimize}
-          whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
-          className="h-4 w-4 rounded-full bg-text-muted/20"
-        />
+          className="h-4 w-4 rounded-full bg-text-muted/20 flex items-center justify-center transition-colors hover:bg-yellow-500/30 group"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 12 12"
+            fill="none"
+            className="text-text-secondary group-hover:text-yellow-400 transition-colors"
+          >
+            <line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </motion.button>
+
+        {/* Maximize Button */}
         <motion.button
           onClick={handleMaximize}
-          whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
-          className="h-4 w-4 rounded-full bg-text-muted/20"
-        />
+          className="h-4 w-4 rounded-full bg-text-muted/20 flex items-center justify-center transition-colors hover:bg-green-500/30 group"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 12 12"
+            fill="none"
+            className="text-text-secondary group-hover:text-green-400 transition-colors"
+          >
+            <rect x="1" y="1" width="10" height="10" stroke="currentColor" strokeWidth="1.5" fill="none" />
+          </svg>
+        </motion.button>
+
+        {/* Close Button */}
         <motion.button
           onClick={handleClose}
-          whileHover={{ backgroundColor: "rgba(255, 0, 0, 0.3)" }}
-          className="h-4 w-4 rounded-full bg-text-muted/20"
-        />
+          className="h-4 w-4 rounded-full bg-text-muted/20 flex items-center justify-center transition-colors hover:bg-red-500/30 group"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 12 12"
+            fill="none"
+            className="text-text-secondary group-hover:text-red-400 transition-colors"
+          >
+            <path
+              d="M3 3L9 9M9 3L3 9"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </motion.button>
       </div>
     </div>
   );
