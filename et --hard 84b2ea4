@@ -1,0 +1,20 @@
+[33m1ad41ce[m Initial commit
+[33mfe7c4e6[m basic
+[33m26edd26[m HEXNODE website with branding, pricing, and core pages - Added HEXNODE brand identity and logo integration - Built dark-mode infrastructure-style landing page - Implemented animated hero, resource-pool explanation, and pricing sections - Added global navbar and footer - Created dedicated pages: Pricing, Docs, Login, Register, Status - Added custom 404 page and system status placeholder - Integrated subtle premium motion using Framer Motion - Configured global metadata, SEO, and favicon - Established clean Next.js App Router + Tailwind foundation
+[33m7f54f39[m Refactor Navbar component to enhance button interactions and update link destination. Replaced static hover and transition properties with imported motion variants for improved animation consistency. Changed 'Login' link to 'Dashboard' and updated styling for better user experience.
+[33m8a56bc8[m Enhance FloatingAssistant component with AI message handling and loading state. Integrated server context for dynamic responses, added smooth scrolling to message end, and improved user experience with loading indicators and disabled input during processing.
+[33mb696176[m Implement AI auto-fill feature in server creation and enhance FloatingAssistant integration. Updated POST request to handle new autoFill parameter, allowing for structured JSON responses. Refactored context handling in FloatingAssistant for improved dynamic responses and added initial message handling. Integrated AssistantProvider in DashboardLayout for better context management.
+[33md903469[m Enhance resource management and UI components across the application. Added custom range slider styling in globals.css, integrated ResourcePoolConfigProvider in layout for better state management, and implemented preset selection functionality in the Home and Pricing pages. Improved Dashboard layout with sidebar and page transitions, and added delete confirmation modal for server management. Introduced Settings page for user preferences and refined server card interactions with hover effects. Updated motion variants for smoother animations.
+[33m00bd4e0[m Refactor server management components to improve status handling and UI interactions. Updated server status types to 'stopped', 'starting', and 'running'. Enhanced ServerDetailPage with resource allocation sliders and tabbed navigation for better user experience. Integrated toast notifications for auto-saving RAM changes and improved layout structure in Dashboard components. Added conditional rendering for footers and adjusted sidebar height for better responsiveness.
+[33mff663c6[m Initial commit
+[33m822703f[m yup
+[33m1747c5f[m Update .gitattributes
+[33m84b2ea4[m Website Project Setup
+[33m40cd578[m Homepage Layout
+[33m1868474[m Animations
+[33me36a7d6[m Hosting Page (Coming Soon)
+[33mb1fdbbd[m Polish Pass
+[33m3235987[m upadted text statements
+[33m7454dc6[m Enhance homepage layout with new animations and UI components. Updated global styles for improved visual effects, including a grid background animation and refined button styles. Replaced Navbar and Footer with SystemTopBar and SystemFooter for a cohesive design. Added new sections for software and hosting modules, emphasizing local ownership and server management features.
+[33m7d59d88[m Implement server management features in Electron app. Added IPC handlers for server operations including start, stop, and command execution. Enhanced ConsolePanel to display server logs and allow command input. Updated ServerList to manage server states and integrate Java status checks.
+[33m669dde7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m added some changes to the app to start making it something
