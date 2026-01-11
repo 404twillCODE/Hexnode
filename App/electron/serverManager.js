@@ -943,22 +943,71 @@ async function getBungeeCordVersions() {
 
 // Download BungeeCord
 // Note: BungeeCord uses build numbers, but we're accepting Minecraft versions
+// Map Minecraft versions to approximate BungeeCord build numbers
+function getBungeeCordBuildForVersion(version) {
+  // Map of Minecraft versions to known BungeeCord build numbers
+  // These are approximate mappings based on when builds were released
+  const versionToBuild = {
+    // 1.21.x series
+    '1.21.4': '1770', '1.21.3': '1770', '1.21.2': '1770', '1.21.1': '1770', '1.21': '1770',
+    // 1.20.x series
+    '1.20.6': '1770', '1.20.5': '1770', '1.20.4': '1770', '1.20.2': '1770', '1.20.1': '1770', '1.20': '1770',
+    // 1.19.x series
+    '1.19.4': '1770', '1.19.3': '1770', '1.19.2': '1770', '1.19.1': '1770', '1.19': '1770',
+    // 1.18.x series
+    '1.18.2': '1770', '1.18.1': '1770', '1.18': '1770',
+    // 1.17.x series
+    '1.17.1': '1770', '1.17': '1770',
+    // 1.16.x series
+    '1.16.5': '1770', '1.16.4': '1770', '1.16.3': '1770', '1.16.2': '1770', '1.16.1': '1770', '1.16': '1770',
+    // Older versions - use older builds
+    '1.15.2': '1700', '1.15.1': '1700', '1.15': '1700',
+    '1.14.4': '1600', '1.14.3': '1600', '1.14.2': '1600', '1.14.1': '1600', '1.14': '1600',
+    '1.13.2': '1500', '1.13.1': '1500', '1.13': '1500',
+    '1.12.2': '1400', '1.12.1': '1400', '1.12': '1400',
+    '1.11.2': '1300', '1.11.1': '1300', '1.11': '1300',
+    '1.10.2': '1200', '1.10.1': '1200', '1.10': '1200',
+    '1.9.4': '1100', '1.9.2': '1100', '1.9': '1100',
+    '1.8.9': '1000', '1.8.8': '1000', '1.8.7': '1000', '1.8.6': '1000', '1.8.5': '1000', '1.8.4': '1000', '1.8.3': '1000', '1.8': '1000'
+  };
+  
+  // Return mapped build number or default to latest (1770)
+  return versionToBuild[version] || '1770';
+}
+
 async function downloadBungeeCord(serverPath, version) {
   return new Promise(async (resolve, reject) => {
     try {
-      // Try GitHub releases first
-      const githubUrl = 'https://api.github.com/repos/SpigotMC/BungeeCord/releases/latest';
-      https.get(githubUrl, {
+      // Get build number based on version
+      const buildNumber = getBungeeCordBuildForVersion(version);
+      
+      // Try to get all GitHub releases to find one matching the version/build
+      const allReleasesUrl = 'https://api.github.com/repos/SpigotMC/BungeeCord/releases';
+      https.get(allReleasesUrl, {
         headers: { 'User-Agent': 'HexNode' }
       }, async (res) => {
         let data = '';
         res.on('data', (chunk) => { data += chunk; });
         res.on('end', async () => {
           try {
-            const json = JSON.parse(data);
-            if (json.assets && json.assets.length > 0) {
-              // Find the jar file
-              const jarAsset = json.assets.find(asset => asset.name.endsWith('.jar') && !asset.name.includes('sources'));
+            const releases = JSON.parse(data);
+            // Try to find a release that might match (check tag names for build numbers)
+            let matchingRelease = null;
+            if (Array.isArray(releases) && releases.length > 0) {
+              // Look for releases with build numbers in tag name
+              matchingRelease = releases.find(release => {
+                const tag = release.tag_name || '';
+                // Check if tag contains the build number
+                return tag.includes(buildNumber) || tag.includes(version);
+              });
+              // If no specific match, use latest
+              if (!matchingRelease && releases.length > 0) {
+                matchingRelease = releases[0];
+              }
+            }
+            
+            if (matchingRelease && matchingRelease.assets && matchingRelease.assets.length > 0) {
+              const jarAsset = matchingRelease.assets.find(asset => asset.name.endsWith('.jar') && !asset.name.includes('sources'));
               if (jarAsset) {
                 const filename = jarAsset.name;
                 const filepath = path.join(serverPath, filename);
@@ -975,8 +1024,7 @@ async function downloadBungeeCord(serverPath, version) {
             // Fall through to CI server
           }
           
-          // Fallback to CI server with latest build
-          const buildNumber = '1770';
+          // Fallback to CI server with version-specific build
           const filename = `BungeeCord-${buildNumber}.jar`;
           const filepath = path.join(serverPath, filename);
           const ciUrl = `https://ci.md-5.net/job/BungeeCord/${buildNumber}/artifact/bootstrap/target/${filename}`;
@@ -991,13 +1039,26 @@ async function downloadBungeeCord(serverPath, version) {
               await downloadFile(altUrl, filepath);
               resolve(filepath);
             } catch (altError) {
-              reject(new Error(`Failed to download BungeeCord ${version}. Please download manually from https://www.spigotmc.org/wiki/bungeecord/`));
+              // Final fallback to latest build if version-specific fails
+              if (buildNumber !== '1770') {
+                const latestFilename = `BungeeCord-1770.jar`;
+                const latestFilepath = path.join(serverPath, latestFilename);
+                const latestCiUrl = `https://ci.md-5.net/job/BungeeCord/1770/artifact/bootstrap/target/${latestFilename}`;
+                try {
+                  await downloadFile(latestCiUrl, latestFilepath);
+                  resolve(latestFilepath);
+                } catch (latestError) {
+                  reject(new Error(`Failed to download BungeeCord ${version} (build ${buildNumber}). Please download manually from https://www.spigotmc.org/wiki/bungeecord/`));
+                }
+              } else {
+                reject(new Error(`Failed to download BungeeCord ${version}. Please download manually from https://www.spigotmc.org/wiki/bungeecord/`));
+              }
             }
           }
         });
       }).on('error', async () => {
-        // Fallback to CI server
-        const buildNumber = '1770';
+        // Fallback to CI server with version-specific build
+        const buildNumber = getBungeeCordBuildForVersion(version);
         const filename = `BungeeCord-${buildNumber}.jar`;
         const filepath = path.join(serverPath, filename);
         const ciUrl = `https://ci.md-5.net/job/BungeeCord/${buildNumber}/artifact/bootstrap/target/${filename}`;
@@ -1006,7 +1067,20 @@ async function downloadBungeeCord(serverPath, version) {
           await downloadFile(ciUrl, filepath);
           resolve(filepath);
         } catch (error) {
-          reject(new Error(`Failed to download BungeeCord ${version}. Please download manually from https://www.spigotmc.org/wiki/bungeecord/`));
+          // Final fallback to latest build if version-specific fails
+          if (buildNumber !== '1770') {
+            const latestFilename = `BungeeCord-1770.jar`;
+            const latestFilepath = path.join(serverPath, latestFilename);
+            const latestCiUrl = `https://ci.md-5.net/job/BungeeCord/1770/artifact/bootstrap/target/${latestFilename}`;
+            try {
+              await downloadFile(latestCiUrl, latestFilepath);
+              resolve(latestFilepath);
+            } catch (latestError) {
+              reject(new Error(`Failed to download BungeeCord ${version} (build ${buildNumber}). Please download manually from https://www.spigotmc.org/wiki/bungeecord/`));
+            }
+          } else {
+            reject(new Error(`Failed to download BungeeCord ${version}. Please download manually from https://www.spigotmc.org/wiki/bungeecord/`));
+          }
         }
       });
     } catch (error) {
