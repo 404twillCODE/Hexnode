@@ -5,10 +5,26 @@ declare global {
     electronAPI?: {
       server: {
         checkJava: () => Promise<{ installed: boolean; version: string | null }>;
+        getPaperVersions: () => Promise<string[]>;
+        getSystemInfo: () => Promise<{
+          cpu: { model: string; cores: number; threads: number };
+          memory: { totalGB: number; freeGB: number; usedGB: number };
+          drives: Array<{ letter: string; label: string; totalGB: number; freeGB: number; usedGB: number }>;
+          platform: string;
+          arch: string;
+          hostname: string;
+        }>;
+        isSetupComplete: () => Promise<boolean>;
+        getAppSettings: () => Promise<any>;
+        saveAppSettings: (settings: any) => Promise<void>;
+        completeSetup: (settings?: any) => Promise<void>;
+        resetSetup: () => Promise<void>;
+        showFolderDialog: (options: { title: string; defaultPath?: string }) => Promise<{ success: boolean; path?: string; canceled?: boolean }>;
         listServers: () => Promise<Server[]>;
-        createServer: (serverName: string) => Promise<{ success: boolean; error?: string; path?: string; jarFile?: string; version?: string; build?: number }>;
+        createServer: (serverName: string, version?: string | null, ramGB?: number) => Promise<{ success: boolean; error?: string; path?: string; jarFile?: string; version?: string; build?: number }>;
         startServer: (serverName: string, ramGB?: number) => Promise<{ success: boolean; error?: string; pid?: number }>;
         stopServer: (serverName: string) => Promise<{ success: boolean; error?: string }>;
+        updateServerRAM: (serverName: string, ramGB: number) => Promise<{ success: boolean; error?: string }>;
         sendCommand: (serverName: string, command: string) => Promise<{ success: boolean; error?: string }>;
         onServerLog: (callback: (data: { serverName: string; type: 'stdout' | 'stderr'; data: string }) => void) => void;
         removeServerLogListener: () => void;
@@ -21,8 +37,9 @@ export interface Server {
   id: string;
   name: string;
   version: string;
-  status: 'ACTIVE' | 'STOPPED' | 'PLANNED';
+  status: 'ACTIVE' | 'STOPPED' | 'PLANNED' | 'STARTING';
   port: number;
+  ramGB?: number;
 }
 
 export interface JavaStatus {
@@ -59,10 +76,33 @@ export function useServerManager() {
     }
   }, []);
 
-  const createServer = useCallback(async (serverName: string = 'default') => {
+  const createServer = useCallback(async (serverName: string = 'default', version?: string | null, ramGB: number = 4) => {
     if (!window.electronAPI) return { success: false, error: 'Electron API not available' };
     try {
-      const result = await window.electronAPI.server.createServer(serverName);
+      const result = await window.electronAPI.server.createServer(serverName, version, ramGB);
+      if (result.success) {
+        await loadServers();
+      }
+      return result;
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }, [loadServers]);
+
+  const getPaperVersions = useCallback(async () => {
+    if (!window.electronAPI) return [];
+    try {
+      return await window.electronAPI.server.getPaperVersions();
+    } catch (error) {
+      console.error('Failed to fetch Paper versions:', error);
+      return [];
+    }
+  }, []);
+
+  const updateServerRAM = useCallback(async (serverName: string, ramGB: number) => {
+    if (!window.electronAPI) return { success: false, error: 'Electron API not available' };
+    try {
+      const result = await window.electronAPI.server.updateServerRAM(serverName, ramGB);
       if (result.success) {
         await loadServers();
       }
@@ -124,9 +164,11 @@ export function useServerManager() {
     javaStatus,
     loading,
     checkJava,
+    getPaperVersions,
     createServer,
     startServer,
     stopServer,
+    updateServerRAM,
     sendCommand,
     refreshServers: loadServers,
   };

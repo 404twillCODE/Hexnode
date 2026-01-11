@@ -14,9 +14,10 @@ export default function ConsolePanel() {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const [input, setInput] = useState("");
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const activeServer = servers.find(s => s.status === 'ACTIVE');
+  const activeServer = servers.find(s => s.status === 'ACTIVE' || s.status === 'RUNNING');
 
   useEffect(() => {
     if (activeServer && !selectedServer) {
@@ -58,10 +59,14 @@ export default function ConsolePanel() {
   }, [selectedServer]);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (autoScroll && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [lines]);
+  }, [lines, autoScroll]);
+
+  const handleClear = () => {
+    setLines([]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,26 +112,51 @@ export default function ConsolePanel() {
               System output and command interface
             </p>
           </div>
-          {servers.length > 0 && (
-            <select
-              value={selectedServer || ''}
-              onChange={(e) => setSelectedServer(e.target.value || null)}
-              className="bg-background-secondary border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
-            >
-              <option value="">Select server...</option>
-              {servers.map(server => (
-                <option key={server.id} value={server.name}>
-                  {server.name} ({server.status})
-                </option>
-              ))}
-            </select>
-          )}
+          <div className="flex items-center gap-4">
+            {servers.length > 0 && (
+              <select
+                value={selectedServer || ''}
+                onChange={(e) => {
+                  setSelectedServer(e.target.value || null);
+                  setLines([]); // Clear console when switching servers
+                }}
+                className="bg-background-secondary border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
+              >
+                <option value="">Select server...</option>
+                {servers.map(server => (
+                  <option key={server.id} value={server.name}>
+                    {server.name} ({server.status})
+                  </option>
+                ))}
+              </select>
+            )}
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-text-secondary font-mono text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoScroll}
+                  onChange={(e) => setAutoScroll(e.target.checked)}
+                  className="w-4 h-4 accent-accent cursor-pointer"
+                />
+                Auto-scroll
+              </label>
+              <motion.button
+                onClick={handleClear}
+                disabled={lines.length === 0}
+                className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: lines.length === 0 ? 1 : 1.02 }}
+                whileTap={{ scale: lines.length === 0 ? 1 : 0.98 }}
+              >
+                CLEAR
+              </motion.button>
+            </div>
+          </div>
         </div>
       </motion.div>
       <div className="flex-1 system-card p-6 flex flex-col">
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto font-mono text-sm text-text-secondary space-y-1 mb-4"
+          className="flex-1 overflow-y-auto font-mono text-sm text-text-secondary mb-4"
         >
           {lines.length === 0 ? (
             <div className="text-text-muted text-sm">
@@ -135,20 +165,27 @@ export default function ConsolePanel() {
                 : "Select a server to view console output."}
             </div>
           ) : (
-            lines.map((line) => (
-              <motion.div
-                key={line.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className={`flex gap-3 ${
-                  line.type === 'stderr' ? 'text-red-400' : 
-                  line.type === 'command' ? 'text-accent' : ''
-                }`}
-              >
-                <span className="text-text-muted text-xs">{line.timestamp}</span>
-                <span className="whitespace-pre-wrap break-words">{line.text}</span>
-              </motion.div>
-            ))
+            <div className="space-y-0.5">
+              {lines.map((line, index) => (
+                <motion.div
+                  key={line.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={`flex gap-3 py-0.5 px-2 rounded ${
+                    line.type === 'stderr' 
+                      ? 'text-red-400 bg-red-400/10' 
+                      : line.type === 'command' 
+                      ? 'text-accent bg-accent/10' 
+                      : index % 2 === 0 
+                      ? 'bg-background-secondary/30' 
+                      : ''
+                  }`}
+                >
+                  <span className="text-text-muted text-xs flex-shrink-0">{line.timestamp}</span>
+                  <span className="whitespace-pre-wrap break-words flex-1">{line.text}</span>
+                </motion.div>
+              ))}
+            </div>
           )}
         </div>
         <form onSubmit={handleSubmit} className="flex gap-2">

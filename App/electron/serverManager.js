@@ -5,13 +5,258 @@ const os = require('os');
 const https = require('https');
 const http = require('http');
 
-const HEXNODE_DIR = path.join(os.homedir(), 'HexNode');
+// Get AppData\Roaming path (like Minecraft)
+function getAppDataPath() {
+  if (process.platform === 'win32') {
+    return path.join(os.homedir(), 'AppData', 'Roaming', '.hexnode');
+  } else if (process.platform === 'darwin') {
+    return path.join(os.homedir(), 'Library', 'Application Support', '.hexnode');
+  } else {
+    // Linux
+    return path.join(os.homedir(), '.hexnode');
+  }
+}
+
+const HEXNODE_DIR = getAppDataPath();
 const SERVERS_DIR = path.join(HEXNODE_DIR, 'servers');
+const BACKUPS_DIR = path.join(HEXNODE_DIR, 'backups');
+const CONFIG_FILE = path.join(HEXNODE_DIR, 'servers.json');
 
 // Ensure directories exist
 async function ensureDirectories() {
   await fs.mkdir(HEXNODE_DIR, { recursive: true });
   await fs.mkdir(SERVERS_DIR, { recursive: true });
+  await fs.mkdir(BACKUPS_DIR, { recursive: true });
+}
+
+// Get system information
+async function getSystemInfo() {
+  try {
+    const totalMemoryGB = Math.round(os.totalmem() / (1024 * 1024 * 1024));
+    const freeMemoryGB = Math.round(os.freemem() / (1024 * 1024 * 1024));
+    const cpus = os.cpus();
+    const cpuModel = cpus[0]?.model || 'Unknown';
+    const cpuCores = cpus.length;
+    
+    // Get disk space from all drives - return as array
+    const drives = [];
+    
+    try {
+      if (process.platform === 'win32') {
+        const { execSync } = require('child_process');
+        // Use PowerShell as primary method (wmic is deprecated in Windows 11)
+        try {
+          const result = execSync(`powershell -NoProfile -Command "Get-WmiObject -Class Win32_LogicalDisk -Filter 'DriveType=3' | Select-Object DeviceID,VolumeName,Size,FreeSpace | ConvertTo-Json"`, {
+            encoding: 'utf8',
+            timeout: 10000,
+            windowsHide: true,
+            stdio: ['ignore', 'pipe', 'ignore'] // Suppress stderr to prevent spam
+          });
+          const parsed = result.trim();
+          if (parsed) {
+            try {
+              const disks = JSON.parse(parsed);
+              const diskArray = Array.isArray(disks) ? disks : [disks];
+              diskArray.forEach(disk => {
+                if (disk && disk.Size && disk.FreeSpace !== undefined && disk.DeviceID) {
+                  drives.push({
+                    letter: disk.DeviceID,
+                    label: disk.VolumeName || disk.DeviceID,
+                    totalGB: Math.round(disk.Size / (1024 * 1024 * 1024)),
+                    freeGB: Math.round(disk.FreeSpace / (1024 * 1024 * 1024)),
+                    usedGB: Math.round((disk.Size - disk.FreeSpace) / (1024 * 1024 * 1024))
+                  });
+                }
+              });
+            } catch (parseErr) {
+              // Silently handle JSON parse errors
+            }
+          }
+        } catch (err) {
+          // Silently fail - don't spam console with errors
+          // Try fallback with Get-CimInstance (newer PowerShell cmdlet)
+          try {
+            const result = execSync(`powershell -NoProfile -Command "Get-CimInstance -ClassName Win32_LogicalDisk -Filter 'DriveType=3' | Select-Object DeviceID,VolumeName,Size,FreeSpace | ConvertTo-Json"`, {
+              encoding: 'utf8',
+              timeout: 10000,
+              windowsHide: true,
+              stdio: ['ignore', 'pipe', 'ignore']
+            });
+            const parsed = result.trim();
+            if (parsed) {
+              try {
+                const disks = JSON.parse(parsed);
+                const diskArray = Array.isArray(disks) ? disks : [disks];
+                diskArray.forEach(disk => {
+                  if (disk && disk.Size && disk.FreeSpace !== undefined && disk.DeviceID) {
+                    drives.push({
+                      letter: disk.DeviceID,
+                      label: disk.VolumeName || disk.DeviceID,
+                      totalGB: Math.round(disk.Size / (1024 * 1024 * 1024)),
+                      freeGB: Math.round(disk.FreeSpace / (1024 * 1024 * 1024)),
+                      usedGB: Math.round((disk.Size - disk.FreeSpace) / (1024 * 1024 * 1024))
+                    });
+                  }
+                });
+              } catch (parseErr) {
+                // Silently handle JSON parse errors
+              }
+            }
+          } catch (err2) {
+            // Silently fail - no drives will be shown
+          }
+        }
+      } else {
+        // Linux/Mac - try to get disk info
+        try {
+          const { execSync } = require('child_process');
+          if (process.platform === 'darwin') {
+            // macOS - get all mounted volumes
+            const result = execSync(`df -g | awk 'NR>1 {print $1 " " $2 " " $4}'`, { encoding: 'utf8' });
+            const lines = result.trim().split('\n');
+            lines.forEach(line => {
+              const parts = line.trim().split(/\s+/);
+              if (parts.length >= 3) {
+                const mountPoint = parts[0];
+                const total = parseInt(parts[1]);
+                const free = parseInt(parts[2]);
+                if (total > 0 && free >= 0) {
+                  drives.push({
+                    letter: mountPoint,
+                    label: mountPoint.split('/').pop() || mountPoint,
+                    totalGB: total,
+                    freeGB: free,
+                    usedGB: total - free
+                  });
+                }
+              }
+            });
+          } else {
+            // Linux - get all mounted filesystems
+            const result = execSync(`df -BG | awk 'NR>1 {print $1 " " $2 " " $4}'`, { encoding: 'utf8' });
+            const lines = result.trim().split('\n');
+            lines.forEach(line => {
+              const parts = line.trim().split(/\s+/);
+              if (parts.length >= 3) {
+                const mountPoint = parts[0];
+                const total = parseInt(parts[1]) || 0;
+                const free = parseInt(parts[2]) || 0;
+                if (total > 0 && free >= 0) {
+                  drives.push({
+                    letter: mountPoint,
+                    label: mountPoint.split('/').pop() || mountPoint,
+                    totalGB: total,
+                    freeGB: free,
+                    usedGB: total - free
+                  });
+                }
+              }
+            });
+          }
+        } catch (err) {
+          // Silently fail - no drives will be shown
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get storage info:', error);
+    }
+
+    return {
+      cpu: {
+        model: cpuModel,
+        cores: cpuCores,
+        threads: cpuCores
+      },
+      memory: {
+        totalGB: totalMemoryGB,
+        freeGB: freeMemoryGB,
+        usedGB: totalMemoryGB - freeMemoryGB
+      },
+      drives: drives,
+      platform: os.platform(),
+      arch: os.arch(),
+      hostname: os.hostname()
+    };
+  } catch (error) {
+    return {
+      cpu: { model: 'Unknown', cores: 0, threads: 0 },
+      memory: { totalGB: 0, freeGB: 0, usedGB: 0 },
+      storage: { totalGB: 0, freeGB: 0, usedGB: 0 },
+      platform: os.platform(),
+      arch: os.arch(),
+      hostname: os.hostname()
+    };
+  }
+}
+
+// Check if setup is complete
+async function isSetupComplete() {
+  try {
+    const configs = await loadServerConfigs();
+    return configs._setupComplete === true;
+  } catch {
+    return false;
+  }
+}
+
+// Get app settings
+async function getAppSettings() {
+  const configs = await loadServerConfigs();
+  return configs._appSettings || {
+    serversDirectory: SERVERS_DIR,
+    backupsDirectory: BACKUPS_DIR,
+    showBootSequence: true,
+    minimizeToTray: false,
+    startWithWindows: false,
+    autoBackup: true,
+    backupInterval: 24, // hours
+    maxBackups: 10,
+    notifications: {
+      statusChanges: true,
+      crashes: true,
+      updates: true
+    },
+    defaultRAM: 4,
+    defaultPort: 25565
+  };
+}
+
+// Save app settings
+async function saveAppSettings(settings) {
+  const configs = await loadServerConfigs();
+  // Use defaults if paths are not provided
+  const finalSettings = {
+    ...settings,
+    serversDirectory: settings.serversDirectory || SERVERS_DIR,
+    backupsDirectory: settings.backupsDirectory || BACKUPS_DIR
+  };
+  configs._appSettings = finalSettings;
+  await saveServerConfigs(configs);
+  
+  // Ensure the directories exist
+  if (finalSettings.serversDirectory) {
+    await fs.mkdir(finalSettings.serversDirectory, { recursive: true });
+  }
+  if (finalSettings.backupsDirectory && finalSettings.autoBackup) {
+    await fs.mkdir(finalSettings.backupsDirectory, { recursive: true });
+  }
+}
+
+// Mark setup as complete
+async function completeSetup(settings = null) {
+  const configs = await loadServerConfigs();
+  configs._setupComplete = true;
+  if (settings) {
+    configs._appSettings = settings;
+  }
+  await saveServerConfigs(configs);
+}
+
+// Reset setup (for testing/development)
+async function resetSetup() {
+  const configs = await loadServerConfigs();
+  delete configs._setupComplete;
+  await saveServerConfigs(configs);
 }
 
 // Java detection
@@ -47,8 +292,8 @@ async function checkJava() {
   });
 }
 
-// Get latest Paper version
-async function getLatestPaperVersion() {
+// Get all Paper versions
+async function getPaperVersions() {
   return new Promise((resolve, reject) => {
     const url = 'https://api.papermc.io/v2/projects/paper';
     
@@ -60,14 +305,19 @@ async function getLatestPaperVersion() {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          const latestVersion = json.versions[json.versions.length - 1];
-          resolve(latestVersion);
+          resolve(json.versions || []);
         } catch (e) {
           reject(e);
         }
       });
     }).on('error', reject);
   });
+}
+
+// Get latest Paper version
+async function getLatestPaperVersion() {
+  const versions = await getPaperVersions();
+  return versions[versions.length - 1];
 }
 
 // Get latest Paper build for a version
@@ -145,34 +395,84 @@ async function downloadPaper(serverPath, version, build) {
   });
 }
 
+// Load server configs
+async function loadServerConfigs() {
+  try {
+    const data = await fs.readFile(CONFIG_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return {};
+  }
+}
+
+// Save server configs
+async function saveServerConfigs(configs) {
+  await ensureDirectories();
+  await fs.writeFile(CONFIG_FILE, JSON.stringify(configs, null, 2), 'utf8');
+}
+
+// Get server config
+async function getServerConfig(serverName) {
+  const configs = await loadServerConfigs();
+  return configs[serverName] || null;
+}
+
+// Save server config
+async function saveServerConfig(serverName, config) {
+  const configs = await loadServerConfigs();
+  configs[serverName] = {
+    name: serverName,
+    path: path.join(SERVERS_DIR, serverName),
+    version: config.version || 'unknown',
+    ramGB: config.ramGB || 4,
+    status: config.status || 'STOPPED',
+    port: config.port || 25565,
+    ...config
+  };
+  await saveServerConfigs(configs);
+}
+
 // Create server
-async function createServer(serverName = 'default') {
+async function createServer(serverName = 'default', version = null, ramGB = 4) {
   try {
     await ensureDirectories();
-    const serverPath = path.join(SERVERS_DIR, serverName);
+    // Get custom servers directory from settings, or use default
+    const settings = await getAppSettings();
+    const serversDir = settings.serversDirectory || SERVERS_DIR;
+    const serverPath = path.join(serversDir, serverName);
     await fs.mkdir(serverPath, { recursive: true });
 
     // Check if server already exists
-    const files = await fs.readdir(serverPath);
-    const jarFile = files.find(f => f.endsWith('.jar') && f.startsWith('paper'));
-    
-    if (jarFile) {
-      return { success: true, path: serverPath, jarFile, message: 'Server already exists' };
+    const existingConfig = await getServerConfig(serverName);
+    if (existingConfig) {
+      const files = await fs.readdir(serverPath);
+      const jarFile = files.find(f => f.endsWith('.jar') && f.startsWith('paper'));
+      if (jarFile) {
+        return { success: true, path: serverPath, jarFile, message: 'Server already exists' };
+      }
     }
 
-    // Get latest Paper version and build
-    const version = await getLatestPaperVersion();
-    const build = await getLatestPaperBuild(version);
+    // Use provided version or get latest
+    const selectedVersion = version || await getLatestPaperVersion();
+    const build = await getLatestPaperBuild(selectedVersion);
     
     // Download Paper
-    const jarPath = await downloadPaper(serverPath, version, build);
+    const jarPath = await downloadPaper(serverPath, selectedVersion, build);
     const jarFile = path.basename(jarPath);
 
     // Create eula.txt
     const eulaPath = path.join(serverPath, 'eula.txt');
     await fs.writeFile(eulaPath, 'eula=true\n', 'utf8');
 
-    return { success: true, path: serverPath, jarFile, version, build };
+    // Save server config
+    await saveServerConfig(serverName, {
+      version: selectedVersion,
+      ramGB,
+      status: 'STOPPED',
+      port: 25565
+    });
+
+    return { success: true, path: serverPath, jarFile, version: selectedVersion, build };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -182,9 +482,12 @@ async function createServer(serverName = 'default') {
 const serverProcesses = new Map();
 
 // Start server
-async function startServer(serverName, ramGB = 4) {
+async function startServer(serverName, ramGB = null) {
   try {
-    const serverPath = path.join(SERVERS_DIR, serverName);
+    // Get custom servers directory from settings, or use default
+    const settings = await getAppSettings();
+    const serversDir = settings.serversDirectory || SERVERS_DIR;
+    const serverPath = path.join(serversDir, serverName);
     
     // Check if server directory exists
     try {
@@ -213,8 +516,19 @@ async function startServer(serverName, ramGB = 4) {
       }
     }
 
+    // Get RAM from config or use provided/default
+    const config = await getServerConfig(serverName);
+    const serverRAM = ramGB !== null ? ramGB : (config?.ramGB || 4);
+    
+    // Update status to STARTING
+    await saveServerConfig(serverName, {
+      ...config,
+      status: 'STARTING',
+      ramGB: serverRAM
+    });
+
     const jarPath = path.join(serverPath, jarFile);
-    const ramMB = ramGB * 1024;
+    const ramMB = serverRAM * 1024;
     
     const javaProcess = spawn('java', [
       `-Xms${ramMB}M`,
@@ -230,16 +544,51 @@ async function startServer(serverName, ramGB = 4) {
     serverProcesses.set(serverName, javaProcess);
 
     // Handle process events
-    javaProcess.on('exit', (code) => {
+    javaProcess.on('exit', async (code) => {
       serverProcesses.delete(serverName);
+      const currentConfig = await getServerConfig(serverName);
+      if (currentConfig) {
+        await saveServerConfig(serverName, {
+          ...currentConfig,
+          status: 'STOPPED'
+        });
+      }
     });
 
-    javaProcess.on('error', (error) => {
+    javaProcess.on('error', async (error) => {
       serverProcesses.delete(serverName);
+      const currentConfig = await getServerConfig(serverName);
+      if (currentConfig) {
+        await saveServerConfig(serverName, {
+          ...currentConfig,
+          status: 'STOPPED'
+        });
+      }
     });
+
+    // Update status to RUNNING after a short delay (server is starting)
+    setTimeout(async () => {
+      if (serverProcesses.has(serverName)) {
+        const currentConfig = await getServerConfig(serverName);
+        if (currentConfig) {
+          await saveServerConfig(serverName, {
+            ...currentConfig,
+            status: 'RUNNING'
+          });
+        }
+      }
+    }, 2000);
 
     return { success: true, pid: javaProcess.pid };
   } catch (error) {
+    // Update status to STOPPED on error
+    const config = await getServerConfig(serverName);
+    if (config) {
+      await saveServerConfig(serverName, {
+        ...config,
+        status: 'STOPPED'
+      });
+    }
     return { success: false, error: error.message };
   }
 }
@@ -252,14 +601,30 @@ async function stopServer(serverName) {
       return { success: false, error: 'Server is not running' };
     }
 
+    // Update status
+    const config = await getServerConfig(serverName);
+    if (config) {
+      await saveServerConfig(serverName, {
+        ...config,
+        status: 'STOPPED'
+      });
+    }
+
     // Send stop command to server
     process.stdin.write('stop\n');
     
     // Force kill after 10 seconds if still running
-    setTimeout(() => {
+    setTimeout(async () => {
       if (serverProcesses.has(serverName)) {
         process.kill();
         serverProcesses.delete(serverName);
+        const currentConfig = await getServerConfig(serverName);
+        if (currentConfig) {
+          await saveServerConfig(serverName, {
+            ...currentConfig,
+            status: 'STOPPED'
+          });
+        }
       }
     }, 10000);
 
@@ -278,29 +643,76 @@ function getServerProcess(serverName) {
 async function listServers() {
   try {
     await ensureDirectories();
-    const servers = await fs.readdir(SERVERS_DIR);
+    const configs = await loadServerConfigs();
     const serverList = [];
+    // Get custom servers directory from settings, or use default
+    const settings = await getAppSettings();
+    const serversDir = settings.serversDirectory || SERVERS_DIR;
+    const serverDirs = await fs.readdir(serversDir);
 
-    for (const serverName of servers) {
-      const serverPath = path.join(SERVERS_DIR, serverName);
+    for (const serverName of serverDirs) {
+      const serverPath = path.join(serversDir, serverName);
       const stat = await fs.stat(serverPath);
       
       if (stat.isDirectory()) {
         const files = await fs.readdir(serverPath);
         const jarFile = files.find(f => f.endsWith('.jar') && f.startsWith('paper'));
-        const isRunning = serverProcesses.has(serverName);
         
         if (jarFile) {
-          // Extract version from jar filename
-          const versionMatch = jarFile.match(/paper-(\d+\.\d+\.\d+)/);
-          const version = versionMatch ? versionMatch[1] : 'unknown';
+          const config = configs[serverName];
+          const isRunning = serverProcesses.has(serverName);
+          
+          // Determine status: check process first, then config
+          let status = 'STOPPED';
+          if (isRunning) {
+            const process = serverProcesses.get(serverName);
+            if (process && !process.killed && process.pid) {
+              status = 'RUNNING';
+            } else {
+              status = 'STOPPED';
+            }
+          } else if (config && config.status === 'STARTING') {
+            status = 'STARTING';
+          } else if (config) {
+            status = config.status || 'STOPPED';
+          }
+          
+          // Extract version from jar filename if not in config
+          let version = 'unknown';
+          if (config && config.version) {
+            version = config.version;
+          } else {
+            const versionMatch = jarFile.match(/paper-(\d+\.\d+\.\d+)/);
+            if (versionMatch) {
+              version = versionMatch[1];
+            }
+          }
+          
+          // Create config for existing servers without config (backward compatibility)
+          if (!config) {
+            // Save actual status (convert RUNNING to STOPPED for config since process map is source of truth)
+            const configStatus = status === 'RUNNING' ? 'STOPPED' : status;
+            await saveServerConfig(serverName, {
+              version,
+              ramGB: 4,
+              status: configStatus,
+              port: 25565
+            });
+          } else if (status === 'RUNNING' && config.status !== 'RUNNING') {
+            // Update config if process is running but config says otherwise
+            await saveServerConfig(serverName, {
+              ...config,
+              status: 'RUNNING'
+            });
+          }
           
           serverList.push({
             id: serverName,
             name: serverName,
             version,
-            status: isRunning ? 'ACTIVE' : 'STOPPED',
-            port: 25565, // Default port
+            status: status === 'RUNNING' ? 'ACTIVE' : status,
+            port: config?.port || 25565,
+            ramGB: config?.ramGB || 4,
           });
         }
       }
@@ -312,13 +724,39 @@ async function listServers() {
   }
 }
 
+// Update server RAM
+async function updateServerRAM(serverName, ramGB) {
+  try {
+    const config = await getServerConfig(serverName);
+    if (!config) {
+      return { success: false, error: 'Server not found' };
+    }
+    await saveServerConfig(serverName, {
+      ...config,
+      ramGB
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   checkJava,
+  getPaperVersions,
+  getLatestPaperVersion,
   createServer,
   startServer,
   stopServer,
   getServerProcess,
   listServers,
+  updateServerRAM,
+  getSystemInfo,
+  isSetupComplete,
+  getAppSettings,
+  saveAppSettings,
+  completeSetup,
+  resetSetup,
   ensureDirectories,
 };
 

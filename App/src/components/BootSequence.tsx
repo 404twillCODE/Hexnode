@@ -7,12 +7,12 @@ interface BootLine {
 }
 
 const bootLines: BootLine[] = [
-  { text: "HexNode System Initialization", delay: 0 },
-  { text: "> Initializing modules...", delay: 500 },
-  { text: "> Server Software... OK", delay: 1100 },
-  { text: "> USB Server... OK", delay: 1700 },
-  { text: "> Hosting... Planned", delay: 2300 },
-  { text: "> Recycle Host... Planned", delay: 2900 },
+  { text: "HexNode Server Manager", delay: 0 },
+  { text: "> Initializing core systems...", delay: 500 },
+  { text: "> Server Manager... OK", delay: 1100 },
+  { text: "> Process Controller... OK", delay: 1700 },
+  { text: "> Console Interface... OK", delay: 2300 },
+  { text: "> File System... OK", delay: 2900 },
   { text: "System ready.", delay: 3500 },
 ];
 

@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import BootSequence from "./components/BootSequence";
+import SetupView from "./components/SetupView";
+import SetupOptionsView from "./components/SetupOptionsView";
 import Sidebar from "./components/Sidebar";
 import ServerList from "./components/ServerList";
 import ConsolePanel from "./components/ConsolePanel";
@@ -9,10 +11,50 @@ import SettingsView from "./components/SettingsView";
 import TitleBar from "./components/TitleBar";
 
 type View = "servers" | "worlds" | "console" | "settings";
+type SetupStep = "boot" | "detection" | "options" | "complete";
 
 function App() {
+  const [setupComplete, setSetupComplete] = useState<boolean | null>(null);
+  const [setupStep, setSetupStep] = useState<SetupStep>("boot");
   const [bootComplete, setBootComplete] = useState(false);
   const [currentView, setCurrentView] = useState<View>("servers");
+
+  useEffect(() => {
+    checkSetupStatus();
+  }, []);
+
+  const checkSetupStatus = async () => {
+    if (!window.electronAPI) {
+      setSetupComplete(true); // Skip setup if API not available
+      return;
+    }
+
+    try {
+      const isComplete = await window.electronAPI.server.isSetupComplete();
+      setSetupComplete(isComplete);
+    } catch (error) {
+      console.error('Failed to check setup status:', error);
+      setSetupComplete(true); // Default to skipping setup on error
+    }
+  };
+
+  const handleBootComplete = () => {
+    if (!setupComplete) {
+      setSetupStep("detection");
+    } else {
+      setBootComplete(true);
+    }
+  };
+
+  const handleDetectionNext = () => {
+    setSetupStep("options");
+  };
+
+  const handleSetupComplete = () => {
+    setSetupComplete(true);
+    setSetupStep("complete");
+    setBootComplete(true);
+  };
 
   const renderView = () => {
     switch (currentView) {
@@ -29,9 +71,48 @@ function App() {
     }
   };
 
+  // Show loading state while checking setup status
+  if (setupComplete === null) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="text-text-secondary font-mono text-sm">
+          Initializing...
+        </div>
+      </div>
+    );
+  }
+
+  // Show boot sequence first if setup not complete
+  if (!setupComplete && setupStep === "boot") {
+    return (
+      <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
+        <BootSequence onComplete={handleBootComplete} />
+      </div>
+    );
+  }
+
+  // Show system detection after boot
+  if (!setupComplete && setupStep === "detection") {
+    return (
+      <AnimatePresence>
+        <SetupView onNext={handleDetectionNext} />
+      </AnimatePresence>
+    );
+  }
+
+  // Show setup options after detection
+  if (!setupComplete && setupStep === "options") {
+    return (
+      <AnimatePresence>
+        <SetupOptionsView onComplete={handleSetupComplete} />
+      </AnimatePresence>
+    );
+  }
+
+  // Show boot sequence, then main app (for completed setup)
   return (
     <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
-      <BootSequence onComplete={() => setBootComplete(true)} />
+      <BootSequence onComplete={handleBootComplete} />
       <AnimatePresence>
         {bootComplete && (
           <motion.div

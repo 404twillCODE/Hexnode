@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
 const serverManager = require('./serverManager');
@@ -61,13 +61,58 @@ ipcMain.handle('check-java', async () => {
   return await serverManager.checkJava();
 });
 
+// System information
+ipcMain.handle('get-system-info', async () => {
+  return await serverManager.getSystemInfo();
+});
+
+ipcMain.handle('is-setup-complete', async () => {
+  return await serverManager.isSetupComplete();
+});
+
+ipcMain.handle('get-app-settings', async () => {
+  return await serverManager.getAppSettings();
+});
+
+ipcMain.handle('save-app-settings', async (event, settings) => {
+  return await serverManager.saveAppSettings(settings);
+});
+
+ipcMain.handle('complete-setup', async (event, settings) => {
+  return await serverManager.completeSetup(settings);
+});
+
+ipcMain.handle('reset-setup', async () => {
+  return await serverManager.resetSetup();
+});
+
+// Folder picker dialogs
+ipcMain.handle('show-folder-dialog', async (event, options) => {
+  const win = BrowserWindow.getFocusedWindow();
+  const result = await dialog.showOpenDialog(win || mainWindow, {
+    properties: ['openDirectory'],
+    title: options.title || 'Select Folder',
+    defaultPath: options.defaultPath
+  });
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    return { success: true, path: result.filePaths[0] };
+  }
+  return { success: false, canceled: true };
+});
+
+// Paper version management
+ipcMain.handle('get-paper-versions', async () => {
+  return await serverManager.getPaperVersions();
+});
+
 // Server management IPC handlers
 ipcMain.handle('list-servers', async () => {
   return await serverManager.listServers();
 });
 
-ipcMain.handle('create-server', async (event, serverName) => {
-  return await serverManager.createServer(serverName);
+ipcMain.handle('create-server', async (event, serverName, version, ramGB) => {
+  return await serverManager.createServer(serverName, version, ramGB);
 });
 
 ipcMain.handle('start-server', async (event, serverName, ramGB) => {
@@ -77,20 +122,28 @@ ipcMain.handle('start-server', async (event, serverName, ramGB) => {
     // Set up log streaming
     const process = serverManager.getServerProcess(serverName);
     if (process && mainWindow) {
+      // Remove existing listeners to avoid duplicates
+      process.stdout.removeAllListeners('data');
+      process.stderr.removeAllListeners('data');
+      
       process.stdout.on('data', (data) => {
-        mainWindow.webContents.send('server-log', {
-          serverName,
-          type: 'stdout',
-          data: data.toString(),
-        });
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('server-log', {
+            serverName,
+            type: 'stdout',
+            data: data.toString(),
+          });
+        }
       });
 
       process.stderr.on('data', (data) => {
-        mainWindow.webContents.send('server-log', {
-          serverName,
-          type: 'stderr',
-          data: data.toString(),
-        });
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('server-log', {
+            serverName,
+            type: 'stderr',
+            data: data.toString(),
+          });
+        }
       });
     }
   }
@@ -100,6 +153,10 @@ ipcMain.handle('start-server', async (event, serverName, ramGB) => {
 
 ipcMain.handle('stop-server', async (event, serverName) => {
   return await serverManager.stopServer(serverName);
+});
+
+ipcMain.handle('update-server-ram', async (event, serverName, ramGB) => {
+  return await serverManager.updateServerRAM(serverName, ramGB);
 });
 
 ipcMain.handle('send-server-command', async (event, serverName, command) => {

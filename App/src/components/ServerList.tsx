@@ -10,7 +10,9 @@ export default function ServerList() {
   const [creating, setCreating] = useState(false);
 
   const handleStart = async (serverName: string) => {
-    const result = await startServer(serverName, 4);
+    const server = servers.find(s => s.name === serverName);
+    const ramGB = server?.ramGB || 4;
+    const result = await startServer(serverName, ramGB);
     if (!result.success) {
       alert(`Failed to start server: ${result.error}`);
     }
