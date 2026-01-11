@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
 import BootSequence from "@/components/BootSequence";
@@ -137,22 +136,24 @@ export default function Home() {
                   transition={{ delay: 0.5, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
                   className="flex gap-4 justify-center border-t border-border pt-8"
                 >
-                  <Link href="/dashboard" className="btn-primary block">
-                    <span className="relative z-20 font-mono">LAUNCH</span>
-                  </Link>
-                  <Link href="/docs" className="btn-secondary block">
+                  <a
+                    href="https://github.com/404twillCODE/Hexnode"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary block"
+                  >
                     <span className="relative z-20 font-mono">DOCUMENTATION</span>
-                  </Link>
+                  </a>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={bootComplete ? { opacity: 1, y: 0 } : {}}
                   transition={{ delay: 0.7, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-                  className="grid grid-cols-2 gap-12 pt-8 border-t border-border"
+                  className="grid grid-cols-3 gap-8 pt-8 border-t border-border"
                 >
                     <div>
                       <div className="mb-3 text-xs font-mono uppercase tracking-wider text-text-muted">
-                        Active Modules
+                        In Development
                       </div>
                       <div className="space-y-2">
                         <motion.div
@@ -166,14 +167,21 @@ export default function Home() {
                             Software
                           </span>
                         </motion.div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-3 text-xs font-mono uppercase tracking-wider text-text-muted">
+                        In Progress
+                      </div>
+                      <div className="space-y-2">
                         <motion.div
                           initial={{ opacity: 0, x: -10 }}
                           animate={bootComplete ? { opacity: 1, x: 0 } : {}}
                           transition={{ delay: 0.8, type: "spring", stiffness: 200, damping: 25 }}
                           className="flex items-center justify-center gap-2.5"
                         >
-                          <div className="h-1.5 w-1.5 bg-accent rounded-full"></div>
-                          <span className="text-sm text-text-secondary font-mono">
+                          <div className="h-1.5 w-1.5 bg-accent/60 rounded-full"></div>
+                          <span className="text-sm text-text-secondary/80 font-mono">
                             USB Server
                           </span>
                         </motion.div>
@@ -181,7 +189,7 @@ export default function Home() {
                     </div>
                     <div>
                       <div className="mb-3 text-xs font-mono uppercase tracking-wider text-text-muted">
-                        Planned Modules
+                        Planned
                       </div>
                       <div className="space-y-2">
                         <motion.div
@@ -236,7 +244,7 @@ export default function Home() {
       )}
 
       {/* Module: Software */}
-      <AnimatedSection bootComplete={bootComplete} className="full-width-section relative bg-background-secondary">
+      <AnimatedSection bootComplete={bootComplete} id="software-section" className="full-width-section relative bg-background-secondary">
         <motion.div
           style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
           className="section-background depth-layer"
@@ -318,14 +326,45 @@ export default function Home() {
                 transition={{ delay: 0.4, type: "spring", stiffness: 100, damping: 25 }}
                 className="mt-8"
               >
-                <a
-                  href="https://github.com/yourusername/hexnode/releases"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary inline-block"
+                <motion.button
+                  disabled
+                  className="btn-primary inline-block relative cursor-not-allowed"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <span className="relative z-20 font-mono">DOWNLOAD</span>
-                </a>
+                  <span className="relative z-20 font-mono flex items-center gap-3">
+                    DOWNLOAD
+                    <motion.span
+                      animate={{ 
+                        opacity: [0.7, 1, 0.7],
+                        scale: [1, 1.05, 1]
+                      }}
+                      transition={{ 
+                        duration: 2, 
+                        repeat: Infinity, 
+                        ease: "easeInOut" 
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono uppercase tracking-wider bg-accent/25 border border-accent/50 text-accent backdrop-blur-sm"
+                    >
+                      <span className="relative flex h-1.5 w-1.5">
+                        <motion.span
+                          animate={{ 
+                            scale: [1, 1.5, 1],
+                            opacity: [0.75, 0, 0.75]
+                          }}
+                          transition={{ 
+                            duration: 2, 
+                            repeat: Infinity, 
+                            ease: "easeInOut" 
+                          }}
+                          className="absolute inline-flex h-full w-full rounded-full bg-accent"
+                        ></motion.span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
+                      </span>
+                      COMING SOON
+                    </motion.span>
+                  </span>
+                </motion.button>
               </motion.div>
             </div>
             <FloatingCard delay={0.5} bootComplete={bootComplete}>
