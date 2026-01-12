@@ -42,6 +42,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     writeServerFile: (serverName, filePath, content) => ipcRenderer.invoke('write-server-file', serverName, filePath, content),
     listPlugins: (serverName) => ipcRenderer.invoke('list-plugins', serverName),
     deletePlugin: (serverName, pluginName) => ipcRenderer.invoke('delete-plugin', serverName, pluginName),
+    checkJarSupportsPlugins: (serverName) => ipcRenderer.invoke('check-jar-supports-plugins', serverName),
+    getModrinthPlugins: (minecraftVersion, limit) => ipcRenderer.invoke('get-modrinth-plugins', minecraftVersion, limit),
     listWorlds: (serverName) => ipcRenderer.invoke('list-worlds', serverName),
     getServerProperties: (serverName) => ipcRenderer.invoke('get-server-properties', serverName),
     updateServerProperties: (serverName, properties) => ipcRenderer.invoke('update-server-properties', serverName, properties),

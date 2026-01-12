@@ -40,6 +40,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [commandSuggestions, setCommandSuggestions] = useState<string[]>([]);
   const [chatMode, setChatMode] = useState(false);
+  const [supportsPlugins, setSupportsPlugins] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -48,6 +49,33 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const userScrolledRef = useRef<boolean>(false);
 
   const server = servers.find(s => s.name === serverName);
+
+  // Check if server supports plugins
+  useEffect(() => {
+    const checkPluginSupport = async () => {
+      if (!window.electronAPI || !window.electronAPI.server) return;
+      
+      // Check if function exists (defensive check for hot reload scenarios)
+      if (typeof window.electronAPI.server.checkJarSupportsPlugins !== 'function') {
+        console.warn('checkJarSupportsPlugins not available yet, defaulting to false');
+        setSupportsPlugins(false);
+        return;
+      }
+      
+      try {
+        const supports = await window.electronAPI.server.checkJarSupportsPlugins(serverName);
+        setSupportsPlugins(supports);
+        // If plugins tab is active but server doesn't support plugins, switch to console
+        if (!supports && activeTab === 'plugins') {
+          setActiveTab('console');
+        }
+      } catch (error) {
+        console.error('Failed to check plugin support:', error);
+        setSupportsPlugins(false);
+      }
+    };
+    checkPluginSupport();
+  }, [serverName, activeTab]);
   
   // Define status variables early so they can be used in useEffect hooks
   const isRunning = server?.status === "RUNNING";
@@ -103,7 +131,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
     };
 
     updateUsage();
-    const interval = setInterval(updateUsage, 2000); // Update every 2 seconds
+    const interval = setInterval(updateUsage, 5000); // Update every 5 seconds (reduced from 2s to reduce stuttering)
     return () => clearInterval(interval);
   }, [isRunning, serverName, getServerUsage]);
 
@@ -558,7 +586,15 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
 
       {/* Tabs */}
       <div className="flex gap-2 px-6 pt-4 border-b border-border bg-background-secondary overflow-x-auto">
-        {(['console', 'files', 'plugins', 'worlds', 'properties', 'settings'] as Tab[]).map((tab) => (
+        {(['console', 'files', 'plugins', 'worlds', 'properties', 'settings'] as Tab[])
+          .filter(tab => {
+            // Only show plugins tab if server supports plugins
+            if (tab === 'plugins' && supportsPlugins === false) {
+              return false;
+            }
+            return true;
+          })
+          .map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}

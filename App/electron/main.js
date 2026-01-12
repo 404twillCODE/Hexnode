@@ -6,6 +6,14 @@ const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
 delete require.cache[require.resolve('./serverManager')];
 const serverManager = require('./serverManager');
 
+// Verify new functions are available (for debugging)
+if (!serverManager.checkJarSupportsPlugins) {
+  console.warn('WARNING: checkJarSupportsPlugins not found in serverManager');
+}
+if (!serverManager.getModrinthPlugins) {
+  console.warn('WARNING: getModrinthPlugins not found in serverManager');
+}
+
 let mainWindow = null;
 
 function createWindow() {
@@ -241,6 +249,36 @@ ipcMain.handle('list-plugins', async (event, serverName) => {
 
 ipcMain.handle('delete-plugin', async (event, serverName, pluginName) => {
   return await serverManager.deletePlugin(serverName, pluginName);
+});
+
+ipcMain.handle('check-jar-supports-plugins', async (event, serverName) => {
+  try {
+    if (!serverManager.checkJarSupportsPlugins) {
+      console.error('checkJarSupportsPlugins function not found in serverManager');
+      return false;
+    }
+    const result = await serverManager.checkJarSupportsPlugins(serverName);
+    return result;
+  } catch (error) {
+    console.error('Error in check-jar-supports-plugins handler:', error);
+    return false;
+  }
+});
+
+// Log handler registration for debugging
+console.log('IPC handler registered: check-jar-supports-plugins');
+
+ipcMain.handle('get-modrinth-plugins', async (event, minecraftVersion, limit) => {
+  try {
+    if (!serverManager.getModrinthPlugins) {
+      console.error('getModrinthPlugins function not found in serverManager');
+      return [];
+    }
+    return await serverManager.getModrinthPlugins(minecraftVersion, limit);
+  } catch (error) {
+    console.error('Error in get-modrinth-plugins handler:', error);
+    return [];
+  }
 });
 
 ipcMain.handle('list-worlds', async (event, serverName) => {

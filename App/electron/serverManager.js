@@ -1501,19 +1501,37 @@ async function deleteServer(serverName) {
   }
 }
 
+// Cache for server usage to reduce stuttering
+const serverUsageCache = new Map(); // Map<serverName, { usage, timestamp }>
+const USAGE_CACHE_TTL = 5000; // 5 seconds cache
+
 // Get server usage (CPU, RAM) for a single server
+// Now reads from jar file config and caches results to reduce stuttering
 async function getServerUsage(serverName) {
   try {
+    // Get configured RAM from server config (stored when server was created/started)
+    const config = await getServerConfig(serverName);
+    const configuredRAM = config?.ramGB || 4;
+    const configuredRAMMB = configuredRAM * 1024;
+
     const process = serverProcesses.get(serverName);
     if (!process || !process.pid) {
       // Clear tracking if process doesn't exist
       cpuUsageTracking.delete(serverName);
-      return { success: true, cpu: 0, ram: 0, ramMB: 0 };
+      serverUsageCache.delete(serverName);
+      // Return configured RAM even when stopped
+      return { success: true, cpu: 0, ram: configuredRAM, ramMB: configuredRAMMB, configuredRAM };
+    }
+
+    // Check cache first
+    const cached = serverUsageCache.get(serverName);
+    if (cached && (Date.now() - cached.timestamp) < USAGE_CACHE_TTL) {
+      return { ...cached.usage, configuredRAM };
     }
 
     const pid = process.pid;
     let cpuPercent = 0;
-    let ramMB = 0;
+    let ramMB = configuredRAMMB; // Default to configured RAM
     const now = Date.now();
 
     if (os.platform() === 'win32') {
@@ -1521,7 +1539,7 @@ async function getServerUsage(serverName) {
       try {
         // Get CPU time and RAM
         const cmd = `powershell -Command "$proc = Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if ($proc) { @{ CPU = $proc.CPU; WorkingSet = $proc.WorkingSet; ProcessorTime = $proc.TotalProcessorTime.TotalMilliseconds } | ConvertTo-Json }"`;
-        const output = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 5000 });
+        const output = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
         
         if (output && output.trim()) {
           const processInfo = JSON.parse(output);
@@ -1557,7 +1575,7 @@ async function getServerUsage(serverName) {
         // Fallback: try wmic for RAM only (CPU calculation requires tracking)
         try {
           const wmicCmd = `wmic process where ProcessId=${pid} get WorkingSetSize /format:csv`;
-          const wmicOutput = execSync(wmicCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 5000 });
+          const wmicOutput = execSync(wmicCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
           const lines = wmicOutput.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
           if (lines.length > 0) {
             const values = lines[0].split(',');
@@ -1569,7 +1587,7 @@ async function getServerUsage(serverName) {
           // Try to get CPU using wmic (cumulative CPU time)
           try {
             const cpuCmd = `wmic process where ProcessId=${pid} get KernelModeTime,UserModeTime /format:csv`;
-            const cpuOutput = execSync(cpuCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 5000 });
+            const cpuOutput = execSync(cpuCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
             const cpuLines = cpuOutput.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
             if (cpuLines.length > 0) {
               const cpuValues = cpuLines[0].split(',');
@@ -1600,26 +1618,39 @@ async function getServerUsage(serverName) {
             // CPU calculation failed, but we have RAM
           }
         } catch (wmicError) {
-          // If both fail, return 0
+          // If both fail, use configured RAM
+          ramMB = configuredRAMMB;
         }
       }
     } else {
       // Linux/macOS: Use ps (gives CPU percentage directly)
       try {
-        const psOutput = execSync(`ps -p ${pid} -o %cpu,rss --no-headers`, { encoding: 'utf8', timeout: 5000 });
+        const psOutput = execSync(`ps -p ${pid} -o %cpu,rss --no-headers`, { encoding: 'utf8', timeout: 3000 });
         const parts = psOutput.trim().split(/\s+/);
         if (parts.length >= 2) {
           cpuPercent = parseFloat(parts[0]) || 0;
           ramMB = Math.round(parseInt(parts[1]) / 1024); // RSS is in KB
         }
       } catch (error) {
-        // Process might have exited
+        // Process might have exited, use configured RAM
+        ramMB = configuredRAMMB;
       }
     }
 
-    return { success: true, cpu: cpuPercent, ram: ramMB / 1024, ramMB };
+    const result = { success: true, cpu: cpuPercent, ram: ramMB / 1024, ramMB, configuredRAM };
+    
+    // Cache the result
+    serverUsageCache.set(serverName, {
+      usage: result,
+      timestamp: now
+    });
+
+    return result;
   } catch (error) {
-    return { success: false, error: error.message };
+    // On error, return configured RAM from config
+    const config = await getServerConfig(serverName);
+    const configuredRAM = config?.ramGB || 4;
+    return { success: true, cpu: 0, ram: configuredRAM, ramMB: configuredRAM * 1024, configuredRAM };
   }
 }
 
@@ -1974,6 +2005,13 @@ async function getServerFiles(serverName, filePath = '') {
       });
     }
     
+    // Sort: directories first, then files (both alphabetically)
+    items.sort((a, b) => {
+      if (a.type === 'directory' && b.type !== 'directory') return -1;
+      if (a.type !== 'directory' && b.type === 'directory') return 1;
+      return a.name.localeCompare(b.name);
+    });
+    
     return { success: true, items };
   } catch (error) {
     return { success: false, error: error.message };
@@ -2024,6 +2062,109 @@ async function writeServerFile(serverName, filePath, content) {
   }
 }
 
+// Check if a jar file supports plugins by checking server type and jar filename
+// Plugin-supporting servers: Paper, Spigot, Purpur, Velocity, Waterfall, BungeeCord
+// Mod-supporting servers (NOT plugins): Fabric, Forge
+// No support: Vanilla, Manual
+async function checkJarSupportsPlugins(serverName) {
+  try {
+    const settings = await getAppSettings();
+    const serversDir = settings.serversDirectory || SERVERS_DIR;
+    const serverPath = path.join(serversDir, serverName);
+    
+    // Check server type from config first (fastest and most reliable)
+    const config = await getServerConfig(serverName);
+    if (config && config.serverType) {
+      const serverType = config.serverType.toLowerCase();
+      // Plugin-supporting server types
+      const pluginServers = ['paper', 'spigot', 'purpur', 'velocity', 'waterfall', 'bungeecord'];
+      // Mod-supporting server types (NOT plugins)
+      const modServers = ['fabric', 'forge'];
+      // No support
+      const noSupportServers = ['vanilla', 'manual'];
+      
+      if (pluginServers.includes(serverType)) {
+        return true;
+      }
+      if (modServers.includes(serverType) || noSupportServers.includes(serverType)) {
+        return false;
+      }
+    }
+    
+    // Fallback: Check jar filename patterns
+    try {
+      const files = await fs.readdir(serverPath);
+      const jarFile = files.find(f => f.endsWith('.jar'));
+      if (!jarFile) {
+        return false;
+      }
+      
+      const jarName = jarFile.toLowerCase();
+      
+      // Plugin-supporting patterns
+      const pluginPatterns = ['paper', 'spigot', 'purpur', 'velocity', 'waterfall', 'bungeecord'];
+      if (pluginPatterns.some(pattern => jarName.includes(pattern))) {
+        return true;
+      }
+      
+      // Mod-supporting patterns (NOT plugins)
+      if (jarName.includes('forge') || jarName.includes('fabric')) {
+        return false;
+      }
+      
+      // Vanilla server pattern (no support)
+      if (jarName.includes('server') && !jarName.includes('paper') && !jarName.includes('spigot') && !jarName.includes('purpur')) {
+        return false;
+      }
+      
+      // Manual/custom jars - no support by default
+      if (jarName.includes('manual') || jarName.includes('custom')) {
+        return false;
+      }
+    } catch (error) {
+      // Can't read directory
+      return false;
+    }
+    
+    // Default: don't assume plugin support if we can't determine
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Get plugins from Modrinth API
+async function getModrinthPlugins(minecraftVersion = null, limit = 50) {
+  return new Promise((resolve, reject) => {
+    // Build facets array properly
+    const facets = [['project_type:plugin']];
+    if (minecraftVersion) {
+      facets.push(['versions:' + minecraftVersion]);
+    }
+    
+    // Encode facets as JSON
+    const facetsJson = encodeURIComponent(JSON.stringify(facets));
+    const url = `https://api.modrinth.com/v2/search?facets=${facetsJson}&limit=${limit}`;
+    
+    https.get(url, {
+      headers: {
+        'User-Agent': 'HexNode/1.0.0'
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          resolve(json.hits || []);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
 // List plugins
 async function listPlugins(serverName) {
   try {
@@ -2031,10 +2172,16 @@ async function listPlugins(serverName) {
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const pluginsPath = path.join(serversDir, serverName, 'plugins');
     
+    // Check if server supports plugins
+    const supportsPlugins = await checkJarSupportsPlugins(serverName);
+    if (!supportsPlugins) {
+      return { success: true, plugins: [], supportsPlugins: false };
+    }
+    
     try {
       await fs.access(pluginsPath);
     } catch {
-      return { success: true, plugins: [] };
+      return { success: true, plugins: [], supportsPlugins: true };
     }
     
     const files = await fs.readdir(pluginsPath);
@@ -2052,7 +2199,7 @@ async function listPlugins(serverName) {
       }
     }
     
-    return { success: true, plugins };
+    return { success: true, plugins, supportsPlugins: true };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -2239,6 +2386,8 @@ module.exports = {
   writeServerFile,
   listPlugins,
   deletePlugin,
+  checkJarSupportsPlugins,
+  getModrinthPlugins,
   listWorlds,
   getServerProperties,
   updateServerProperties,
