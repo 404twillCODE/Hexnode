@@ -281,6 +281,19 @@ ipcMain.handle('get-modrinth-plugins', async (event, minecraftVersion, limit) =>
   }
 });
 
+ipcMain.handle('install-modrinth-plugin', async (event, serverName, projectId, minecraftVersion) => {
+  try {
+    if (!serverManager.installModrinthPlugin) {
+      console.error('installModrinthPlugin function not found in serverManager');
+      return { success: false, error: 'Function not available' };
+    }
+    return await serverManager.installModrinthPlugin(serverName, projectId, minecraftVersion);
+  } catch (error) {
+    console.error('Error in install-modrinth-plugin handler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle('list-worlds', async (event, serverName) => {
   return await serverManager.listWorlds(serverName);
 });

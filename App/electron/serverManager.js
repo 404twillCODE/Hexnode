@@ -2133,18 +2133,75 @@ async function checkJarSupportsPlugins(serverName) {
   }
 }
 
-// Get plugins from Modrinth API
-async function getModrinthPlugins(minecraftVersion = null, limit = 50) {
-  return new Promise((resolve, reject) => {
-    // Build facets array properly
-    const facets = [['project_type:plugin']];
-    if (minecraftVersion) {
-      facets.push(['versions:' + minecraftVersion]);
+// Get plugins from Modrinth API with pagination to get all results
+async function getModrinthPlugins(minecraftVersion = null, limit = 100) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Build facets array properly
+      const facets = [['project_type:plugin']];
+      if (minecraftVersion) {
+        facets.push(['versions:' + minecraftVersion]);
+      }
+      
+      // Encode facets as JSON
+      const facetsJson = encodeURIComponent(JSON.stringify(facets));
+      
+      let allPlugins = [];
+      let offset = 0;
+      const pageSize = 100; // Modrinth API max is 100 per request
+      let hasMore = true;
+      
+      // Fetch all pages
+      while (hasMore) {
+        const url = `https://api.modrinth.com/v2/search?facets=${facetsJson}&limit=${pageSize}&offset=${offset}`;
+        
+        const pageResults = await new Promise((pageResolve, pageReject) => {
+          https.get(url, {
+            headers: {
+              'User-Agent': 'HexNode/1.0.0'
+            }
+          }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const json = JSON.parse(data);
+                pageResolve({
+                  hits: json.hits || [],
+                  total: json.total_hits || 0
+                });
+              } catch (e) {
+                pageReject(e);
+              }
+            });
+          }).on('error', pageReject);
+        });
+        
+        allPlugins = allPlugins.concat(pageResults.hits);
+        
+        // Check if there are more results
+        if (pageResults.hits.length < pageSize || allPlugins.length >= pageResults.total) {
+          hasMore = false;
+        } else {
+          offset += pageSize;
+          // Continue fetching until we have all plugins (no artificial limit)
+        }
+      }
+      
+      resolve(allPlugins);
+    } catch (error) {
+      reject(error);
     }
-    
-    // Encode facets as JSON
-    const facetsJson = encodeURIComponent(JSON.stringify(facets));
-    const url = `https://api.modrinth.com/v2/search?facets=${facetsJson}&limit=${limit}`;
+  });
+}
+
+// Get latest version of a Modrinth plugin for a specific Minecraft version
+async function getModrinthPluginVersion(projectId, minecraftVersion) {
+  return new Promise((resolve, reject) => {
+    // Modrinth API expects URL-encoded arrays
+    const gameVersions = encodeURIComponent(JSON.stringify([minecraftVersion]));
+    const loaders = encodeURIComponent(JSON.stringify(['bukkit', 'spigot', 'paper', 'purpur']));
+    const url = `https://api.modrinth.com/v2/project/${projectId}/version?game_versions=${gameVersions}&loaders=${loaders}`;
     
     https.get(url, {
       headers: {
@@ -2156,13 +2213,61 @@ async function getModrinthPlugins(minecraftVersion = null, limit = 50) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          resolve(json.hits || []);
+          // Return the first (latest) version that matches
+          if (json && json.length > 0) {
+            resolve(json[0]);
+          } else {
+            reject(new Error('No compatible version found'));
+          }
         } catch (e) {
           reject(e);
         }
       });
     }).on('error', reject);
   });
+}
+
+// Install plugin from Modrinth
+async function installModrinthPlugin(serverName, projectId, minecraftVersion) {
+  try {
+    // Check if server supports plugins
+    const supportsPlugins = await checkJarSupportsPlugins(serverName);
+    if (!supportsPlugins) {
+      return { success: false, error: 'This server type does not support plugins' };
+    }
+
+    // Get settings and paths
+    const settings = await getAppSettings();
+    const serversDir = settings.serversDirectory || SERVERS_DIR;
+    const pluginsPath = path.join(serversDir, serverName, 'plugins');
+    
+    // Ensure plugins directory exists
+    await fs.mkdir(pluginsPath, { recursive: true });
+
+    // Get the latest compatible version
+    const version = await getModrinthPluginVersion(projectId, minecraftVersion);
+    
+    if (!version || !version.files || version.files.length === 0) {
+      return { success: false, error: 'No download file found for this plugin version' };
+    }
+
+    // Find the primary jar file (usually the first one, or one marked as primary)
+    const jarFile = version.files.find(f => f.primary) || version.files.find(f => f.filename.endsWith('.jar')) || version.files[0];
+    
+    if (!jarFile) {
+      return { success: false, error: 'No jar file found in plugin version' };
+    }
+
+    // Download the plugin
+    const pluginPath = path.join(pluginsPath, jarFile.filename);
+    const downloadUrl = jarFile.url || `https://cdn.modrinth.com/data/${projectId}/versions/${version.id}/${jarFile.filename}`;
+    
+    await downloadFile(downloadUrl, pluginPath);
+
+    return { success: true, filename: jarFile.filename, path: pluginPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
 
 // List plugins
@@ -2388,6 +2493,7 @@ module.exports = {
   deletePlugin,
   checkJarSupportsPlugins,
   getModrinthPlugins,
+  installModrinthPlugin,
   listWorlds,
   getServerProperties,
   updateServerProperties,

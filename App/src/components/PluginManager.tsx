@@ -27,8 +27,10 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
   const [loading, setLoading] = useState(false);
   const [loadingModrinth, setLoadingModrinth] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [installing, setInstalling] = useState<string | null>(null);
   const [supportsPlugins, setSupportsPlugins] = useState<boolean | null>(null);
   const [minecraftVersion, setMinecraftVersion] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     checkPluginSupport();
@@ -55,13 +57,25 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
       const supports = await window.electronAPI.server.checkJarSupportsPlugins(serverName);
       setSupportsPlugins(supports);
       
-      // Get Minecraft version for Modrinth search
+      // Get Minecraft version for Modrinth search - get from server config to ensure accuracy
       if (supports && window.electronAPI) {
         try {
           const servers = await window.electronAPI.server.listServers();
           const server = servers.find((s: any) => s.name === serverName);
           if (server && server.version && server.version !== 'manual' && server.version !== 'unknown') {
+            // Use the exact version from the server config
             setMinecraftVersion(server.version);
+          } else {
+            // Try to get version from server config directly
+            try {
+              const config = await window.electronAPI.server.getServerConfig?.(serverName);
+              if (config?.version && config.version !== 'manual' && config.version !== 'unknown') {
+                setMinecraftVersion(config.version);
+              }
+            } catch (e) {
+              // Fallback: try to extract from jar filename if available
+              console.warn('Could not determine Minecraft version for plugin search');
+            }
           }
         } catch (error) {
           console.error('Failed to get server version:', error);
@@ -92,10 +106,19 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
   };
 
   const loadModrinthPlugins = async () => {
-    if (!window.electronAPI) return;
+    if (!window.electronAPI || !window.electronAPI.server) return;
+    
+    // Check if function exists (defensive check for hot reload scenarios)
+    if (typeof window.electronAPI.server.getModrinthPlugins !== 'function') {
+      console.warn('getModrinthPlugins not available yet');
+      setLoadingModrinth(false);
+      return;
+    }
+    
     setLoadingModrinth(true);
     try {
-      const plugins = await window.electronAPI.server.getModrinthPlugins(minecraftVersion, 20);
+      // Fetch all plugins (no limit, will paginate automatically to get full selection)
+      const plugins = await window.electronAPI.server.getModrinthPlugins(minecraftVersion);
       setModrinthPlugins(plugins || []);
     } catch (error) {
       console.error('Failed to load Modrinth plugins:', error);
@@ -120,6 +143,33 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
       alert(`Error deleting plugin: ${error.message}`);
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleInstall = async (projectId: string, pluginTitle: string) => {
+    if (!window.electronAPI || !minecraftVersion) {
+      alert('Unable to install: Minecraft version not available');
+      return;
+    }
+
+    if (!window.electronAPI.server.installModrinthPlugin) {
+      alert('Install function not available. Please restart the app.');
+      return;
+    }
+
+    setInstalling(projectId);
+    try {
+      const result = await window.electronAPI.server.installModrinthPlugin(serverName, projectId, minecraftVersion);
+      if (result.success) {
+        alert(`Successfully installed ${pluginTitle}!`);
+        await loadPlugins(); // Refresh installed plugins list
+      } else {
+        alert(`Failed to install plugin: ${result.error}`);
+      }
+    } catch (error: any) {
+      alert(`Error installing plugin: ${error.message}`);
+    } finally {
+      setInstalling(null);
     }
   };
 
@@ -223,12 +273,44 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
 
         {/* Modrinth Plugins Section */}
         <div>
-          <h3 className="text-lg font-semibold text-text-primary font-mono mb-4">
-            Available on Modrinth
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-text-primary font-mono">
+              Available on Modrinth
+            </h3>
+            {modrinthPlugins.length > 0 && (
+              <span className="text-sm text-text-muted font-mono">
+                {searchQuery.trim() 
+                  ? `${modrinthPlugins.filter((plugin) => {
+                      const query = searchQuery.toLowerCase();
+                      return (
+                        plugin.title.toLowerCase().includes(query) ||
+                        plugin.description.toLowerCase().includes(query) ||
+                        plugin.slug.toLowerCase().includes(query)
+                      );
+                    }).length} of ${modrinthPlugins.length} plugins`
+                  : `${modrinthPlugins.length} ${modrinthPlugins.length === 1 ? 'plugin' : 'plugins'} available`
+                }
+                {minecraftVersion && ` for ${minecraftVersion}`}
+              </span>
+            )}
+          </div>
+          
+          {/* Search Bar */}
+          {modrinthPlugins.length > 0 && (
+            <div className="mb-4">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search plugins by name, description..."
+                className="w-full bg-background border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded transition-colors"
+              />
+            </div>
+          )}
           {loadingModrinth ? (
             <div className="text-center py-8">
-              <div className="text-text-muted font-mono text-sm">Loading Modrinth plugins...</div>
+              <div className="text-text-muted font-mono text-sm">Loading all Modrinth plugins...</div>
+              <div className="text-xs text-text-muted font-mono mt-2">This may take a moment</div>
             </div>
           ) : modrinthPlugins.length === 0 ? (
             <div className="system-card p-8 text-center">
@@ -241,8 +323,18 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {modrinthPlugins.map((plugin) => (
+            <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+              {modrinthPlugins
+                .filter((plugin) => {
+                  if (!searchQuery.trim()) return true;
+                  const query = searchQuery.toLowerCase();
+                  return (
+                    plugin.title.toLowerCase().includes(query) ||
+                    plugin.description.toLowerCase().includes(query) ||
+                    plugin.slug.toLowerCase().includes(query)
+                  );
+                })
+                .map((plugin) => (
                 <motion.div
                   key={plugin.project_id}
                   initial={{ opacity: 0, y: 10 }}
@@ -279,9 +371,37 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
                         </a>
                       </div>
                     </div>
+                    <motion.button
+                      onClick={() => handleInstall(plugin.project_id, plugin.title)}
+                      disabled={installing === plugin.project_id || !minecraftVersion}
+                      className="btn-primary text-xs px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      whileHover={{ scale: installing === plugin.project_id ? 1 : 1.02 }}
+                      whileTap={{ scale: installing === plugin.project_id ? 1 : 0.98 }}
+                    >
+                      {installing === plugin.project_id ? 'INSTALLING...' : 'INSTALL'}
+                    </motion.button>
                   </div>
                 </motion.div>
               ))}
+              {modrinthPlugins.filter((plugin) => {
+                if (!searchQuery.trim()) return false;
+                const query = searchQuery.toLowerCase();
+                return (
+                  plugin.title.toLowerCase().includes(query) ||
+                  plugin.description.toLowerCase().includes(query) ||
+                  plugin.slug.toLowerCase().includes(query)
+                );
+              }).length === 0 && searchQuery.trim() && (
+                <div className="system-card p-8 text-center">
+                  <div className="text-3xl mb-3 opacity-20">🔍</div>
+                  <h4 className="text-md font-semibold text-text-primary font-mono mb-2">
+                    NO RESULTS FOUND
+                  </h4>
+                  <p className="text-text-muted font-mono text-sm">
+                    No plugins match "{searchQuery}"
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
