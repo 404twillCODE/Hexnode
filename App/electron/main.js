@@ -6,6 +6,14 @@ const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
 delete require.cache[require.resolve('./serverManager')];
 const serverManager = require('./serverManager');
 
+// Verify new functions are available (for debugging)
+if (!serverManager.checkJarSupportsPlugins) {
+  console.warn('WARNING: checkJarSupportsPlugins not found in serverManager');
+}
+if (!serverManager.getModrinthPlugins) {
+  console.warn('WARNING: getModrinthPlugins not found in serverManager');
+}
+
 let mainWindow = null;
 
 function createWindow() {
@@ -243,6 +251,49 @@ ipcMain.handle('delete-plugin', async (event, serverName, pluginName) => {
   return await serverManager.deletePlugin(serverName, pluginName);
 });
 
+ipcMain.handle('check-jar-supports-plugins', async (event, serverName) => {
+  try {
+    if (!serverManager.checkJarSupportsPlugins) {
+      console.error('checkJarSupportsPlugins function not found in serverManager');
+      return false;
+    }
+    const result = await serverManager.checkJarSupportsPlugins(serverName);
+    return result;
+  } catch (error) {
+    console.error('Error in check-jar-supports-plugins handler:', error);
+    return false;
+  }
+});
+
+// Log handler registration for debugging
+console.log('IPC handler registered: check-jar-supports-plugins');
+
+ipcMain.handle('get-modrinth-plugins', async (event, minecraftVersion, limit) => {
+  try {
+    if (!serverManager.getModrinthPlugins) {
+      console.error('getModrinthPlugins function not found in serverManager');
+      return [];
+    }
+    return await serverManager.getModrinthPlugins(minecraftVersion, limit);
+  } catch (error) {
+    console.error('Error in get-modrinth-plugins handler:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('install-modrinth-plugin', async (event, serverName, projectId, minecraftVersion) => {
+  try {
+    if (!serverManager.installModrinthPlugin) {
+      console.error('installModrinthPlugin function not found in serverManager');
+      return { success: false, error: 'Function not available' };
+    }
+    return await serverManager.installModrinthPlugin(serverName, projectId, minecraftVersion);
+  } catch (error) {
+    console.error('Error in install-modrinth-plugin handler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle('list-worlds', async (event, serverName) => {
   return await serverManager.listWorlds(serverName);
 });
@@ -326,19 +377,33 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('window-all-closed', () => {
-  // Stop all servers before quitting
-  const { listServers, stopServer } = serverManager;
-  listServers().then(servers => {
-    servers.forEach(server => {
-      if (server.status === 'RUNNING') {
-        stopServer(server.name);
-      }
-    });
-  });
+// Kill all servers before quitting
+async function killAllServers() {
+  try {
+    const servers = await serverManager.listServers();
+    const killPromises = servers
+      .filter(server => server.status === 'RUNNING' || server.status === 'STARTING')
+      .map(server => serverManager.killServer(server.name));
+    
+    // Kill all servers in parallel and wait for completion
+    await Promise.allSettled(killPromises);
+  } catch (error) {
+    console.error('Error killing servers on shutdown:', error);
+  }
+}
+
+// Handle before-quit event (more reliable than window-all-closed)
+app.on('before-quit', async (event) => {
+  event.preventDefault(); // Prevent immediate quit
+  await killAllServers();
+  app.exit(0); // Force exit after killing servers
+});
+
+app.on('window-all-closed', async () => {
+  // Kill all servers before quitting
+  await killAllServers();
   
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
-

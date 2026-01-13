@@ -1254,6 +1254,49 @@ async function createServer(serverName = 'default', serverType = 'paper', versio
 
 // Server process management
 const serverProcesses = new Map();
+// Track CPU usage over time for Windows (needed for accurate CPU percentage)
+const cpuUsageTracking = new Map(); // Map<serverName, { lastCpuTime: number, lastCheckTime: number }>
+
+// Check if a process is actually still running
+function isProcessAlive(process) {
+  if (!process || !process.pid) {
+    return false;
+  }
+  
+  // Check if process is marked as killed
+  if (process.killed) {
+    return false;
+  }
+  
+  try {
+    // On Windows, use tasklist to check if process exists
+    if (os.platform() === 'win32') {
+      try {
+        const result = execSync(`tasklist /FI "PID eq ${process.pid}" /FO CSV /NH`, {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          timeout: 2000
+        });
+        // If process exists, tasklist will return a line with the PID
+        return result.trim().includes(process.pid.toString());
+      } catch (error) {
+        // Process doesn't exist or error checking
+        return false;
+      }
+    } else {
+      // On Unix-like systems, use kill with signal 0
+      try {
+        process.kill(0); // Signal 0 doesn't kill, just checks if process exists
+        return true;
+      } catch (error) {
+        // Process doesn't exist (ESRCH error)
+        return false;
+      }
+    }
+  } catch (error) {
+    return false;
+  }
+}
 
 // Start server
 async function startServer(serverName, ramGB = null) {
@@ -1320,6 +1363,7 @@ async function startServer(serverName, ramGB = null) {
     // Handle process events
     javaProcess.on('exit', async (code) => {
       serverProcesses.delete(serverName);
+      cpuUsageTracking.delete(serverName); // Clean up CPU tracking
       const currentConfig = await getServerConfig(serverName);
       if (currentConfig) {
         await saveServerConfig(serverName, {
@@ -1331,6 +1375,7 @@ async function startServer(serverName, ramGB = null) {
 
     javaProcess.on('error', async (error) => {
       serverProcesses.delete(serverName);
+      cpuUsageTracking.delete(serverName); // Clean up CPU tracking
       const currentConfig = await getServerConfig(serverName);
       if (currentConfig) {
         await saveServerConfig(serverName, {
@@ -1392,6 +1437,7 @@ async function stopServer(serverName) {
       if (serverProcesses.has(serverName)) {
         process.kill();
         serverProcesses.delete(serverName);
+        cpuUsageTracking.delete(serverName); // Clean up CPU tracking
         const currentConfig = await getServerConfig(serverName);
         if (currentConfig) {
           await saveServerConfig(serverName, {
@@ -1455,34 +1501,81 @@ async function deleteServer(serverName) {
   }
 }
 
+// Cache for server usage to reduce stuttering
+const serverUsageCache = new Map(); // Map<serverName, { usage, timestamp }>
+const USAGE_CACHE_TTL = 5000; // 5 seconds cache
+
 // Get server usage (CPU, RAM) for a single server
+// Now reads from jar file config and caches results to reduce stuttering
 async function getServerUsage(serverName) {
   try {
+    // Get configured RAM from server config (stored when server was created/started)
+    const config = await getServerConfig(serverName);
+    const configuredRAM = config?.ramGB || 4;
+    const configuredRAMMB = configuredRAM * 1024;
+
     const process = serverProcesses.get(serverName);
     if (!process || !process.pid) {
-      return { success: true, cpu: 0, ram: 0, ramMB: 0 };
+      // Clear tracking if process doesn't exist
+      cpuUsageTracking.delete(serverName);
+      serverUsageCache.delete(serverName);
+      // Return configured RAM even when stopped
+      return { success: true, cpu: 0, ram: configuredRAM, ramMB: configuredRAMMB, configuredRAM };
+    }
+
+    // Check cache first
+    const cached = serverUsageCache.get(serverName);
+    if (cached && (Date.now() - cached.timestamp) < USAGE_CACHE_TTL) {
+      return { ...cached.usage, configuredRAM };
     }
 
     const pid = process.pid;
     let cpuPercent = 0;
-    let ramMB = 0;
+    let ramMB = configuredRAMMB; // Default to configured RAM
+    const now = Date.now();
 
     if (os.platform() === 'win32') {
-      // Windows: Use PowerShell
+      // Windows: Use PowerShell with proper CPU calculation
       try {
-        const cmd = `powershell -Command "Get-Process -Id ${pid} -ErrorAction SilentlyContinue | Select-Object -Property CPU,WorkingSet | ConvertTo-Json"`;
-        const output = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-        const processInfo = JSON.parse(output);
+        // Get CPU time and RAM
+        const cmd = `powershell -Command "$proc = Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if ($proc) { @{ CPU = $proc.CPU; WorkingSet = $proc.WorkingSet; ProcessorTime = $proc.TotalProcessorTime.TotalMilliseconds } | ConvertTo-Json }"`;
+        const output = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
         
-        if (processInfo) {
-          ramMB = Math.round((processInfo.WorkingSet || 0) / (1024 * 1024));
-          cpuPercent = 0; // CPU is cumulative, would need tracking over time
+        if (output && output.trim()) {
+          const processInfo = JSON.parse(output);
+          
+          if (processInfo) {
+            ramMB = Math.round((processInfo.WorkingSet || 0) / (1024 * 1024));
+            
+            // Calculate CPU percentage based on time difference
+            const currentCpuTime = processInfo.ProcessorTime || 0;
+            const tracking = cpuUsageTracking.get(serverName);
+            
+            if (tracking && tracking.lastCheckTime) {
+              const timeDiff = (now - tracking.lastCheckTime) / 1000; // Convert to seconds
+              const cpuTimeDiff = (currentCpuTime - tracking.lastCpuTime) / 1000; // Convert to seconds
+              
+              if (timeDiff > 0) {
+                // CPU percentage = (CPU time difference / time difference) * 100
+                // Divide by number of CPU cores to get percentage per core, then multiply by 100
+                const cpuCores = os.cpus().length;
+                cpuPercent = Math.min(100, (cpuTimeDiff / timeDiff / cpuCores) * 100);
+                cpuPercent = Math.max(0, cpuPercent); // Ensure non-negative
+              }
+            }
+            
+            // Update tracking
+            cpuUsageTracking.set(serverName, {
+              lastCpuTime: currentCpuTime,
+              lastCheckTime: now
+            });
+          }
         }
       } catch (error) {
-        // Fallback: try wmic
+        // Fallback: try wmic for RAM only (CPU calculation requires tracking)
         try {
           const wmicCmd = `wmic process where ProcessId=${pid} get WorkingSetSize /format:csv`;
-          const wmicOutput = execSync(wmicCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+          const wmicOutput = execSync(wmicCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
           const lines = wmicOutput.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
           if (lines.length > 0) {
             const values = lines[0].split(',');
@@ -1490,27 +1583,74 @@ async function getServerUsage(serverName) {
               ramMB = Math.round(parseInt(values[2] || 0) / (1024 * 1024));
             }
           }
+          
+          // Try to get CPU using wmic (cumulative CPU time)
+          try {
+            const cpuCmd = `wmic process where ProcessId=${pid} get KernelModeTime,UserModeTime /format:csv`;
+            const cpuOutput = execSync(cpuCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
+            const cpuLines = cpuOutput.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
+            if (cpuLines.length > 0) {
+              const cpuValues = cpuLines[0].split(',');
+              if (cpuValues.length >= 3) {
+                const kernelTime = parseInt(cpuValues[1] || 0);
+                const userTime = parseInt(cpuValues[2] || 0);
+                const totalCpuTime = (kernelTime + userTime) / 10000; // Convert 100-nanosecond intervals to milliseconds
+                
+                const tracking = cpuUsageTracking.get(serverName);
+                if (tracking && tracking.lastCheckTime) {
+                  const timeDiff = (now - tracking.lastCheckTime) / 1000;
+                  const cpuTimeDiff = (totalCpuTime - tracking.lastCpuTime) / 1000;
+                  
+                  if (timeDiff > 0) {
+                    const cpuCores = os.cpus().length;
+                    cpuPercent = Math.min(100, (cpuTimeDiff / timeDiff / cpuCores) * 100);
+                    cpuPercent = Math.max(0, cpuPercent);
+                  }
+                }
+                
+                cpuUsageTracking.set(serverName, {
+                  lastCpuTime: totalCpuTime,
+                  lastCheckTime: now
+                });
+              }
+            }
+          } catch (cpuError) {
+            // CPU calculation failed, but we have RAM
+          }
         } catch (wmicError) {
-          // If both fail, return 0
+          // If both fail, use configured RAM
+          ramMB = configuredRAMMB;
         }
       }
     } else {
-      // Linux/macOS: Use ps
+      // Linux/macOS: Use ps (gives CPU percentage directly)
       try {
-        const psOutput = execSync(`ps -p ${pid} -o %cpu,rss --no-headers`, { encoding: 'utf8' });
+        const psOutput = execSync(`ps -p ${pid} -o %cpu,rss --no-headers`, { encoding: 'utf8', timeout: 3000 });
         const parts = psOutput.trim().split(/\s+/);
         if (parts.length >= 2) {
           cpuPercent = parseFloat(parts[0]) || 0;
           ramMB = Math.round(parseInt(parts[1]) / 1024); // RSS is in KB
         }
       } catch (error) {
-        // Process might have exited
+        // Process might have exited, use configured RAM
+        ramMB = configuredRAMMB;
       }
     }
 
-    return { success: true, cpu: cpuPercent, ram: ramMB / 1024, ramMB };
+    const result = { success: true, cpu: cpuPercent, ram: ramMB / 1024, ramMB, configuredRAM };
+    
+    // Cache the result
+    serverUsageCache.set(serverName, {
+      usage: result,
+      timestamp: now
+    });
+
+    return result;
   } catch (error) {
-    return { success: false, error: error.message };
+    // On error, return configured RAM from config
+    const config = await getServerConfig(serverName);
+    const configuredRAM = config?.ramGB || 4;
+    return { success: true, cpu: 0, ram: configuredRAM, ramMB: configuredRAM * 1024, configuredRAM };
   }
 }
 
@@ -1629,6 +1769,7 @@ async function killServer(serverName) {
     // Force kill immediately
     process.kill('SIGKILL');
     serverProcesses.delete(serverName);
+    cpuUsageTracking.delete(serverName); // Clean up CPU tracking
 
     // Update status
     const config = await getServerConfig(serverName);
@@ -1744,15 +1885,34 @@ async function listServers() {
           let status = 'STOPPED';
           if (isRunning) {
             const process = serverProcesses.get(serverName);
-            if (process && !process.killed && process.pid) {
+            if (process && isProcessAlive(process)) {
               status = 'RUNNING';
             } else {
+              // Process is dead, remove it and update config
+              serverProcesses.delete(serverName);
+              cpuUsageTracking.delete(serverName);
               status = 'STOPPED';
+              // Update config to reflect actual status
+              if (config) {
+                await saveServerConfig(serverName, {
+                  ...config,
+                  status: 'STOPPED'
+                });
+              }
             }
           } else if (config && config.status === 'STARTING') {
             status = 'STARTING';
           } else if (config) {
             status = config.status || 'STOPPED';
+          }
+          
+          // If config says RUNNING but process doesn't exist, fix it
+          if (config && config.status === 'RUNNING' && !isRunning) {
+            status = 'STOPPED';
+            await saveServerConfig(serverName, {
+              ...config,
+              status: 'STOPPED'
+            });
           }
           
           // Extract version from jar filename if not in config
@@ -1845,6 +2005,13 @@ async function getServerFiles(serverName, filePath = '') {
       });
     }
     
+    // Sort: directories first, then files (both alphabetically)
+    items.sort((a, b) => {
+      if (a.type === 'directory' && b.type !== 'directory') return -1;
+      if (a.type !== 'directory' && b.type === 'directory') return 1;
+      return a.name.localeCompare(b.name);
+    });
+    
     return { success: true, items };
   } catch (error) {
     return { success: false, error: error.message };
@@ -1895,6 +2062,214 @@ async function writeServerFile(serverName, filePath, content) {
   }
 }
 
+// Check if a jar file supports plugins by checking server type and jar filename
+// Plugin-supporting servers: Paper, Spigot, Purpur, Velocity, Waterfall, BungeeCord
+// Mod-supporting servers (NOT plugins): Fabric, Forge
+// No support: Vanilla, Manual
+async function checkJarSupportsPlugins(serverName) {
+  try {
+    const settings = await getAppSettings();
+    const serversDir = settings.serversDirectory || SERVERS_DIR;
+    const serverPath = path.join(serversDir, serverName);
+    
+    // Check server type from config first (fastest and most reliable)
+    const config = await getServerConfig(serverName);
+    if (config && config.serverType) {
+      const serverType = config.serverType.toLowerCase();
+      // Plugin-supporting server types
+      const pluginServers = ['paper', 'spigot', 'purpur', 'velocity', 'waterfall', 'bungeecord'];
+      // Mod-supporting server types (NOT plugins)
+      const modServers = ['fabric', 'forge'];
+      // No support
+      const noSupportServers = ['vanilla', 'manual'];
+      
+      if (pluginServers.includes(serverType)) {
+        return true;
+      }
+      if (modServers.includes(serverType) || noSupportServers.includes(serverType)) {
+        return false;
+      }
+    }
+    
+    // Fallback: Check jar filename patterns
+    try {
+      const files = await fs.readdir(serverPath);
+      const jarFile = files.find(f => f.endsWith('.jar'));
+      if (!jarFile) {
+        return false;
+      }
+      
+      const jarName = jarFile.toLowerCase();
+      
+      // Plugin-supporting patterns
+      const pluginPatterns = ['paper', 'spigot', 'purpur', 'velocity', 'waterfall', 'bungeecord'];
+      if (pluginPatterns.some(pattern => jarName.includes(pattern))) {
+        return true;
+      }
+      
+      // Mod-supporting patterns (NOT plugins)
+      if (jarName.includes('forge') || jarName.includes('fabric')) {
+        return false;
+      }
+      
+      // Vanilla server pattern (no support)
+      if (jarName.includes('server') && !jarName.includes('paper') && !jarName.includes('spigot') && !jarName.includes('purpur')) {
+        return false;
+      }
+      
+      // Manual/custom jars - no support by default
+      if (jarName.includes('manual') || jarName.includes('custom')) {
+        return false;
+      }
+    } catch (error) {
+      // Can't read directory
+      return false;
+    }
+    
+    // Default: don't assume plugin support if we can't determine
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Get plugins from Modrinth API with pagination to get all results
+async function getModrinthPlugins(minecraftVersion = null, limit = 100) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Build facets array properly
+      const facets = [['project_type:plugin']];
+      if (minecraftVersion) {
+        facets.push(['versions:' + minecraftVersion]);
+      }
+      
+      // Encode facets as JSON
+      const facetsJson = encodeURIComponent(JSON.stringify(facets));
+      
+      let allPlugins = [];
+      let offset = 0;
+      const pageSize = 100; // Modrinth API max is 100 per request
+      let hasMore = true;
+      
+      // Fetch all pages
+      while (hasMore) {
+        const url = `https://api.modrinth.com/v2/search?facets=${facetsJson}&limit=${pageSize}&offset=${offset}`;
+        
+        const pageResults = await new Promise((pageResolve, pageReject) => {
+          https.get(url, {
+            headers: {
+              'User-Agent': 'HexNode/1.0.0'
+            }
+          }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const json = JSON.parse(data);
+                pageResolve({
+                  hits: json.hits || [],
+                  total: json.total_hits || 0
+                });
+              } catch (e) {
+                pageReject(e);
+              }
+            });
+          }).on('error', pageReject);
+        });
+        
+        allPlugins = allPlugins.concat(pageResults.hits);
+        
+        // Check if there are more results
+        if (pageResults.hits.length < pageSize || allPlugins.length >= pageResults.total) {
+          hasMore = false;
+        } else {
+          offset += pageSize;
+          // Continue fetching until we have all plugins (no artificial limit)
+        }
+      }
+      
+      resolve(allPlugins);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// Get latest version of a Modrinth plugin for a specific Minecraft version
+async function getModrinthPluginVersion(projectId, minecraftVersion) {
+  return new Promise((resolve, reject) => {
+    // Modrinth API expects URL-encoded arrays
+    const gameVersions = encodeURIComponent(JSON.stringify([minecraftVersion]));
+    const loaders = encodeURIComponent(JSON.stringify(['bukkit', 'spigot', 'paper', 'purpur']));
+    const url = `https://api.modrinth.com/v2/project/${projectId}/version?game_versions=${gameVersions}&loaders=${loaders}`;
+    
+    https.get(url, {
+      headers: {
+        'User-Agent': 'HexNode/1.0.0'
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          // Return the first (latest) version that matches
+          if (json && json.length > 0) {
+            resolve(json[0]);
+          } else {
+            reject(new Error('No compatible version found'));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
+// Install plugin from Modrinth
+async function installModrinthPlugin(serverName, projectId, minecraftVersion) {
+  try {
+    // Check if server supports plugins
+    const supportsPlugins = await checkJarSupportsPlugins(serverName);
+    if (!supportsPlugins) {
+      return { success: false, error: 'This server type does not support plugins' };
+    }
+
+    // Get settings and paths
+    const settings = await getAppSettings();
+    const serversDir = settings.serversDirectory || SERVERS_DIR;
+    const pluginsPath = path.join(serversDir, serverName, 'plugins');
+    
+    // Ensure plugins directory exists
+    await fs.mkdir(pluginsPath, { recursive: true });
+
+    // Get the latest compatible version
+    const version = await getModrinthPluginVersion(projectId, minecraftVersion);
+    
+    if (!version || !version.files || version.files.length === 0) {
+      return { success: false, error: 'No download file found for this plugin version' };
+    }
+
+    // Find the primary jar file (usually the first one, or one marked as primary)
+    const jarFile = version.files.find(f => f.primary) || version.files.find(f => f.filename.endsWith('.jar')) || version.files[0];
+    
+    if (!jarFile) {
+      return { success: false, error: 'No jar file found in plugin version' };
+    }
+
+    // Download the plugin
+    const pluginPath = path.join(pluginsPath, jarFile.filename);
+    const downloadUrl = jarFile.url || `https://cdn.modrinth.com/data/${projectId}/versions/${version.id}/${jarFile.filename}`;
+    
+    await downloadFile(downloadUrl, pluginPath);
+
+    return { success: true, filename: jarFile.filename, path: pluginPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 // List plugins
 async function listPlugins(serverName) {
   try {
@@ -1902,10 +2277,16 @@ async function listPlugins(serverName) {
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const pluginsPath = path.join(serversDir, serverName, 'plugins');
     
+    // Check if server supports plugins
+    const supportsPlugins = await checkJarSupportsPlugins(serverName);
+    if (!supportsPlugins) {
+      return { success: true, plugins: [], supportsPlugins: false };
+    }
+    
     try {
       await fs.access(pluginsPath);
     } catch {
-      return { success: true, plugins: [] };
+      return { success: true, plugins: [], supportsPlugins: true };
     }
     
     const files = await fs.readdir(pluginsPath);
@@ -1923,7 +2304,7 @@ async function listPlugins(serverName) {
       }
     }
     
-    return { success: true, plugins };
+    return { success: true, plugins, supportsPlugins: true };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -2110,6 +2491,9 @@ module.exports = {
   writeServerFile,
   listPlugins,
   deletePlugin,
+  checkJarSupportsPlugins,
+  getModrinthPlugins,
+  installModrinthPlugin,
   listWorlds,
   getServerProperties,
   updateServerProperties,
