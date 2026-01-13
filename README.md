@@ -12,9 +12,10 @@ HexNode is a local-first Minecraft server management system. It provides a deskt
 
 ### In Development
 - **Website**: Marketing and landing site for HexNode
-- **Software**: Desktop application for creating and managing Minecraft servers
+- **Server Manager**: Desktop application for creating and managing Minecraft servers
 
 ### Planned
+- **Launcher**: Custom Minecraft launcher application
 - **Hosting**: Premium hosting infrastructure
 - **Recycle Host**: Budget hosting using recycled business PCs
 

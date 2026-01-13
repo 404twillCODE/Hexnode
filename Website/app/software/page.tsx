@@ -247,7 +247,7 @@ export default function SoftwarePage() {
         </Link>
         <div className="flex items-center gap-4 mb-4">
           <h1 className="text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl lg:text-6xl font-mono">
-            SOFTWARE
+              SERVER MANAGER
           </h1>
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}

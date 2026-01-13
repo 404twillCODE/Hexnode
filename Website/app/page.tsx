@@ -282,7 +282,7 @@ export default function Home() {
                         >
                           <div className="h-1.5 w-1.5 bg-accent rounded-full"></div>
                           <span className="text-sm text-text-secondary font-mono">
-                            Software
+                            Server Manager
                           </span>
                         </motion.div>
                       </div>
@@ -300,13 +300,24 @@ export default function Home() {
                         >
                           <div className="h-1.5 w-1.5 bg-border rounded-full"></div>
                           <span className="text-sm text-text-muted font-mono">
-                            Recycle Host
+                            Launcher
                           </span>
                         </motion.div>
                         <motion.div
                           initial={{ opacity: 0, x: -10 }}
                           animate={bootComplete ? { opacity: 1, x: 0 } : {}}
                           transition={{ delay: 1.0, type: "spring", stiffness: 200, damping: 25 }}
+                          className="flex items-center justify-center gap-2.5"
+                        >
+                          <div className="h-1.5 w-1.5 bg-border rounded-full"></div>
+                          <span className="text-sm text-text-muted font-mono">
+                            Recycle Host
+                          </span>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={bootComplete ? { opacity: 1, x: 0 } : {}}
+                          transition={{ delay: 1.1, type: "spring", stiffness: 200, damping: 25 }}
                           className="flex items-center justify-center gap-2.5"
                         >
                           <div className="h-1.5 w-1.5 bg-border rounded-full"></div>
@@ -343,7 +354,7 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* Module: Software */}
+      {/* Module: Server Manager */}
       <AnimatedSection bootComplete={bootComplete} id="software-section" className="full-width-section relative bg-background-secondary">
         <motion.div
           style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
@@ -372,7 +383,7 @@ export default function Home() {
           >
             <div className="flex items-center gap-4 mb-3">
               <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
-                SOFTWARE
+                SERVER MANAGER
               </h2>
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -488,8 +499,153 @@ export default function Home() {
         </div>
       </AnimatedSection>
 
-      {/* Module: Recycle Host */}
+      {/* Module: Launcher */}
       <AnimatedSection bootComplete={bootComplete} className="full-width-section relative">
+        <motion.div
+          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
+          className="section-background depth-layer"
+        />
+        <motion.div
+          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "8%"]) }}
+          className="absolute inset-0 opacity-15 pointer-events-none"
+        >
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 50% 50%, rgba(46, 242, 162, 0.008) 0%, transparent 50%)
+              `,
+            }}
+          />
+        </motion.div>
+        <div className="section-content mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ type: "spring", stiffness: 100, damping: 25 }}
+            className="mb-10"
+          >
+            <div className="flex items-center gap-4 mb-3">
+              <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
+                LAUNCHER
+              </h2>
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-mono uppercase tracking-wider text-accent"
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
+                </span>
+                Planned
+              </motion.span>
+            </div>
+          </motion.div>
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+            <div className="order-1">
+              <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
+                Custom Minecraft launcher application for managing game installations,
+                mods, and profiles. Seamlessly integrates with HexNode server management
+                for a complete Minecraft ecosystem experience.
+              </p>
+              <div className="space-y-3 border-t border-border pt-6">
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 25 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="mt-0.5 text-text-muted">→</span>
+                  <span className="text-sm leading-relaxed text-text-muted sm:text-base">
+                    Manage multiple Minecraft versions and installations
+                  </span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 25 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="mt-0.5 text-text-muted">→</span>
+                  <span className="text-sm leading-relaxed text-text-muted sm:text-base">
+                    Profile management for different mod configurations
+                  </span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 25 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="mt-0.5 text-text-muted">→</span>
+                  <span className="text-sm leading-relaxed text-text-muted sm:text-base">
+                    Direct integration with HexNode server manager
+                  </span>
+                </motion.div>
+              </div>
+            </div>
+            <div className="order-2">
+              <FloatingCard delay={0.5} bootComplete={bootComplete}>
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="system-card p-6 opacity-60"
+                >
+                  <div className="card-content space-y-4">
+                    {/* Game Icon/Thumbnail */}
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-accent/20 flex items-center justify-center">
+                        <div className="h-8 w-8 bg-accent/30 rounded"></div>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="h-4 w-24 bg-text-primary/20 rounded"></div>
+                        <div className="h-3 w-16 bg-text-muted/30 rounded"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Profile Selector */}
+                    <div className="border-t border-border pt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Profile</span>
+                        <div className="h-3 w-12 bg-border/50 rounded-full"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Version Info */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-text-muted">Version:</span>
+                        <div className="h-3 w-20 bg-text-primary/15 rounded"></div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-text-muted">Mods:</span>
+                        <div className="h-3 w-16 bg-accent/20 rounded"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Play Button */}
+                    <div className="pt-2 border-t border-border">
+                      <div className="h-10 w-full bg-accent/20 border border-accent/30 rounded flex items-center justify-center">
+                        <div className="h-4 w-16 bg-accent/40 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </FloatingCard>
+            </div>
+          </div>
+        </div>
+      </AnimatedSection>
+
+      {/* Module: Recycle Host */}
+      <AnimatedSection bootComplete={bootComplete} className="full-width-section relative bg-background-secondary">
         <div className="section-content mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
             <div className="order-2 lg:order-1 lg:pt-16">
@@ -604,7 +760,7 @@ export default function Home() {
       </AnimatedSection>
 
       {/* Module: Hosting */}
-      <AnimatedSection bootComplete={bootComplete} className="full-width-section relative bg-background-secondary">
+      <AnimatedSection bootComplete={bootComplete} className="full-width-section relative">
         <motion.div
           style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
           className="section-background depth-layer"
@@ -736,7 +892,7 @@ export default function Home() {
       </AnimatedSection>
 
       {/* Module: Philosophy */}
-      <AnimatedSection bootComplete={bootComplete} className="full-width-section relative">
+      <AnimatedSection bootComplete={bootComplete} className="full-width-section relative bg-background-secondary">
         <div className="section-content mx-auto w-full max-w-4xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
