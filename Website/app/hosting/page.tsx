@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 
 const hostingFeatures = [
@@ -261,6 +261,22 @@ function ImagePlaceholder({ placeholder, index }: { placeholder: typeof imagePla
 export default function HostingPage() {
   const heroImageRef = useRef(null);
   const heroImageInView = useInView(heroImageRef, { once: true, margin: "-100px" });
+  const [isPremiumHosting, setIsPremiumHosting] = useState(false);
+
+  useEffect(() => {
+    // Check if we're viewing Premium Hosting section or at the top (default)
+    const checkHash = () => {
+      if (typeof window !== 'undefined') {
+        const hash = window.location.hash;
+        // Hide Recycle Hosting buttons if: no hash (top/default), or premium-hosting hash
+        setIsPremiumHosting(hash === '#premium-hosting' || hash === '');
+      }
+    };
+    
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
@@ -301,11 +317,12 @@ export default function HostingPage() {
 
       {/* Hero Image Section */}
       <motion.div
+        id="hero-preview"
         ref={heroImageRef}
         initial={{ opacity: 0, y: 40 }}
         animate={heroImageInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
         transition={{ type: "spring", stiffness: 100, damping: 25 }}
-        className="mb-16"
+        className="mb-16 scroll-mt-24"
       >
         <div className="relative overflow-hidden rounded-xl border border-border/50 bg-background-secondary/50 backdrop-blur-sm">
           <div className="relative aspect-[21/9] bg-gradient-to-br from-accent/20 via-accent/10 to-transparent">
@@ -359,29 +376,98 @@ export default function HostingPage() {
 
       {/* Image Gallery Section */}
       <motion.div
+        id="image-gallery"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ type: "spring", stiffness: 100, damping: 25 }}
-        className="mb-16"
+        className="mb-16 scroll-mt-24"
       >
-        <h2 className="text-2xl font-semibold text-text-primary font-mono mb-6">
-          Interface Previews
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-semibold text-text-primary font-mono">
+            Interface Previews
+          </h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {imagePlaceholders.map((placeholder, index) => (
             <ImagePlaceholder key={placeholder.id} placeholder={placeholder} index={index} />
           ))}
         </div>
+        
+        {/* Back to Recycle Hosting Button - Underneath Analytics Dashboard */}
+        {!isPremiumHosting && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 100, damping: 25 }}
+            className="mt-8"
+          >
+            <div className="system-card p-6 border-2 border-accent/20 bg-accent/5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4 }}
+                    className="text-sm font-mono text-text-secondary mb-2"
+                  >
+                    Want to learn more?
+                  </motion.p>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.5 }}
+                    className="text-xs text-text-muted"
+                  >
+                    Return to Recycle Hosting details
+                  </motion.p>
+                </div>
+                <motion.button
+                  onClick={() => {
+                    document.getElementById('recycle-hosting')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="btn-primary"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 200, damping: 20 }}
+                >
+                  <motion.span
+                    className="relative z-20 font-mono flex items-center gap-2"
+                    animate={{
+                      y: [0, -4, 0]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    Back to Recycle Hosting
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </motion.span>
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Premium Hosting Section */}
       <motion.div
+        id="premium-hosting"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ type: "spring", stiffness: 100, damping: 25 }}
-        className="mb-16"
+        className="mb-16 scroll-mt-24"
       >
         <div className="flex items-center gap-4 mb-8">
           <h2 className="text-3xl font-semibold text-text-primary font-mono">
@@ -436,17 +522,18 @@ export default function HostingPage() {
         </div>
       </motion.div>
 
-      {/* Recycle Host Section */}
+      {/* Recycle Hosting Section */}
       <motion.div
+        id="recycle-hosting"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ type: "spring", stiffness: 100, damping: 25 }}
-        className="mb-16"
+        className="mb-16 scroll-mt-24"
       >
         <div className="flex items-center gap-4 mb-8">
           <h2 className="text-3xl font-semibold text-text-primary font-mono">
-            RECYCLE HOST
+            RECYCLE HOSTING
           </h2>
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
@@ -466,6 +553,72 @@ export default function HostingPage() {
           Sustainable hosting powered by recycled and repurposed hardware.
           Eco-friendly alternative without compromising on reliability. Perfect for development, staging, and budget-conscious deployments.
         </p>
+        
+        {/* Scroll to Hero Preview Section */}
+        {!isPremiumHosting && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 100, damping: 25 }}
+            className="mb-8"
+          >
+            <div className="system-card p-6 border-2 border-accent/20 bg-accent/5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4 }}
+                    className="text-sm font-mono text-text-secondary mb-2"
+                  >
+                    Want to see what it looks like?
+                  </motion.p>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.5 }}
+                    className="text-xs text-text-muted"
+                  >
+                    Check out our hosting dashboard preview
+                  </motion.p>
+                </div>
+                <motion.button
+                  onClick={() => {
+                    document.getElementById('hero-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="btn-primary"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 200, damping: 20 }}
+                >
+                  <motion.span
+                    className="relative z-20 font-mono flex items-center gap-2"
+                    animate={{
+                      y: [0, -4, 0]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    View Preview
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  </motion.span>
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="space-y-8">
           {recycleHostFeatures.map((feature, index) => (
             <motion.div

@@ -16,8 +16,8 @@ HexNode is a local-first Minecraft server management system. It provides a deskt
 
 ### Planned
 - **Launcher**: Custom Minecraft launcher application
-- **Hosting**: Premium hosting infrastructure
-- **Recycle Host**: Budget hosting using recycled business PCs
+- **Premium Hosting**: Premium hosting infrastructure
+- **Recycle Hosting**: Budget hosting using recycled business PCs
 
 ## Project Structure
 

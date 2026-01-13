@@ -13,8 +13,8 @@ const bootLines: BootLine[] = [
   { text: "> Initializing modules...", delay: 500 },
   { text: "> Server Manager... OK", delay: 1100 },
   { text: "> Launcher... Planned", delay: 1700 },
-  { text: "> Recycle Host... Planned", delay: 2300 },
-  { text: "> Hosting... Planned", delay: 2900 },
+  { text: "> Recycle Hosting... Planned", delay: 2300 },
+  { text: "> Premium Hosting... Planned", delay: 2900 },
   { text: "System ready.", delay: 3500 },
 ];
 

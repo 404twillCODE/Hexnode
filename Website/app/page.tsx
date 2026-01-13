@@ -311,7 +311,7 @@ export default function Home() {
                         >
                           <div className="h-1.5 w-1.5 bg-border rounded-full"></div>
                           <span className="text-sm text-text-muted font-mono">
-                            Recycle Host
+                            Recycle Hosting
                           </span>
                         </motion.div>
                         <motion.div
@@ -322,7 +322,7 @@ export default function Home() {
                         >
                           <div className="h-1.5 w-1.5 bg-border rounded-full"></div>
                           <span className="text-sm text-text-muted font-mono">
-                            Hosting
+                            Premium Hosting
                           </span>
                         </motion.div>
                       </div>
@@ -400,7 +400,7 @@ export default function Home() {
               </motion.span>
             </div>
           </motion.div>
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
             <div className="order-1">
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
                 Desktop application for creating and managing Minecraft servers.
@@ -459,41 +459,56 @@ export default function Home() {
                 </div>
               </motion.div>
             </div>
-            <div className="order-2">
+            <div className="order-2 flex items-center">
               <FloatingCard delay={0.5} bootComplete={bootComplete}>
                 <motion.div
                   whileHover={{ y: -4 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="system-card p-6"
+                  className="system-card p-6 opacity-60 w-full"
                 >
-                <div className="card-content space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-5 w-32 bg-text-primary/20 rounded"></div>
-                    <div className="h-4 w-16 bg-accent/30 rounded-full"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-4 text-xs font-mono">
-                      <div className="flex items-center gap-1">
+                  <div className="card-content space-y-4">
+                    {/* Game Icon/Thumbnail */}
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-accent/20 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-accent/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="h-4 w-24 bg-text-primary/20 rounded"></div>
+                        <div className="h-3 w-16 bg-text-muted/30 rounded"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Profile Selector */}
+                    <div className="border-t border-border pt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Status</span>
+                        <div className="h-3 w-12 bg-border/50 rounded-full"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Version Info */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-mono">
                         <span className="text-text-muted">Version:</span>
-                        <span className="h-3 w-12 bg-text-primary/20 rounded"></span>
+                        <div className="h-3 w-20 bg-text-primary/15 rounded"></div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-text-muted">Port:</span>
-                        <span className="h-3 w-10 bg-text-primary/20 rounded"></span>
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-text-muted">Players:</span>
+                        <div className="h-3 w-16 bg-accent/20 rounded"></div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs font-mono">
-                      <span className="text-text-muted">RAM:</span>
-                      <span className="h-3 w-8 bg-text-primary/20 rounded"></span>
+                    
+                    {/* Play Button */}
+                    <div className="pt-2 border-t border-border">
+                      <div className="h-10 w-full bg-accent/20 border border-accent/30 rounded flex items-center justify-center">
+                        <div className="h-4 w-16 bg-accent/40 rounded"></div>
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-4 flex gap-2 border-t border-border pt-4">
-                    <div className="h-7 flex-1 bg-accent/20 rounded"></div>
-                    <div className="h-7 flex-1 bg-border rounded"></div>
-                  </div>
-                </div>
-              </motion.div>
-            </FloatingCard>
+                </motion.div>
+              </FloatingCard>
             </div>
           </div>
         </div>
@@ -519,34 +534,83 @@ export default function Home() {
           />
         </motion.div>
         <div className="section-content mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ type: "spring", stiffness: 100, damping: 25 }}
-            className="mb-10"
-          >
-            <div className="flex items-center gap-4 mb-3">
-              <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
-                LAUNCHER
-              </h2>
-              <motion.span
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-mono uppercase tracking-wider text-accent"
-              >
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
-                </span>
-                Planned
-              </motion.span>
-            </div>
-          </motion.div>
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
             <div className="order-1">
+              <FloatingCard delay={0.5} bootComplete={bootComplete}>
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="system-card p-6 opacity-60"
+                >
+                  <div className="card-content space-y-4">
+                    {/* Game Icon/Thumbnail */}
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-accent/20 flex items-center justify-center">
+                        <div className="h-8 w-8 bg-accent/30 rounded"></div>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="h-4 w-24 bg-text-primary/20 rounded"></div>
+                        <div className="h-3 w-16 bg-text-muted/30 rounded"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Profile Selector */}
+                    <div className="border-t border-border pt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Profile</span>
+                        <div className="h-3 w-12 bg-border/50 rounded-full"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Version Info */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-text-muted">Version:</span>
+                        <div className="h-3 w-20 bg-text-primary/15 rounded"></div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-text-muted">Mods:</span>
+                        <div className="h-3 w-16 bg-accent/20 rounded"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Play Button */}
+                    <div className="pt-2 border-t border-border">
+                      <div className="h-10 w-full bg-accent/20 border border-accent/30 rounded flex items-center justify-center">
+                        <div className="h-4 w-16 bg-accent/40 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </FloatingCard>
+            </div>
+            <div className="order-2">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", stiffness: 100, damping: 25 }}
+                className="mb-10"
+              >
+                <div className="flex items-center gap-4 mb-3">
+                  <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
+                    LAUNCHER
+                  </h2>
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-mono uppercase tracking-wider text-accent"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
+                    </span>
+                    Planned
+                  </motion.span>
+                </div>
+              </motion.div>
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
                 Custom Minecraft launcher application for managing game installations,
                 mods, and profiles. Seamlessly integrates with HexNode server management
@@ -605,100 +669,15 @@ export default function Home() {
                 </Link>
               </motion.div>
             </div>
-            <div className="order-2">
-              <FloatingCard delay={0.5} bootComplete={bootComplete}>
-                <motion.div
-                  whileHover={{ y: -4 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="system-card p-6 opacity-60"
-                >
-                  <div className="card-content space-y-4">
-                    {/* Game Icon/Thumbnail */}
-                    <div className="flex items-center gap-4">
-                      <div className="h-16 w-16 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-accent/20 flex items-center justify-center">
-                        <div className="h-8 w-8 bg-accent/30 rounded"></div>
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="h-4 w-24 bg-text-primary/20 rounded"></div>
-                        <div className="h-3 w-16 bg-text-muted/30 rounded"></div>
-                      </div>
-                    </div>
-                    
-                    {/* Profile Selector */}
-                    <div className="border-t border-border pt-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Profile</span>
-                        <div className="h-3 w-12 bg-border/50 rounded-full"></div>
-                      </div>
-                    </div>
-                    
-                    {/* Version Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-text-muted">Version:</span>
-                        <div className="h-3 w-20 bg-text-primary/15 rounded"></div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-text-muted">Mods:</span>
-                        <div className="h-3 w-16 bg-accent/20 rounded"></div>
-                      </div>
-                    </div>
-                    
-                    {/* Play Button */}
-                    <div className="pt-2 border-t border-border">
-                      <div className="h-10 w-full bg-accent/20 border border-accent/30 rounded flex items-center justify-center">
-                        <div className="h-4 w-16 bg-accent/40 rounded"></div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </FloatingCard>
-            </div>
           </div>
         </div>
       </AnimatedSection>
 
-      {/* Module: Recycle Host */}
+      {/* Module: Recycle Hosting */}
       <AnimatedSection bootComplete={bootComplete} className="full-width-section relative bg-background-secondary">
         <div className="section-content mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
-            <div className="order-2 lg:order-1 lg:pt-16">
-              <FloatingCard delay={0.3} bootComplete={bootComplete}>
-                <motion.div
-                  whileHover={{ y: -4 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="system-card p-6 opacity-60"
-                >
-                  <div className="card-content space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-5 w-28 bg-text-primary/15 rounded"></div>
-                      <div className="h-4 w-20 bg-border/50 rounded-full"></div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-4 text-xs font-mono">
-                        <div className="flex items-center gap-1">
-                          <span className="text-text-muted">Region:</span>
-                          <span className="h-3 w-16 bg-text-primary/15 rounded"></span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-text-muted">Status:</span>
-                          <span className="h-3 w-12 bg-border/50 rounded"></span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-mono">
-                        <span className="text-text-muted">Resources:</span>
-                        <span className="h-3 w-20 bg-text-primary/15 rounded"></span>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex gap-2 border-t border-border pt-4">
-                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
-                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
-                    </div>
-                  </div>
-                </motion.div>
-              </FloatingCard>
-            </div>
-            <div className="order-1 lg:order-2">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+            <div className="order-1">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -708,7 +687,7 @@ export default function Home() {
               >
                 <div className="flex items-center gap-4 mb-3">
                   <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
-                    RECYCLE HOST
+                    RECYCLE HOSTING
                   </h2>
                   <motion.span
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -768,12 +747,62 @@ export default function Home() {
                   </span>
                 </motion.div>
               </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4, type: "spring", stiffness: 100, damping: 25 }}
+                className="mt-8"
+              >
+                <Link
+                  href="/hosting#recycle-hosting"
+                  className="btn-secondary"
+                >
+                  <span className="relative z-20 font-mono">LEARN MORE</span>
+                </Link>
+              </motion.div>
+            </div>
+            <div className="order-2 flex items-center">
+              <FloatingCard delay={0.3} bootComplete={bootComplete}>
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="system-card p-6 opacity-60 w-full"
+                >
+                  <div className="card-content space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-5 w-28 bg-text-primary/15 rounded"></div>
+                      <div className="h-4 w-20 bg-border/50 rounded-full"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4 text-xs font-mono">
+                        <div className="flex items-center gap-1">
+                          <span className="text-text-muted">Region:</span>
+                          <span className="h-3 w-16 bg-text-primary/15 rounded"></span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-text-muted">Status:</span>
+                          <span className="h-3 w-12 bg-border/50 rounded"></span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-mono">
+                        <span className="text-text-muted">Resources:</span>
+                        <span className="h-3 w-20 bg-text-primary/15 rounded"></span>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2 border-t border-border pt-4">
+                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
+                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
+                    </div>
+                  </div>
+                </motion.div>
+              </FloatingCard>
             </div>
           </div>
         </div>
       </AnimatedSection>
 
-      {/* Module: Hosting */}
+      {/* Module: Premium Hosting */}
       <AnimatedSection bootComplete={bootComplete} className="full-width-section relative">
         <motion.div
           style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
@@ -793,34 +822,70 @@ export default function Home() {
           />
         </motion.div>
         <div className="section-content mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ type: "spring", stiffness: 100, damping: 25 }}
-            className="mb-10"
-          >
-            <div className="flex items-center gap-4 mb-3">
-              <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
-                HOSTING
-              </h2>
-              <motion.span
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-mono uppercase tracking-wider text-accent"
-              >
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
-                </span>
-                Planned
-              </motion.span>
-            </div>
-          </motion.div>
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
             <div className="order-1">
+              <FloatingCard delay={0.5} bootComplete={bootComplete}>
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="system-card p-6 opacity-60"
+                >
+                  <div className="card-content space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-5 w-32 bg-text-primary/15 rounded"></div>
+                      <div className="h-4 w-16 bg-border/50 rounded-full"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4 text-xs font-mono">
+                        <div className="flex items-center gap-1">
+                          <span className="text-text-muted">Region:</span>
+                          <span className="h-3 w-16 bg-text-primary/15 rounded"></span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-text-muted">Status:</span>
+                          <span className="h-3 w-12 bg-border/50 rounded"></span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-mono">
+                        <span className="text-text-muted">Resources:</span>
+                        <span className="h-3 w-20 bg-text-primary/15 rounded"></span>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2 border-t border-border pt-4">
+                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
+                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
+                    </div>
+                  </div>
+                </motion.div>
+              </FloatingCard>
+            </div>
+            <div className="order-2">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", stiffness: 100, damping: 25 }}
+                className="mb-10"
+              >
+                <div className="flex items-center gap-4 mb-3">
+                  <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl lg:text-5xl font-mono">
+                    PREMIUM HOSTING
+                  </h2>
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-mono uppercase tracking-wider text-accent"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
+                    </span>
+                    Planned
+                  </motion.span>
+                </div>
+              </motion.div>
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
                 Premium hosting infrastructure built for demanding applications.
                 Delivers exceptional performance, reliability, and support for
@@ -879,42 +944,6 @@ export default function Home() {
                 </Link>
               </motion.div>
             </div>
-            <div className="order-2">
-              <FloatingCard delay={0.5} bootComplete={bootComplete}>
-                <motion.div
-                  whileHover={{ y: -4 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="system-card p-6 opacity-60"
-                >
-                  <div className="card-content space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-5 w-32 bg-text-primary/15 rounded"></div>
-                      <div className="h-4 w-16 bg-border/50 rounded-full"></div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-4 text-xs font-mono">
-                        <div className="flex items-center gap-1">
-                          <span className="text-text-muted">Region:</span>
-                          <span className="h-3 w-16 bg-text-primary/15 rounded"></span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-text-muted">Status:</span>
-                          <span className="h-3 w-12 bg-border/50 rounded"></span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-mono">
-                        <span className="text-text-muted">Resources:</span>
-                        <span className="h-3 w-20 bg-text-primary/15 rounded"></span>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex gap-2 border-t border-border pt-4">
-                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
-                      <div className="h-7 flex-1 bg-border/50 rounded"></div>
-                    </div>
-                  </div>
-                </motion.div>
-              </FloatingCard>
-            </div>
           </div>
         </div>
       </AnimatedSection>
@@ -950,7 +979,7 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 100, damping: 25 }}
               >
-                Environmental responsibility through recycled hardware. Recycle Host repurposes
+                Environmental responsibility through recycled hardware. Recycle Hosting repurposes
                 enterprise PCs, reducing electronic waste while delivering reliable hosting.
                 Sustainable infrastructure that doesn&apos;t compromise on performance or reliability.
               </motion.p>
