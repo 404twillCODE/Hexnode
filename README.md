@@ -74,6 +74,19 @@ If you want to check out the desktop application in its current development stag
 
 - Discord: `https://discord.gg/RVTAEbdDBJ`
 
+## Support
+
+Want to support Hexnode development? Here are ways you can help:
+
+- Join the Discord and share feedback: `https://discord.gg/RVTAEbdDBJ`
+- Star the repo on GitHub
+- Donate (coming soon):
+  - GitHub Sponsors: [Coming soon](#)
+  - Ko-fi: [Coming soon](#)
+  - PayPal: [Coming soon](#)
+
+See [DONATE.md](DONATE.md) for more information.
+
 ## Repository
 
 GitHub: [https://github.com/404twillCODE/Hexnode](https://github.com/404twillCODE/Hexnode)

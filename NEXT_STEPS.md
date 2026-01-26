@@ -1,48 +1,8 @@
-## Next steps (moving computers)
-
-This file is a checklist so you can pick up fast on a new machine.
-
-### 1) Get the repo on the new machine
-- Install Git + Node.js (v20+) + Java (for Minecraft servers)
-- Clone:
-  ```bash
-  git clone https://github.com/404twillCODE/Hexnode.git
-  cd Hexnode
-  ```
-
-### 2) Run the Desktop App (dev)
-```bash
-cd App
-npm install
-npm run dev
-```
-
-### 3) Run the Website (dev)
-```bash
-cd Website
-npm install
-npm run dev
-```
-Website runs on port `4000` (see `Website/package.json`).
-
-### 4) Community + marketing
-- Discord invite (public): `https://discord.gg/RVTAEbdDBJ`
-- Add a “Join Discord” CTA on the website hero (optional)
-- Add donation links when ready (GitHub Sponsors / Ko-fi / PayPal) and update:
-  - `DONATE.md`
-  - Website footer
-  - README
-
-### 5) GitHub setup (recommended)
-- Enable GitHub Discussions (optional)
-- Enable Security Advisories (for private vulnerability reports)
-- Create 3 labels: `bug`, `enhancement`, `help wanted`
-
-### 6) Release prep (later)
-- Add screenshots + short demo GIF to `README.md`
-- Create a GitHub Release checklist
-- Decide installer/update story (Electron Builder already present)
-
-Next (your call)
-1) Do you want me to also change Footer “Support” to point to Discord (instead of #)?
-2) Want a “Join Discord” button on the homepage hero next to “Documentation” to drive signups pre-release?
+What I recommend you do next (in order)
+Set up Discord server (I can give you channel layout + templates)
+Enable GitHub Discussions + labels using GITHUB_SETUP.md
+Add a short FAQ + “What’s coming” section on the website
+Post 1–2 screenshots/GIFs to make it feel real
+Share publicly (Discord invite link is already wired)
+If you want, tell me your Discord server name + rules/roles you want, and I’ll draft the full channel structure + welcome message.
+Also, do you want me to push the latest changes to GitHub? If yes, tell me a commit message and I’ll push.

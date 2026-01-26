@@ -33,6 +33,12 @@ export default function Footer() {
             >
               Support
             </a>
+            <a
+              href="/donate"
+              className="text-sm text-text-muted transition-colors hover:text-accent"
+            >
+              Donate
+            </a>
           </div>
         </div>
       </div>

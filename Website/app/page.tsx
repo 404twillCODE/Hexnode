@@ -325,6 +325,16 @@ export default function Home() {
                       <span className="relative z-20 font-mono">DOCUMENTATION</span>
                     </a>
                   </div>
+                  <div>
+                    <a
+                      href="https://discord.gg/RVTAEbdDBJ"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-discord block"
+                    >
+                      <span className="relative z-20 font-mono">JOIN DISCORD</span>
+                    </a>
+                  </div>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}

@@ -5,5 +5,11 @@ Hexnode is free and local-first. If you want to support development before relea
 - Join the Discord and share feedback: `https://discord.gg/RVTAEbdDBJ`
 - Star the repo on GitHub
 
-Donations (GitHub Sponsors / Ko-fi / PayPal) are coming soon. When a donation link is ready, it will be added here and on the website.
+### Donation Links
+
+Donation links are coming soon. When ready, they will be added here:
+
+- **GitHub Sponsors**: [Coming soon](#)
+- **Ko-fi**: [Coming soon](#)
+- **PayPal**: [Coming soon](#)
 

@@ -183,6 +183,44 @@
       0 4px 12px rgba(255, 255, 255, 0.1);
   }
 
+  .btn-discord {
+    @apply relative overflow-hidden px-6 py-2.5 text-xs font-medium uppercase tracking-wider;
+    background: rgba(139, 139, 139, 0.1);
+    border: 2px solid rgba(139, 139, 139, 0.2);
+    border-bottom-width: 4px;
+    color: rgba(200, 200, 200, 0.9);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+    box-shadow: 
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 2px 4px rgba(0, 0, 0, 0.3);
+    image-rendering: pixelated;
+  }
+
+  .btn-discord:hover {
+    background: rgba(88, 101, 242, 0.2);
+    border-color: rgba(88, 101, 242, 0.5);
+    border-bottom-width: 2px;
+    color: rgba(255, 255, 255, 1);
+    transform: translateY(1px);
+    box-shadow: 
+      inset 0 1px 0 rgba(88, 101, 242, 0.2),
+      0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-discord:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(88, 101, 242, 0.15);
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-discord:focus-visible {
+    outline: none;
+    box-shadow: 
+      0 0 0 2px rgba(88, 101, 242, 0.4),
+      0 4px 12px rgba(88, 101, 242, 0.2);
+  }
+
   .system-card {
     @apply relative border-2 border-border bg-background;
     transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
