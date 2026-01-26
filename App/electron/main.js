@@ -266,7 +266,7 @@ ipcMain.handle('check-jar-supports-plugins', async (event, serverName) => {
 });
 
 // Log handler registration for debugging
-console.log('IPC handler registered: check-jar-supports-plugins');
+  // IPC handler registered: check-jar-supports-plugins
 
 ipcMain.handle('get-modrinth-plugins', async (event, minecraftVersion, limit) => {
   try {
