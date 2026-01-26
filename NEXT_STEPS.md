@@ -43,3 +43,6 @@ Website runs on port `4000` (see `Website/package.json`).
 - Create a GitHub Release checklist
 - Decide installer/update story (Electron Builder already present)
 
+Next (your call)
+1) Do you want me to also change Footer “Support” to point to Discord (instead of #)?
+2) Want a “Join Discord” button on the homepage hero next to “Documentation” to drive signups pre-release?
