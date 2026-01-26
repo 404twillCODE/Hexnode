@@ -22,6 +22,12 @@ export function SystemTopBar() {
           >
             Docs
           </a>
+          <a
+            href="/status"
+            className="text-sm text-text-secondary hover:text-accent transition-colors"
+          >
+            Status
+          </a>
         </nav>
       </div>
     </div>
@@ -68,13 +74,13 @@ export function SystemFooter() {
               Donate
             </a>
             <a
-              href="#"
+              href="/privacy"
               className="text-sm text-text-muted transition-colors hover:text-accent"
             >
               Privacy
             </a>
             <a
-              href="#"
+              href="/terms"
               className="text-sm text-text-muted transition-colors hover:text-accent"
             >
               Terms
