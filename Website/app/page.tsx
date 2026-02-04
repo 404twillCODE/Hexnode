@@ -482,7 +482,7 @@ export default function Home() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
                 </span>
-                Development
+                Early access
               </motion.span>
                 </div>
               </motion.div>
@@ -501,14 +501,16 @@ export default function Home() {
               >
                 <div className="flex flex-col items-start gap-3">
                   <div className="flex items-center gap-4">
-                    <motion.button
-                      disabled
-                      className="btn-primary relative cursor-not-allowed opacity-70"
+                    <motion.a
+                      href="https://github.com/404twillCODE/Hexnode/releases/latest"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary relative"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <span className="relative z-20 font-mono">DOWNLOAD</span>
-                    </motion.button>
+                    </motion.a>
                     <Link
                       href="/software"
                       className="btn-secondary"
@@ -538,7 +540,7 @@ export default function Home() {
                       ></motion.span>
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent/60"></span>
                     </span>
-                    Coming soon
+                    Early access · Windows .exe
                   </motion.span>
                 </div>
               </motion.div>

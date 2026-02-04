@@ -259,14 +259,29 @@ export default function SoftwarePage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
             </span>
-            Development
+            Early access
           </motion.span>
         </div>
-        <p className="text-lg leading-relaxed text-text-secondary sm:text-xl max-w-3xl">
+        <p className="text-lg leading-relaxed text-text-secondary sm:text-xl max-w-3xl mb-8">
           Desktop application for creating and managing Minecraft servers.
           Handles server lifecycle, world management, backups, and version
           control. All data stored locally on host machine.
         </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <motion.a
+            href="https://github.com/404twillCODE/Hexnode/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-6 py-3 text-sm font-mono uppercase tracking-wider text-accent transition-colors hover:bg-accent/20 hover:border-accent/80"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Download for Windows
+          </motion.a>
+          <span className="text-xs font-mono uppercase tracking-wider text-text-muted">
+            Early access · .exe on GitHub
+          </span>
+        </div>
       </motion.div>
 
       {/* Hero Image Section */}
