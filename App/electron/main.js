@@ -590,7 +590,7 @@ async function stopAllServers() {
     const servers = await serverManager.listServers();
     const stopPromises = servers
       .filter(server => server.status === 'RUNNING' || server.status === 'STARTING')
-      .map(server => serverManager.stopServer(server.name));
+      .map(server => serverManager.stopServer(server.id));
     
     // Stop all servers in parallel and wait for completion
     await Promise.allSettled(stopPromises);

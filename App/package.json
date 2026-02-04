@@ -7,10 +7,8 @@
     "dev": "concurrently \"npm run dev:react\" \"wait-on http://localhost:3000 && electron .\"",
     "dev:react": "vite",
     "build": "tsc && vite build",
-    "build:electron": "npm run build && electron-builder --win --x64",
-    "build:exe": "npm run build && electron-packager . HexNode --platform=win32 --arch=x64 --out=release --overwrite --icon=../Graphics/Logo.png",
     "build:win": "vite build && electron-builder --win --x64",
-    "build:win:portable": "vite build && electron-packager . HexNode --platform=win32 --arch=x64 --out=release --overwrite --asar --icon=../Graphics/Logo.png",
+    "build:exe": "npm run build && electron-builder --win --x64",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },

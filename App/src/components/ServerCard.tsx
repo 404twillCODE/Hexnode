@@ -39,7 +39,7 @@ const ServerCard = memo(function ServerCard({ server, onStart, onStop, onClick }
     }
 
     const updatePlayerCount = async () => {
-      const result = await getPlayerCount(server.name);
+      const result = await getPlayerCount(server.id);
       if (result.success && 'online' in result && 'max' in result && result.online !== undefined && result.max !== undefined) {
         setPlayerCount({ online: result.online, max: result.max });
       }
@@ -48,13 +48,13 @@ const ServerCard = memo(function ServerCard({ server, onStart, onStop, onClick }
     updatePlayerCount();
     const interval = setInterval(updatePlayerCount, 5000); // Update every 5 seconds
     return () => clearInterval(interval);
-  }, [isRunning, server.name, getPlayerCount]);
+  }, [isRunning, server.id, getPlayerCount]);
 
   const handleRestart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsRestarting(true);
     const ramGB = server.ramGB || 4;
-    const result = await restartServer(server.name, ramGB);
+    const result = await restartServer(server.id, ramGB);
     if (!result.success) {
       notify({
         type: "error",
@@ -72,7 +72,7 @@ const ServerCard = memo(function ServerCard({ server, onStart, onStop, onClick }
       return;
     }
     
-    const result = await killServer(server.name);
+    const result = await killServer(server.id);
     if (!result.success) {
       notify({
         type: "error",

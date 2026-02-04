@@ -8,6 +8,7 @@ import FileEditor from "./FileEditor";
 import PluginManager from "./PluginManager";
 import WorldManager from "./WorldManager";
 import ServerPropertiesEditor from "./ServerPropertiesEditor";
+import { lineHasServerTimestamp } from "../utils/consoleUtils";
 
 interface ServerDetailViewProps {
   serverName: string;
@@ -24,21 +25,24 @@ interface ConsoleLine {
 }
 
 const GRAPH_RANGE_OPTIONS = [
-  { id: '1m', label: '1 min', points: 20 },
-  { id: '5m', label: '5 min', points: 100 },
-  { id: '10m', label: '10 min', points: 200 },
-  { id: '30m', label: '30 min', points: 600 },
-  { id: '1h', label: '1 hr', points: 1200 },
+  { id: '5m', label: '5 min', durationSeconds: 300 },
+  { id: '10m', label: '10 min', durationSeconds: 600 },
+  { id: '30m', label: '30 min', durationSeconds: 1800 },
+  { id: '1h', label: '1 hr', durationSeconds: 3600 },
 ] as const;
 
 function DashboardAreaGraph({
   values,
+  timestamps,
+  timeRangeSeconds,
   max,
   label,
   formatTick,
   currentValue,
 }: {
   values: number[];
+  timestamps: number[];
+  timeRangeSeconds: number;
   max: number;
   label: string;
   formatTick: (v: number) => string;
@@ -52,10 +56,10 @@ function DashboardAreaGraph({
   const chartW = w - leftPad - rightPad;
   const chartH = h - padY * 2;
   const range = max > 0 ? max : 1;
-  const ticks = [0, 0.25 * range, 0.5 * range, 0.75 * range, range];
-  if (values.length < 2) {
+  const yTicks = [0, 0.25 * range, 0.5 * range, 0.75 * range, range];
+  if (values.length < 2 || timestamps.length !== values.length) {
     return (
-      <div className="border border-border rounded-lg bg-background-secondary overflow-hidden flex flex-col min-h-[120px]">
+      <div className="border border-border rounded-lg bg-background-secondary overflow-hidden flex flex-col min-h-[120px] h-full min-h-0">
         <div className="px-3 py-1.5 border-b border-border text-xs font-mono uppercase tracking-wider text-text-muted flex-shrink-0 flex items-center justify-between gap-2">
           <span className="truncate">{label}</span>
           {currentValue !== undefined && (
@@ -68,23 +72,30 @@ function DashboardAreaGraph({
       </div>
     );
   }
-  const xScale = (i: number) => leftPad + (i / Math.max(values.length - 1, 1)) * chartW;
+  const now = Date.now();
+  const windowMs = timeRangeSeconds * 1000;
+  const minTime = now - windowMs;
+  const maxTime = now;
+  const xScale = (t: number) => leftPad + ((t - minTime) / (maxTime - minTime || 1)) * chartW;
   const yScale = (v: number) => padY + chartH - (Math.min(v, range) / range) * chartH;
-  const linePoints = values.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
-  const areaPoints = `${leftPad},${h - padY} ${linePoints} ${w - rightPad},${h - padY}`;
+  const linePoints = values.map((v, i) => `${xScale(timestamps[i])},${yScale(v)}`).join(' ');
+  const firstX = xScale(timestamps[0]);
+  const lastX = xScale(timestamps[timestamps.length - 1]);
+  const baselineY = h - padY;
+  const areaPoints = `${firstX},${baselineY} ${linePoints} ${lastX},${baselineY}`;
   return (
-    <div className="border border-border rounded-lg bg-background-secondary overflow-hidden flex flex-col min-h-[120px]">
+    <div className="border border-border rounded-lg bg-background-secondary overflow-hidden flex flex-col min-h-[120px] h-full min-h-0">
       <div className="px-3 py-1.5 border-b border-border text-xs font-mono uppercase tracking-wider text-text-muted flex-shrink-0 flex items-center justify-between gap-2">
         <span className="truncate">{label}</span>
         {currentValue !== undefined && (
           <span className="text-text-muted/60 font-normal normal-case text-[11px] flex-shrink-0">{currentValue}</span>
         )}
       </div>
-      <div className="flex-1 min-h-[80px] min-w-0 relative">
-        <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" className="block text-accent max-w-full">
-          {ticks.map((t, i) => (
+      <div className="flex-1 min-h-[80px] min-w-0 w-full overflow-hidden flex">
+        <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="block text-accent flex-1 min-w-0 min-h-0">
+          {yTicks.map((t, i) => (
             <text
-              key={i}
+              key={`y-${i}`}
               x={leftPad - 6}
               y={padY + chartH - (t / range) * chartH + 4}
               textAnchor="end"
@@ -136,7 +147,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const [supportsPlugins, setSupportsPlugins] = useState<boolean | null>(null);
   const [systemInfo, setSystemInfo] = useState<{ cpu: { tempCelsius?: number | null }; memory: { totalGB: number; freeGB: number; usedGB: number } } | null>(null);
   const [playerCount, setPlayerCount] = useState<{ online: number; max: number } | null>(null);
-  const [usageHistory, setUsageHistory] = useState<{ cpu: number[]; ramMB: number[] }>({ cpu: [], ramMB: [] });
+  const [usageHistory, setUsageHistory] = useState<{ timestamps: number[]; cpu: number[]; ramMB: number[] }>({ timestamps: [], cpu: [], ramMB: [] });
   const [graphRange, setGraphRange] = useState<(typeof GRAPH_RANGE_OPTIONS)[number]['id']>('5m');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -145,7 +156,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const lastScrollTopRef = useRef<number>(0);
   const userScrolledRef = useRef<boolean>(false);
 
-  const server = servers.find(s => s.name === serverName);
+  const server = servers.find(s => s.id === serverName);
 
   // Check if server supports plugins
   useEffect(() => {
@@ -178,14 +189,19 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const isRunning = server?.status === "RUNNING";
   const isStopped = server?.status === "STOPPED";
   const isStarting = server?.status === "STARTING";
-  // Build usage history for graphs when on dashboard (keep up to 1 hr at ~3s interval)
+  // Build usage history for graphs when on dashboard (keep up to 1 hr at 1 sample/sec)
   useEffect(() => {
     if (activeTab !== 'dashboard' || !serverUsage) return;
+    const now = Date.now();
     setUsageHistory((prev) => {
-      const maxLen = 1200;
-      const cpu = [...prev.cpu, serverUsage.cpu].slice(-maxLen);
-      const ramMB = [...prev.ramMB, serverUsage.ramMB].slice(-maxLen);
-      return { cpu, ramMB };
+      const maxLen = 3600;
+      const prevTs = Array.isArray(prev.timestamps) ? prev.timestamps : [];
+      const prevCpu = Array.isArray(prev.cpu) ? prev.cpu : [];
+      const prevRam = Array.isArray(prev.ramMB) ? prev.ramMB : [];
+      const timestamps = [...prevTs, now].slice(-maxLen);
+      const cpu = [...prevCpu, serverUsage.cpu].slice(-maxLen);
+      const ramMB = [...prevRam, serverUsage.ramMB].slice(-maxLen);
+      return { timestamps, cpu, ramMB };
     });
   }, [activeTab, serverUsage?.cpu, serverUsage?.ramMB]);
 
@@ -289,12 +305,14 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
         const maxLines = settings?.maxConsoleLines || 1000;
         const result = await window.electronAPI.server.getServerLogs(serverName, maxLines);
         if (result.success && result.lines) {
-          const existingLines: ConsoleLine[] = result.lines.map((line, index) => ({
-            id: `existing-${index}-${Date.now()}`,
-            text: line,
-            timestamp: new Date().toLocaleTimeString(),
-            type: 'stdout' as const,
-          }));
+          const existingLines: ConsoleLine[] = result.lines
+            .filter((line) => line.trim() !== "")
+            .map((line, index) => ({
+              id: `existing-${index}-${Date.now()}`,
+              text: line.trim(),
+              timestamp: new Date().toLocaleTimeString(),
+              type: "stdout" as const,
+            }));
           setLines(existingLines);
         }
       } catch (error) {
@@ -319,10 +337,10 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       if (data.serverName === serverName) {
         const logLines = data.data.split('\n');
         logLines.forEach((line, index) => {
-          if (line.trim() || index === logLines.length - 1) {
+          if (line.trim() !== "") {
             const newLine: ConsoleLine = {
               id: Date.now().toString() + Math.random() + index,
-              text: line || ' ',
+              text: line.trim(),
               timestamp: new Date().toLocaleTimeString(),
               type: data.type,
             };
@@ -440,9 +458,6 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       }
     };
   }, [searchQuery]);
-
-  // Server log lines often start with [HH:mm:ss] - don't duplicate with our timestamp
-  const lineHasServerTimestamp = (text: string) => /^\s*\[\d{1,2}:\d{2}(:\d{2})?\]/.test(text);
 
   // Filter and search lines (memoized and optimized)
   const filteredLines = useMemo(() => {
@@ -664,7 +679,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       return;
     }
     
-    if (!confirm(`Are you sure you want to delete "${serverName}"? This will permanently delete all server files and cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete "${server?.name ?? serverName}"? This will permanently delete all server files and cannot be undone.`)) {
       setShowDeleteConfirm(false);
       return;
     }
@@ -701,7 +716,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-background">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-background">
       {/* Header */}
       <div className="border-b border-border bg-background-secondary p-4 sm:p-6 min-w-0">
         <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
@@ -820,7 +835,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden min-w-0 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-hidden min-w-0 flex flex-col">
         {activeTab === "dashboard" && (
           <div className="h-full flex flex-col bg-background p-3 font-mono min-h-0 min-w-0 overflow-hidden">
             <div className="flex items-center justify-end gap-1 mb-1.5 flex-shrink-0 flex-wrap">
@@ -841,24 +856,61 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
               ))}
             </div>
             <div className="flex-1 flex flex-col gap-2 min-h-0 min-w-0 overflow-hidden">
-              <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-                <DashboardAreaGraph
-                  values={usageHistory.cpu.slice(-(GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange)?.points ?? 100))}
-                  max={100}
-                  label="CPU %"
-                  formatTick={(v) => `${Math.round(v)}%`}
-                  currentValue={serverUsage ? `${serverUsage.cpu.toFixed(1)}%` : undefined}
-                />
-              </div>
-              <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-                <DashboardAreaGraph
-                  values={usageHistory.ramMB.slice(-(GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange)?.points ?? 100))}
-                  max={server?.ramGB ? server.ramGB * 1024 : (usageHistory.ramMB.length ? Math.max(...usageHistory.ramMB, 1) : 4096)}
-                  label="RAM (MB)"
-                  formatTick={(v) => `${Math.round(v)}`}
-                  currentValue={serverUsage ? `${Math.round(serverUsage.ramMB)} MB` : undefined}
-                />
-              </div>
+              {!isRunning ? (
+                <div className="flex-1 min-h-0 flex items-center justify-center border border-border rounded-lg bg-background-secondary">
+                  <div className="text-center">
+                    <p className="text-text-muted font-mono text-sm uppercase tracking-wider">Server not running</p>
+                    <p className="text-text-muted/70 font-mono text-xs mt-1">Start the server to see CPU and RAM graphs</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+                    <DashboardAreaGraph
+                      values={(() => {
+                        const rangeOpt = GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange);
+                        const windowMs = (rangeOpt?.durationSeconds ?? 300) * 1000;
+                        const cutoff = Date.now() - windowMs;
+                        const indices = usageHistory.timestamps.map((t, i) => (t >= cutoff ? i : -1)).filter((i) => i >= 0);
+                        return indices.map((i) => usageHistory.cpu[i]);
+                      })()}
+                      timestamps={(() => {
+                        const rangeOpt = GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange);
+                        const windowMs = (rangeOpt?.durationSeconds ?? 300) * 1000;
+                        const cutoff = Date.now() - windowMs;
+                        return usageHistory.timestamps.filter((t) => t >= cutoff);
+                      })()}
+                      timeRangeSeconds={GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange)?.durationSeconds ?? 300}
+                      max={100}
+                      label="CPU %"
+                      formatTick={(v) => `${Math.round(v)}%`}
+                      currentValue={serverUsage ? `${serverUsage.cpu.toFixed(1)}%` : undefined}
+                    />
+                  </div>
+                  <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+                    <DashboardAreaGraph
+                      values={(() => {
+                        const rangeOpt = GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange);
+                        const windowMs = (rangeOpt?.durationSeconds ?? 300) * 1000;
+                        const cutoff = Date.now() - windowMs;
+                        const indices = usageHistory.timestamps.map((t, i) => (t >= cutoff ? i : -1)).filter((i) => i >= 0);
+                        return indices.map((i) => usageHistory.ramMB[i]);
+                      })()}
+                      timestamps={(() => {
+                        const rangeOpt = GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange);
+                        const windowMs = (rangeOpt?.durationSeconds ?? 300) * 1000;
+                        const cutoff = Date.now() - windowMs;
+                        return usageHistory.timestamps.filter((t) => t >= cutoff);
+                      })()}
+                      timeRangeSeconds={GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange)?.durationSeconds ?? 300}
+                      max={server?.ramGB ? server.ramGB * 1024 : (usageHistory.ramMB.length ? Math.max(...usageHistory.ramMB, 1) : 4096)}
+                      label="RAM (MB)"
+                      formatTick={(v) => `${Math.round(v)}`}
+                      currentValue={serverUsage ? `${Math.round(serverUsage.ramMB)} MB` : undefined}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 flex-shrink-0 mt-2 min-w-0">
                 <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
@@ -906,7 +958,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
           </div>
         )}
         {activeTab === "console" && (
-          <div className="h-full flex flex-col bg-background">
+          <div className="grid grid-rows-[auto_1fr_auto] h-full min-h-0 bg-background overflow-hidden">
             {/* Search and Filter Bar */}
             <div className="border-b border-border p-3 bg-background-secondary/50">
               <div className="flex items-center gap-3 mb-2">
@@ -983,10 +1035,10 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
               </div>
             </div>
 
-            {/* Console Output */}
+            {/* Console Output - middle row takes all space */}
             <div
               ref={scrollRef}
-              className="flex-1 overflow-y-auto overflow-x-hidden font-mono text-sm custom-scrollbar p-4"
+              className="min-h-0 overflow-y-auto overflow-x-hidden font-mono text-sm custom-scrollbar p-4"
               style={{
                 fontSize: `${settings?.consoleFontSize || 13}px`,
                 fontFamily: 'Consolas, "Courier New", monospace',
@@ -1006,17 +1058,16 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                     const isHighlighted = debouncedSearchQuery && line.text.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
                     const lineText = line.text;
                     const hasSearch = debouncedSearchQuery && debouncedSearchQuery.trim();
-                    
+                    const lineStyle =
+                      line.type === "stderr"
+                        ? "text-red-400 bg-red-400/10 hover:bg-red-400/15"
+                        : line.type === "command"
+                        ? "text-accent bg-accent/10 hover:bg-accent/15"
+                        : "text-text-primary hover:bg-background-secondary/50";
                     return (
                       <div
                         key={line.id}
-                        className={`group py-1 px-2 rounded transition-colors ${
-                          line.type === 'stderr' 
-                            ? 'text-red-400 bg-red-400/10 hover:bg-red-400/15' 
-                            : line.type === 'command' 
-                            ? 'text-accent bg-accent/10 hover:bg-accent/15' 
-                            : 'text-text-primary hover:bg-background-secondary/50'
-                        } ${isHighlighted ? 'ring-1 ring-accent/50' : ''}`}
+                        className={`group py-1 px-2 rounded transition-colors ${lineStyle} ${isHighlighted ? "ring-1 ring-accent/50" : ""}`}
                       >
                           {hasSearch ? (
                             <span 
@@ -1054,7 +1105,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
               )}
             </div>
 
-            {/* Console Input */}
+            {/* Console Input - fixed at bottom */}
             <div className="border-t border-border p-4 bg-background-secondary/50">
               <form onSubmit={(e) => { e.preventDefault(); handleSendCommand(); }} className="space-y-2">
                 {/* Command Suggestions */}
@@ -1096,7 +1147,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                           handleKeyDown(e);
                         }
                       }}
-                      placeholder={isRunning ? (chatMode ? `Type a message to send in chat...` : `Enter command for ${serverName}... (↑↓ for history, Tab for autocomplete)`) : "Server must be running to send commands"}
+                      placeholder={isRunning ? (chatMode ? `Type a message to send in chat...` : `Enter command for ${server.name}... (↑↓ for history, Tab for autocomplete)`) : "Server must be running to send commands"}
                       disabled={!isRunning}
                       className="w-full bg-background border border-border px-4 py-3 pl-10 pr-12 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all shadow-sm focus:shadow-md focus:shadow-accent/10"
                     />

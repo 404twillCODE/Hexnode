@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import ToggleSwitch from "./ToggleSwitch";
 import { useServerManager } from "../hooks/useServerManager";
+import { lineHasServerTimestamp } from "../utils/consoleUtils";
 
 interface ConsoleLine {
   id: string;
@@ -107,12 +108,16 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
         if (parts.length === 0) return;
 
         const timestamp = new Date().toLocaleTimeString();
-        const newLines = parts.map((line, index) => ({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${index}`,
-          text: line,
-          timestamp,
-          type: data.type,
-        }));
+        const newLines = parts
+          .filter((line) => line.trim() !== "")
+          .map((line, index) => ({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${index}`,
+            text: line.trim(),
+            timestamp,
+            type: data.type,
+          }));
+
+        if (newLines.length === 0) return;
 
         setLines(prev => {
           const maxLines = settings?.maxConsoleLines || 1000;
@@ -206,9 +211,6 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
   const handleClear = () => {
     setLines([]);
   };
-
-  // Server log lines often start with [HH:mm:ss] - don't duplicate with our timestamp
-  const lineHasServerTimestamp = (text: string) => /^\s*\[\d{1,2}:\d{2}(:\d{2})?\]/.test(text);
 
   // Common Minecraft server commands for autocomplete
   const commonCommands = [
@@ -335,7 +337,7 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
   }, []);
 
   return (
-    <div className="h-full flex flex-col p-6 bg-background">
+    <div className="h-full min-h-0 flex flex-col p-6 bg-background">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -366,7 +368,7 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
               >
                 <option value="">Select server...</option>
                 {servers.map(server => (
-                  <option key={server.id} value={server.name}>
+                  <option key={server.id} value={server.id}>
                     {server.name} ({server.status})
                   </option>
                 ))}
@@ -457,11 +459,11 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
         </div>
       </motion.div>
 
-      {/* Console Output */}
-      <div className="flex-1 system-card p-0 flex flex-col overflow-hidden">
+      {/* Console Output + Input - grid so input stays at bottom */}
+      <div className="flex-1 min-h-0 system-card p-0 grid grid-rows-[1fr_auto] overflow-hidden">
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden font-mono text-sm custom-scrollbar p-4"
+          className="min-h-0 overflow-y-auto overflow-x-hidden font-mono text-sm custom-scrollbar p-4"
           style={{
             fontSize: `${settings?.consoleFontSize || 13}px`,
             fontFamily: 'Consolas, "Courier New", monospace',
@@ -472,7 +474,7 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
               {selectedServer
                 ? searchQuery
                   ? "No lines match your search."
-                  : `Console for ${selectedServer}. Start the server to see output.`
+                  : `Console for ${servers.find(s => s.id === selectedServer)?.name ?? selectedServer}. Start the server to see output.`
                 : "Select a server to view console output."}
             </div>
           ) : (
@@ -481,17 +483,16 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
                 const isHighlighted = debouncedSearchQuery && line.text.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
                 const lineText = line.text;
                 const hasSearch = debouncedSearchQuery && debouncedSearchQuery.trim();
-                
+                const lineStyle =
+                  line.type === "stderr"
+                    ? "text-red-400 bg-red-400/10 hover:bg-red-400/15"
+                    : line.type === "command"
+                    ? "text-accent bg-accent/10 hover:bg-accent/15"
+                    : "text-text-primary hover:bg-background-secondary/50";
                 return (
                   <div
                     key={line.id}
-                    className={`group py-1 px-2 rounded transition-colors ${
-                      line.type === 'stderr' 
-                        ? 'text-red-400 bg-red-400/10 hover:bg-red-400/15' 
-                        : line.type === 'command' 
-                        ? 'text-accent bg-accent/10 hover:bg-accent/15' 
-                        : 'text-text-primary hover:bg-background-secondary/50'
-                    } ${isHighlighted ? 'ring-1 ring-accent/50' : ''}`}
+                    className={`group py-1 px-2 rounded transition-colors ${lineStyle} ${isHighlighted ? "ring-1 ring-accent/50" : ""}`}
                   >
                       {hasSearch ? (
                         <span 
@@ -529,7 +530,7 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
           )}
         </div>
 
-        {/* Command Input */}
+        {/* Command Input - fixed at bottom */}
         <div className="border-t border-border p-4 bg-background-secondary/50">
           <form onSubmit={handleSubmit} className="space-y-2">
             {/* Command Suggestions */}

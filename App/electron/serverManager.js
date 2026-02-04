@@ -2374,8 +2374,8 @@ async function listServers() {
           }
           
           serverList.push({
-            id: serverName,
-            name: serverName,
+            id: serverName, // folder name (with dashes) - use for all API calls
+            name: config?.name || config?.displayName || serverName, // display name (with spaces)
             version,
             status: status, // Keep status as RUNNING, STOPPED, or STARTING
             port: config?.port || 25565,

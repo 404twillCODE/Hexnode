@@ -8,9 +8,38 @@ import ServerList from "./components/ServerList";
 import ServerDetailView from "./components/ServerDetailView";
 import SettingsView from "./components/SettingsView";
 import TitleBar from "./components/TitleBar";
-import { ToastProvider } from "./components/ToastProvider";
+import { ToastProvider, useToast } from "./components/ToastProvider";
 
 type View = "servers" | "settings" | "server-detail";
+
+/** Listens for update-available and shows in-app toast (must be inside ToastProvider). */
+function UpdateNotifier() {
+  const { notify } = useToast();
+  const [settings, setSettings] = useState<any>({});
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    const load = async () => {
+      const s = await window.electronAPI.server.getAppSettings();
+      setSettings(s || {});
+    };
+    load();
+    const unsub = window.electronAPI.server?.onAppSettingsUpdated?.(setSettings);
+    return () => { unsub?.(); };
+  }, []);
+
+  useEffect(() => {
+    if (!window.electronAPI?.server?.onUpdateAvailable) return;
+    const handle = (payload: { version: string; url: string }) => {
+      if (settings?.notifications?.updates === false) return;
+      notify({ type: "info", title: "Update available", message: `HexNode ${payload.version} is available.` });
+    };
+    const unsub = window.electronAPI.server.onUpdateAvailable(handle);
+    return () => { unsub?.(); };
+  }, [notify, settings?.notifications?.updates]);
+
+  return null;
+}
 type SetupStep = "boot" | "detection" | "options" | "complete";
 
 function App() {
@@ -58,34 +87,6 @@ function App() {
       if (unsubscribe) unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    if (!window.electronAPI?.server?.onUpdateAvailable) return;
-
-    const handleUpdateAvailable = (payload: { version: string; url: string }) => {
-      if (appSettings?.notifications?.updates === false) return;
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().then((permission) => {
-          if (permission === 'granted') {
-            new Notification('Update available', {
-              body: `HexNode ${payload.version} is available.`
-            });
-          }
-        });
-        return;
-      }
-      if (Notification.permission === 'granted') {
-        new Notification('Update available', {
-          body: `HexNode ${payload.version} is available.`
-        });
-      }
-    };
-
-    const unsubscribe = window.electronAPI.server.onUpdateAvailable(handleUpdateAvailable);
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [appSettings?.notifications?.updates]);
 
   useEffect(() => {
     if (!setupComplete) return;
@@ -308,6 +309,7 @@ function App() {
   return (
     <MotionConfig reducedMotion={appSettings?.reduceAnimations ? "always" : "never"}>
       <ToastProvider>
+        <UpdateNotifier />
         <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
           {shouldShowBootSequence && <BootSequence onComplete={handleBootComplete} />}
           <AnimatePresence>
@@ -317,10 +319,10 @@ function App() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex flex-col h-full"
+                className="flex flex-col h-full min-h-0"
               >
                 <TitleBar />
-                <div className="flex flex-1 overflow-hidden">
+                <div className="flex flex-1 min-h-0 overflow-hidden">
                   {currentView !== "server-detail" && (
                     <Sidebar currentView={currentView as "servers" | "settings"} onViewChange={setCurrentView} />
                   )}
@@ -330,7 +332,7 @@ function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                    className="flex-1 overflow-hidden"
+                    className="flex-1 min-h-0 overflow-hidden"
                   >
                     {renderView()}
                   </motion.main>

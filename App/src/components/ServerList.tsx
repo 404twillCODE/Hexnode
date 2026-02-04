@@ -395,9 +395,9 @@ export default function ServerList({ onServerClick }: ServerListProps) {
             >
               <ServerCard
                 server={server}
-                onStart={() => handleStart(server.name)}
-                onStop={() => handleStop(server.name)}
-                onClick={() => onServerClick?.(server.name)}
+                onStart={() => handleStart(server.id)}
+                onStop={() => handleStop(server.id)}
+                onClick={() => onServerClick?.(server.id)}
               />
             </motion.div>
           ))}

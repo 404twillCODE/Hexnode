@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useToast } from '../components/ToastProvider';
 
 declare global {
   interface Window {
@@ -84,6 +85,7 @@ export interface JavaStatus {
 }
 
 export function useServerManager() {
+  const { notify } = useToast();
   const [servers, setServers] = useState<Server[]>([]);
   const [javaStatus, setJavaStatus] = useState<JavaStatus>({ installed: false, version: null, loading: true });
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,6 @@ export function useServerManager() {
   const [refreshMs, setRefreshMs] = useState(2000);
   const prevServersRef = useRef<Server[]>([]);
   const userStopRef = useRef<Map<string, number>>(new Map());
-  const permissionRequestedRef = useRef(false);
 
   const markUserStop = (serverName: string) => {
     userStopRef.current.set(serverName, Date.now());
@@ -105,21 +106,10 @@ export function useServerManager() {
     return false;
   };
 
-  const notifyIfAllowed = useCallback((title: string, body: string) => {
+  const notifyIfAllowed = useCallback((title: string, body: string, type: 'success' | 'error' | 'info' = 'info') => {
     if (!appSettings?.notifications) return;
-    if (Notification.permission === 'default' && !permissionRequestedRef.current) {
-      permissionRequestedRef.current = true;
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-          new Notification(title, { body });
-        }
-      });
-      return;
-    }
-    if (Notification.permission === 'granted') {
-      new Notification(title, { body });
-    }
-  }, [appSettings?.notifications]);
+    notify({ type, title, message: body });
+  }, [appSettings?.notifications, notify]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -185,15 +175,15 @@ export function useServerManager() {
 
           if (appSettings.notifications.statusChanges !== false) {
             if (nextServer.status === 'RUNNING') {
-              notifyIfAllowed('Server started', `${nextServer.name} is now running.`);
+              notifyIfAllowed('Server started', `${nextServer.name} is now running.`, 'success');
             } else if (nextServer.status === 'STOPPED') {
-              notifyIfAllowed('Server stopped', `${nextServer.name} has stopped.`);
+              notifyIfAllowed('Server stopped', `${nextServer.name} has stopped.`, 'info');
             }
           }
 
           if (appSettings.notifications.crashes && prevServer.status === 'RUNNING' && nextServer.status === 'STOPPED') {
-            if (!wasUserStop(nextServer.name)) {
-              notifyIfAllowed('Server crash detected', `${nextServer.name} stopped unexpectedly.`);
+            if (!wasUserStop(nextServer.id)) {
+              notifyIfAllowed('Server crash detected', `${nextServer.name} stopped unexpectedly.`, 'error');
             }
           }
         });

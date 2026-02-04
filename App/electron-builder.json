@@ -12,20 +12,18 @@
   "win": {
     "target": [
       {
-        "target": "dir",
+        "target": "portable",
         "arch": ["x64"]
       }
     ],
     "icon": "../Graphics/Logo.png",
     "sign": null,
+    "signAndEditExecutable": false,
     "signingHashAlgorithms": [],
     "verifyUpdateCodeSignature": false
   },
-  "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true,
-    "createDesktopShortcut": true,
-    "createStartMenuShortcut": true
+  "portable": {
+    "artifactName": "HexNode.exe"
   },
   "forceCodeSigning": false
 }
