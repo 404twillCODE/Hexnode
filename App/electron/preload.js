@@ -6,6 +6,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     minimize: () => ipcRenderer.send('window-minimize'),
     maximize: () => ipcRenderer.send('window-maximize'),
     close: () => ipcRenderer.send('window-close'),
+    onClosePrompt: (callback) => {
+      const handler = () => callback();
+      ipcRenderer.on('close-prompt', handler);
+      return () => ipcRenderer.removeListener('close-prompt', handler);
+    },
+    respondToClosePrompt: (confirmed) => ipcRenderer.send('close-prompt-response', confirmed),
   },
   server: {
     checkJava: () => ipcRenderer.invoke('check-java'),

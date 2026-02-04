@@ -22,6 +22,7 @@ let isQuitting = false;
 let minimizeToTrayEnabled = false;
 let pendingUpdateCheck = null;
 let cachedSettings = null;
+let closePromptInProgress = false;
 
 function compareVersions(a, b) {
   const partsA = String(a).replace(/^v/i, '').split('.').map(Number);
@@ -186,6 +187,15 @@ function createWindow() {
       event.preventDefault();
       win.hide();
       ensureTray();
+      return;
+    }
+    if (isQuitting || closePromptInProgress) return;
+    event.preventDefault();
+    closePromptInProgress = true;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('close-prompt');
+    } else {
+      closePromptInProgress = false;
     }
   });
 
@@ -219,6 +229,14 @@ ipcMain.on('window-maximize', () => {
 ipcMain.on('window-close', () => {
   const win = BrowserWindow.getFocusedWindow();
   if (win) win.close();
+});
+
+ipcMain.on('close-prompt-response', (event, confirmed) => {
+  closePromptInProgress = false;
+  if (confirmed) {
+    isQuitting = true;
+    app.quit();
+  }
 });
 
 // Java detection
@@ -551,18 +569,18 @@ app.whenReady().then(() => {
   });
 });
 
-// Kill all servers before quitting
-async function killAllServers() {
+// Stop all servers before quitting
+async function stopAllServers() {
   try {
     const servers = await serverManager.listServers();
-    const killPromises = servers
+    const stopPromises = servers
       .filter(server => server.status === 'RUNNING' || server.status === 'STARTING')
-      .map(server => serverManager.killServer(server.name));
+      .map(server => serverManager.stopServer(server.name));
     
-    // Kill all servers in parallel and wait for completion
-    await Promise.allSettled(killPromises);
+    // Stop all servers in parallel and wait for completion
+    await Promise.allSettled(stopPromises);
   } catch (error) {
-    console.error('Error killing servers on shutdown:', error);
+    console.error('Error stopping servers on shutdown:', error);
   }
 }
 
@@ -570,13 +588,13 @@ async function killAllServers() {
 app.on('before-quit', async (event) => {
   isQuitting = true;
   event.preventDefault(); // Prevent immediate quit
-  await killAllServers();
-  app.exit(0); // Force exit after killing servers
+  await stopAllServers();
+  app.exit(0); // Force exit after stopping servers
 });
 
 app.on('window-all-closed', async () => {
-  // Kill all servers before quitting
-  await killAllServers();
+  // Stop all servers before quitting
+  await stopAllServers();
   
   if (process.platform !== 'darwin') {
     app.quit();

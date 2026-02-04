@@ -36,6 +36,7 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
   const [modrinthLimit, setModrinthLimit] = useState(200);
   const [configPath, setConfigPath] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [configKey, setConfigKey] = useState(0);
   const { notify } = useToast();
   const modrinthListRef = useRef<HTMLDivElement | null>(null);
   const restoreScrollRef = useRef<number | null>(null);
@@ -207,12 +208,32 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
       const result = await window.electronAPI.server.getServerFiles(serverName, preferredPath);
       if (result.success) {
         setConfigPath(preferredPath);
+        setConfigKey((prev) => prev + 1);
         return;
       }
     } catch (error) {
       // Ignore and fallback
     }
+    try {
+      const pluginsRoot = await window.electronAPI.server.getServerFiles(serverName, 'plugins');
+      if (pluginsRoot.success && pluginsRoot.items) {
+        const normalizedBase = normalizeName(baseName);
+        const matchedDir = pluginsRoot.items.find((item) => {
+          if (item.type !== 'directory') return false;
+          const normalizedItem = normalizeName(item.name);
+          return normalizedItem === normalizedBase || normalizedItem.startsWith(normalizedBase);
+        });
+        if (matchedDir) {
+          setConfigPath(`plugins/${matchedDir.name}`);
+          setConfigKey((prev) => prev + 1);
+          return;
+        }
+      }
+    } catch (error) {
+      // Ignore and fallback
+    }
     setConfigPath('plugins');
+    setConfigKey((prev) => prev + 1);
   };
 
   const handleInstall = async (projectId: string, pluginTitle: string) => {
@@ -491,7 +512,7 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
 
       {configPath && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6">
-          <div className="system-card w-full max-w-5xl h-[80vh] overflow-hidden relative">
+          <div className="system-card w-full max-w-5xl h-[80vh] overflow-hidden relative" key={configKey}>
             <div className="flex items-center justify-between border-b border-border bg-background-secondary px-4 py-3">
               <div className="text-sm font-mono text-text-secondary">
                 Plugin Config: {configPath}

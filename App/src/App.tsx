@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import BootSequence from "./components/BootSequence";
 import SetupView from "./components/SetupView";
@@ -21,6 +21,8 @@ function App() {
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [appSettings, setAppSettings] = useState<any>({});
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const setupFinalizedRef = useRef(false);
+  const [showClosePrompt, setShowClosePrompt] = useState(false);
 
   useEffect(() => {
     checkSetupStatus();
@@ -84,10 +86,64 @@ function App() {
   }, [appSettings?.notifications?.updates]);
 
   useEffect(() => {
+    const onClosePrompt = window.electronAPI?.windowControls?.onClosePrompt;
+    if (!onClosePrompt) return;
+    const unsubscribe = onClosePrompt(() => {
+      setShowClosePrompt(true);
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  const respondToClosePrompt = (confirmed: boolean) => {
+    setShowClosePrompt(false);
+    window.electronAPI?.windowControls?.respondToClosePrompt?.(confirmed);
+  };
+
+  const renderClosePrompt = () => {
+    if (!showClosePrompt) return null;
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-sm p-6">
+        <div className="system-card w-full max-w-md p-6">
+          <div className="text-lg font-semibold text-text-primary font-mono mb-3">
+            Close HexNode
+          </div>
+          <div className="text-sm text-text-secondary font-mono mb-2">
+            Are you sure you want to close the program?
+          </div>
+          <div className="text-xs text-text-muted font-mono mb-6">
+            All servers will stop.
+          </div>
+          <div className="flex justify-end gap-3">
+            <motion.button
+              onClick={() => respondToClosePrompt(false)}
+              className="btn-secondary"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              CANCEL
+            </motion.button>
+            <motion.button
+              onClick={() => respondToClosePrompt(true)}
+              className="btn-primary"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              CLOSE
+            </motion.button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
     if (!settingsLoaded) return;
     const shouldShowBoot = appSettings?.showBootSequence !== false;
+    const setupFinished = !!setupComplete || setupFinalizedRef.current;
     if (!shouldShowBoot) {
-      if (!setupComplete) {
+      if (!setupFinished) {
         setSetupStep("detection");
       } else {
         setBootComplete(true);
@@ -103,7 +159,14 @@ function App() {
 
     try {
       const isComplete = await window.electronAPI.server.isSetupComplete();
-      setSetupComplete(isComplete);
+      setSetupComplete((prev) => {
+        if (prev) return true;
+        if (setupFinalizedRef.current) return true;
+        return isComplete;
+      });
+      if (isComplete) {
+        setupFinalizedRef.current = true;
+      }
     } catch (error) {
       console.error('Failed to check setup status:', error);
       setSetupComplete(true); // Default to skipping setup on error
@@ -111,7 +174,8 @@ function App() {
   };
 
   const handleBootComplete = () => {
-    if (!setupComplete) {
+    const setupFinished = !!setupComplete || setupFinalizedRef.current;
+    if (!setupFinished) {
       setSetupStep("detection");
     } else {
       setBootComplete(true);
@@ -123,6 +187,7 @@ function App() {
   };
 
   const handleSetupComplete = () => {
+    setupFinalizedRef.current = true;
     setSetupComplete(true);
     setSetupStep("complete");
     setBootComplete(true);
@@ -156,40 +221,54 @@ function App() {
   // Show loading state while checking setup status
   if (setupComplete === null || !settingsLoaded) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-background">
-        <div className="text-text-secondary font-mono text-sm">
-          Initializing...
+      <>
+        <div className="h-screen w-screen flex items-center justify-center bg-background">
+          <div className="text-text-secondary font-mono text-sm">
+            Initializing...
+          </div>
         </div>
-      </div>
+        {renderClosePrompt()}
+      </>
     );
   }
 
   const shouldShowBootSequence = appSettings?.showBootSequence !== false;
 
+  const setupFinished = !!setupComplete || setupFinalizedRef.current;
+
   // Show boot sequence first if setup not complete
-  if (!setupComplete && setupStep === "boot" && shouldShowBootSequence) {
+  if (!setupFinished && setupStep === "boot" && shouldShowBootSequence) {
     return (
-      <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
-        <BootSequence onComplete={handleBootComplete} />
-      </div>
+      <>
+        <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
+          <BootSequence onComplete={handleBootComplete} />
+        </div>
+        {renderClosePrompt()}
+      </>
     );
   }
 
   // Show system detection after boot
-  if (!setupComplete && setupStep === "detection") {
+  if (!setupFinished && setupStep === "detection") {
     return (
-      <AnimatePresence>
-        <SetupView onNext={handleDetectionNext} />
-      </AnimatePresence>
+      <>
+        <AnimatePresence>
+          <SetupView onNext={handleDetectionNext} />
+        </AnimatePresence>
+        {renderClosePrompt()}
+      </>
     );
   }
 
   // Show setup options after detection
-  if (!setupComplete && setupStep === "options") {
+  if (!setupFinished && setupStep === "options") {
     return (
-      <AnimatePresence>
-        <SetupOptionsView onComplete={handleSetupComplete} />
-      </AnimatePresence>
+      <>
+        <AnimatePresence>
+          <SetupOptionsView onComplete={handleSetupComplete} />
+        </AnimatePresence>
+        {renderClosePrompt()}
+      </>
     );
   }
 
@@ -228,6 +307,7 @@ function App() {
             )}
           </AnimatePresence>
         </div>
+        {renderClosePrompt()}
       </ToastProvider>
     </MotionConfig>
   );
