@@ -453,11 +453,11 @@ async function saveAppSettings(settings) {
 
 // Mark setup as complete
 async function completeSetup(settings = null) {
+  if (settings) {
+    await saveAppSettings(settings);
+  }
   const configs = await loadServerConfigs();
   configs._setupComplete = true;
-  if (settings) {
-    configs._appSettings = settings;
-  }
   await saveServerConfigs(configs);
 }
 

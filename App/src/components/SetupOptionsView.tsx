@@ -4,9 +4,15 @@ import ToggleSwitch from "./ToggleSwitch";
 
 interface SetupOptionsViewProps {
   onComplete: () => void;
+  onFinalizing?: () => void;
+  onFinalizingStatus?: (status: string) => void;
 }
 
-export default function SetupOptionsView({ onComplete }: SetupOptionsViewProps) {
+export default function SetupOptionsView({
+  onComplete,
+  onFinalizing,
+  onFinalizingStatus
+}: SetupOptionsViewProps) {
   const [completing, setCompleting] = useState(false);
   const [completingStatus, setCompletingStatus] = useState("Saving setup...");
   const [serversPath, setServersPath] = useState("");
@@ -130,19 +136,30 @@ export default function SetupOptionsView({ onComplete }: SetupOptionsViewProps) 
     }
   };
 
+  const updateStatus = (status: string) => {
+    setCompletingStatus(status);
+    onFinalizingStatus?.(status);
+  };
+
   const handleComplete = async () => {
     if (!window.electronAPI) {
       onComplete();
       return;
     }
 
+    onFinalizing?.();
     setCompleting(true);
-    setCompletingStatus("Saving setup...");
+    updateStatus("Setting up dashboard...");
     setQuickStartError(null);
+    
     try {
+      // Small delay to ensure status is visible
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      updateStatus("Saving settings...");
       const settings = {
-        serversDirectory: serversPath || undefined, // Will use default if empty
-        backupsDirectory: autoBackup ? (backupsPath || undefined) : undefined, // Only set if autoBackup enabled
+        serversDirectory: serversPath || undefined,
+        backupsDirectory: autoBackup ? (backupsPath || undefined) : undefined,
         showBootSequence,
         minimizeToTray,
         startWithWindows,
@@ -157,7 +174,6 @@ export default function SetupOptionsView({ onComplete }: SetupOptionsViewProps) 
       await window.electronAPI.server.completeSetup(settings);
 
       if (quickStartEnabled) {
-        setCompletingStatus("Preparing starter server...");
         const fallbackName = "My First Server";
         const trimmedName = quickStartName.trim() || fallbackName;
         if (defaultPort < 1024 || defaultPort > 65535) {
@@ -166,17 +182,23 @@ export default function SetupOptionsView({ onComplete }: SetupOptionsViewProps) 
         }
 
         const sanitizedName = trimmedName.replace(/\s+/g, '-');
-        setCompletingStatus("Creating server files...");
+        
+        // Find available port
         let quickStartPort = defaultPort;
         if (window.electronAPI?.server?.findAvailablePort) {
+          updateStatus("Checking port availability...");
           const resolvedPort = await window.electronAPI.server.findAvailablePort(defaultPort);
           if (resolvedPort) {
             quickStartPort = resolvedPort;
             if (resolvedPort !== defaultPort) {
-              setCompletingStatus(`Port ${defaultPort} in use. Using ${resolvedPort}...`);
+              updateStatus(`Port ${defaultPort} in use. Using ${resolvedPort}...`);
+              await new Promise(resolve => setTimeout(resolve, 800));
             }
           }
         }
+        
+        // Download and create server
+        updateStatus("Downloading server jar...");
         const createResult = await window.electronAPI.server.createServer(
           sanitizedName,
           quickStartType,
@@ -192,17 +214,21 @@ export default function SetupOptionsView({ onComplete }: SetupOptionsViewProps) 
           return;
         }
 
+        // Start server if enabled
         if (quickStartStartNow) {
-          setCompletingStatus("Starting server...");
+          updateStatus("Starting server...");
           const startResult = await window.electronAPI.server.startServer(sanitizedName, quickStartRAM);
           if (!startResult.success) {
             setQuickStartError(startResult.error || "Starter server created, but failed to start.");
             return;
           }
+          // Give a moment for the server to begin starting
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
 
-      setCompletingStatus("Finalizing...");
+      updateStatus("Opening dashboard...");
+      await new Promise(resolve => setTimeout(resolve, 500));
       onComplete();
     } catch (error) {
       console.error('Failed to complete setup:', error);

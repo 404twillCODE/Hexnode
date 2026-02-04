@@ -191,12 +191,27 @@ function createWindow() {
     }
     if (isQuitting || closePromptInProgress) return;
     event.preventDefault();
-    closePromptInProgress = true;
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('close-prompt');
-    } else {
-      closePromptInProgress = false;
-    }
+    void (async () => {
+      try {
+        const servers = await serverManager.listServers();
+        const hasRunningServers = servers.some(
+          (server) => server.status === 'RUNNING' || server.status === 'STARTING'
+        );
+        if (hasRunningServers) {
+          closePromptInProgress = true;
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('close-prompt');
+          } else {
+            closePromptInProgress = false;
+          }
+          return;
+        }
+      } catch (error) {
+        // If we cannot determine server state, allow close without prompt
+      }
+      isQuitting = true;
+      app.quit();
+    })();
   });
 
   if (isDev) {

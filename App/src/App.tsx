@@ -23,6 +23,8 @@ function App() {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const setupFinalizedRef = useRef(false);
   const [showClosePrompt, setShowClosePrompt] = useState(false);
+  const [setupFinalizing, setSetupFinalizing] = useState(false);
+  const [setupFinalizingStatus, setSetupFinalizingStatus] = useState("Setting up your dashboard...");
 
   useEffect(() => {
     checkSetupStatus();
@@ -84,6 +86,16 @@ function App() {
       if (unsubscribe) unsubscribe();
     };
   }, [appSettings?.notifications?.updates]);
+
+  useEffect(() => {
+    if (!setupComplete) return;
+    setSetupStep("complete");
+    setBootComplete(true);
+    setCurrentView("servers");
+    setSelectedServer(null);
+    setSetupFinalizing(false);
+    setSetupFinalizingStatus("Setting up your dashboard...");
+  }, [setupComplete]);
 
   useEffect(() => {
     const onClosePrompt = window.electronAPI?.windowControls?.onClosePrompt;
@@ -191,6 +203,8 @@ function App() {
     setSetupComplete(true);
     setSetupStep("complete");
     setBootComplete(true);
+    setSetupFinalizing(false);
+    setSetupFinalizingStatus("Setting up your dashboard...");
   };
 
   const handleServerClick = (serverName: string) => {
@@ -236,6 +250,20 @@ function App() {
 
   const setupFinished = !!setupComplete || setupFinalizedRef.current;
 
+  if (setupFinalizing && !setupFinished) {
+    return (
+      <>
+        <div className="h-screen w-screen flex items-center justify-center bg-background">
+          <div className="flex items-center gap-3 text-text-secondary font-mono text-sm">
+            <div className="h-4 w-4 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>
+            {setupFinalizingStatus}
+          </div>
+        </div>
+        {renderClosePrompt()}
+      </>
+    );
+  }
+
   // Show boot sequence first if setup not complete
   if (!setupFinished && setupStep === "boot" && shouldShowBootSequence) {
     return (
@@ -265,7 +293,11 @@ function App() {
     return (
       <>
         <AnimatePresence>
-          <SetupOptionsView onComplete={handleSetupComplete} />
+          <SetupOptionsView
+            onComplete={handleSetupComplete}
+            onFinalizing={() => setSetupFinalizing(true)}
+            onFinalizingStatus={setSetupFinalizingStatus}
+          />
         </AnimatePresence>
         {renderClosePrompt()}
       </>
