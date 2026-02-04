@@ -5,6 +5,7 @@ const os = require('os');
 const https = require('https');
 const http = require('http');
 const net = require('net');
+const si = require('systeminformation');
 
 // Get AppData\Roaming path (like Minecraft)
 function getAppDataPath() {
@@ -331,13 +332,24 @@ async function getSystemInfo() {
     }
 
     let cpuTempCelsius = null;
-    if (os.platform() === 'win32') {
+    try {
+      const temp = await si.cpuTemperature();
+      if (temp && Number.isFinite(temp.main) && temp.main > 0 && temp.main < 200) {
+        cpuTempCelsius = Math.round(temp.main * 10) / 10;
+      }
+      if (cpuTempCelsius == null && temp && Number.isFinite(temp.max) && temp.max > 0 && temp.max < 200) {
+        cpuTempCelsius = Math.round(temp.max * 10) / 10;
+      }
+    } catch (e) {
+      // Fall through to fallbacks
+    }
+    if (cpuTempCelsius == null && os.platform() === 'win32') {
       const tryTemp = async (script) => {
         try {
           const out = await execFilePromise('powershell', ['-NoProfile', '-Command', script], { timeout: 4000, windowsHide: true });
           const v = parseFloat(out?.trim());
           if (Number.isFinite(v) && v > -100 && v < 200) return v;
-        } catch (e) {}
+        } catch (err) {}
         return null;
       };
       cpuTempCelsius = await tryTemp(
@@ -348,25 +360,24 @@ async function getSystemInfo() {
           "try { $z = Get-WmiObject -Namespace root/wmi -Class MSAcpi_ThermalZoneTemperature -EA SilentlyContinue | Select-Object -First 1; if ($z) { [math]::Round(($z.CurrentTemperature/10.0)-273.15, 1) } } catch {}"
         );
       }
-    } else if (os.platform() === 'linux') {
-      try {
-        const thermalPaths = ['/sys/class/thermal/thermal_zone0/temp', '/sys/class/hwmon/hwmon0/temp1_input', '/sys/class/hwmon/hwmon1/temp1_input'];
-        for (const p of thermalPaths) {
-          try {
-            const buf = await fs.readFile(p, 'utf8');
-            const millideg = parseInt(buf.trim(), 10);
-            if (Number.isFinite(millideg)) {
-              const c = millideg / 1000;
-              if (c > -100 && c < 200) {
-                cpuTempCelsius = Math.round(c * 10) / 10;
-                break;
-              }
+    }
+    if (cpuTempCelsius == null && os.platform() === 'linux') {
+      const thermalPaths = ['/sys/class/thermal/thermal_zone0/temp', '/sys/class/hwmon/hwmon0/temp1_input', '/sys/class/hwmon/hwmon1/temp1_input'];
+      for (const p of thermalPaths) {
+        try {
+          const buf = await fs.readFile(p, 'utf8');
+          const millideg = parseInt(buf.trim(), 10);
+          if (Number.isFinite(millideg)) {
+            const c = millideg / 1000;
+            if (c > -100 && c < 200) {
+              cpuTempCelsius = Math.round(c * 10) / 10;
+              break;
             }
-          } catch (e) {
-            continue;
           }
+        } catch (err) {
+          continue;
         }
-      } catch (err) {}
+      }
     }
 
     const payload = {

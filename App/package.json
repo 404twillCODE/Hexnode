@@ -9,13 +9,16 @@
     "build": "tsc && vite build",
     "build:electron": "npm run build && electron-builder --win --x64",
     "build:exe": "npm run build && electron-packager . HexNode --platform=win32 --arch=x64 --out=release --overwrite --icon=../Graphics/Logo.png",
+    "build:win": "vite build && electron-builder --win --x64",
+    "build:win:portable": "vite build && electron-packager . HexNode --platform=win32 --arch=x64 --out=release --overwrite --asar --icon=../Graphics/Logo.png",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
     "framer-motion": "^12.23.26",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "systeminformation": "^5.30.7"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

@@ -23,30 +23,93 @@ interface ConsoleLine {
   type?: 'stdout' | 'stderr' | 'command';
 }
 
-function MiniSparkline({ values, max, className }: { values: number[]; max: number; className?: string }) {
-  if (values.length < 2) return null;
-  const w = 200;
-  const h = 32;
-  const pad = 2;
+const GRAPH_RANGE_OPTIONS = [
+  { id: '1m', label: '1 min', points: 20 },
+  { id: '5m', label: '5 min', points: 100 },
+  { id: '10m', label: '10 min', points: 200 },
+  { id: '30m', label: '30 min', points: 600 },
+  { id: '1h', label: '1 hr', points: 1200 },
+] as const;
+
+function DashboardAreaGraph({
+  values,
+  max,
+  label,
+  formatTick,
+  currentValue,
+}: {
+  values: number[];
+  max: number;
+  label: string;
+  formatTick: (v: number) => string;
+  currentValue?: string;
+}) {
+  const w = 800;
+  const h = 180;
+  const leftPad = 48;
+  const rightPad = 16;
+  const padY = 10;
+  const chartW = w - leftPad - rightPad;
+  const chartH = h - padY * 2;
   const range = max > 0 ? max : 1;
-  const points = values
-    .map((v, i) => {
-      const x = pad + (i / Math.max(values.length - 1, 1)) * (w - pad * 2);
-      const y = h - pad - (Math.min(v, range) / range) * (h - pad * 2);
-      return `${x},${y}`;
-    })
-    .join(' ');
+  const ticks = [0, 0.25 * range, 0.5 * range, 0.75 * range, range];
+  if (values.length < 2) {
+    return (
+      <div className="border border-border rounded-lg bg-background-secondary overflow-hidden flex flex-col min-h-[120px]">
+        <div className="px-3 py-1.5 border-b border-border text-xs font-mono uppercase tracking-wider text-text-muted flex-shrink-0 flex items-center justify-between gap-2">
+          <span className="truncate">{label}</span>
+          {currentValue !== undefined && (
+            <span className="text-text-muted/70 font-normal normal-case text-[11px] flex-shrink-0">{currentValue}</span>
+          )}
+        </div>
+        <div className="flex-1 min-h-[80px] flex items-center justify-center text-text-muted font-mono text-sm">
+          Collecting data…
+        </div>
+      </div>
+    );
+  }
+  const xScale = (i: number) => leftPad + (i / Math.max(values.length - 1, 1)) * chartW;
+  const yScale = (v: number) => padY + chartH - (Math.min(v, range) / range) * chartH;
+  const linePoints = values.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
+  const areaPoints = `${leftPad},${h - padY} ${linePoints} ${w - rightPad},${h - padY}`;
   return (
-    <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className={className}>
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={points}
-      />
-    </svg>
+    <div className="border border-border rounded-lg bg-background-secondary overflow-hidden flex flex-col min-h-[120px]">
+      <div className="px-3 py-1.5 border-b border-border text-xs font-mono uppercase tracking-wider text-text-muted flex-shrink-0 flex items-center justify-between gap-2">
+        <span className="truncate">{label}</span>
+        {currentValue !== undefined && (
+          <span className="text-text-muted/60 font-normal normal-case text-[11px] flex-shrink-0">{currentValue}</span>
+        )}
+      </div>
+      <div className="flex-1 min-h-[80px] min-w-0 relative">
+        <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" className="block text-accent max-w-full">
+          {ticks.map((t, i) => (
+            <text
+              key={i}
+              x={leftPad - 6}
+              y={padY + chartH - (t / range) * chartH + 4}
+              textAnchor="end"
+              className="fill-current text-text-muted font-mono text-[10px]"
+              style={{ fontFamily: 'ui-monospace, monospace' }}
+            >
+              {formatTick(t)}
+            </text>
+          ))}
+          <polygon
+            fill="currentColor"
+            fillOpacity="0.2"
+            points={areaPoints}
+          />
+          <polyline
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={linePoints}
+          />
+        </svg>
+      </div>
+    </div>
   );
 }
 
@@ -74,6 +137,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const [systemInfo, setSystemInfo] = useState<{ cpu: { tempCelsius?: number | null }; memory: { totalGB: number; freeGB: number; usedGB: number } } | null>(null);
   const [playerCount, setPlayerCount] = useState<{ online: number; max: number } | null>(null);
   const [usageHistory, setUsageHistory] = useState<{ cpu: number[]; ramMB: number[] }>({ cpu: [], ramMB: [] });
+  const [graphRange, setGraphRange] = useState<(typeof GRAPH_RANGE_OPTIONS)[number]['id']>('5m');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -114,11 +178,11 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const isRunning = server?.status === "RUNNING";
   const isStopped = server?.status === "STOPPED";
   const isStarting = server?.status === "STARTING";
-  // Build usage history for graphs when on dashboard
+  // Build usage history for graphs when on dashboard (keep up to 1 hr at ~3s interval)
   useEffect(() => {
     if (activeTab !== 'dashboard' || !serverUsage) return;
     setUsageHistory((prev) => {
-      const maxLen = 60;
+      const maxLen = 1200;
       const cpu = [...prev.cpu, serverUsage.cpu].slice(-maxLen);
       const ramMB = [...prev.ramMB, serverUsage.ramMB].slice(-maxLen);
       return { cpu, ramMB };
@@ -211,7 +275,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
     };
 
     updateUsage();
-    const interval = setInterval(updateUsage, 5000); // Update every 5 seconds (reduced from 2s to reduce stuttering)
+    const interval = setInterval(updateUsage, 1000);
     return () => clearInterval(interval);
   }, [isRunning, serverName, getServerUsage]);
 
@@ -324,6 +388,22 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
     container.scrollTop = container.scrollHeight;
     lastScrollTopRef.current = container.scrollTop;
   }, []);
+
+  // When switching to the console tab, scroll to bottom after the tab content is mounted
+  useEffect(() => {
+    if (activeTab !== 'console') return;
+    userScrolledRef.current = false;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    });
+    const t = setTimeout(() => scrollToBottom(), 100);
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(t);
+    };
+  }, [activeTab, scrollToBottom]);
 
   // When we have lines and either auto-scroll is on or we just switched server, scroll to bottom after layout
   useEffect(() => {
@@ -623,37 +703,37 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   return (
     <div className="h-full flex flex-col overflow-hidden bg-background">
       {/* Header */}
-      <div className="border-b border-border bg-background-secondary p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="border-b border-border bg-background-secondary p-4 sm:p-6 min-w-0">
+        <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
             <motion.button
               onClick={onBack}
-              className="text-text-secondary hover:text-text-primary font-mono text-sm transition-colors"
+              className="text-text-secondary hover:text-text-primary font-mono text-sm transition-colors flex-shrink-0"
               whileHover={{ x: -2 }}
             >
               ← BACK
             </motion.button>
-            <div className="h-6 w-px bg-border"></div>
-            <div>
-              <h1 className="text-2xl font-semibold text-text-primary font-mono mb-1">
+            <div className="h-6 w-px bg-border flex-shrink-0 hidden sm:block"></div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-semibold text-text-primary font-mono mb-1 truncate">
                 {server.name}
               </h1>
-              <div className="flex items-center gap-3 text-sm text-text-secondary font-mono">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-text-secondary font-mono">
                 <StatusBadge status={server.status} />
-                <span>Version: {server.version}</span>
-                <span>Port: {server.port}</span>
-                {server.ramGB && <span>RAM: {server.ramGB}GB</span>}
+                <span className="whitespace-nowrap">Version: {server.version}</span>
+                <span className="whitespace-nowrap">Port: {server.port}</span>
+                {server.ramGB && <span className="whitespace-nowrap">RAM: {server.ramGB}GB</span>}
                 {isRunning && serverUsage && (
                   <>
-                    <span className="text-accent">•</span>
-                    <span>CPU: {serverUsage.cpu.toFixed(1)}%</span>
-                    <span>RAM: {serverUsage.ramMB.toFixed(0)} MB</span>
+                    <span className="text-accent flex-shrink-0">•</span>
+                    <span className="whitespace-nowrap">CPU: {serverUsage.cpu.toFixed(1)}%</span>
+                    <span className="whitespace-nowrap">RAM: {serverUsage.ramMB.toFixed(0)} MB</span>
                   </>
                 )}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto justify-end sm:justify-start">
             {isStopped && (
               <motion.button
                 onClick={handleStart}
@@ -713,7 +793,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 px-6 pt-4 border-b border-border bg-background-secondary overflow-x-auto">
+      <div className="flex gap-2 px-4 sm:px-6 pt-3 sm:pt-4 border-b border-border bg-background-secondary overflow-x-auto min-w-0 shrink-0">
         {(['dashboard', 'console', 'files', 'plugins', 'worlds', 'properties', 'settings'] as Tab[])
           .filter(tab => {
             if (tab === 'plugins' && supportsPlugins === false) return false;
@@ -740,80 +820,89 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-w-0 flex flex-col">
         {activeTab === "dashboard" && (
-          <div className="h-full overflow-y-auto bg-background p-6 font-sans">
-            <div className="max-w-4xl space-y-6">
-              <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider border-b border-border pb-2">
-                This server
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="border border-border rounded-lg p-4 bg-background-secondary">
-                  <div className="text-xs text-text-muted uppercase tracking-wider mb-1">CPU</div>
-                  <div className="text-xl text-accent font-medium">
+          <div className="h-full flex flex-col bg-background p-3 font-mono min-h-0 min-w-0 overflow-hidden">
+            <div className="flex items-center justify-end gap-1 mb-1.5 flex-shrink-0 flex-wrap">
+              <span className="text-text-muted text-xs uppercase tracking-wider mr-1.5">Graph</span>
+              {GRAPH_RANGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setGraphRange(opt.id)}
+                  className={`px-2 py-0.5 text-xs font-mono rounded transition-colors ${
+                    graphRange === opt.id
+                      ? 'bg-accent/20 text-accent border border-accent/40'
+                      : 'text-text-muted hover:text-text-primary border border-transparent hover:border-border'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 flex flex-col gap-2 min-h-0 min-w-0 overflow-hidden">
+              <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+                <DashboardAreaGraph
+                  values={usageHistory.cpu.slice(-(GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange)?.points ?? 100))}
+                  max={100}
+                  label="CPU %"
+                  formatTick={(v) => `${Math.round(v)}%`}
+                  currentValue={serverUsage ? `${serverUsage.cpu.toFixed(1)}%` : undefined}
+                />
+              </div>
+              <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+                <DashboardAreaGraph
+                  values={usageHistory.ramMB.slice(-(GRAPH_RANGE_OPTIONS.find((o) => o.id === graphRange)?.points ?? 100))}
+                  max={server?.ramGB ? server.ramGB * 1024 : (usageHistory.ramMB.length ? Math.max(...usageHistory.ramMB, 1) : 4096)}
+                  label="RAM (MB)"
+                  formatTick={(v) => `${Math.round(v)}`}
+                  currentValue={serverUsage ? `${Math.round(serverUsage.ramMB)} MB` : undefined}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 flex-shrink-0 mt-2 min-w-0">
+                <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
+                  <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">CPU</div>
+                  <div className="text-base text-accent font-mono truncate" title={serverUsage ? `${serverUsage.cpu.toFixed(1)}%` : ''}>
                     {serverUsage ? `${serverUsage.cpu.toFixed(1)}%` : isRunning ? '—' : '0%'}
                   </div>
-                  {usageHistory.cpu.length > 1 && (
-                    <MiniSparkline values={usageHistory.cpu} max={100} className="mt-2 h-8 text-accent" />
-                  )}
                 </div>
-                <div className="border border-border rounded-lg p-4 bg-background-secondary">
-                  <div className="text-xs text-text-muted uppercase tracking-wider mb-1">RAM (used)</div>
-                  <div className="text-xl text-accent font-medium">
+                <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
+                  <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">RAM (used)</div>
+                  <div className="text-base text-accent font-mono truncate" title={serverUsage ? `${Math.round(serverUsage.ramMB)} MB` : ''}>
                     {serverUsage ? `${Math.round(serverUsage.ramMB)} MB` : isRunning ? '—' : '0 MB'}
                   </div>
                   {server?.ramGB != null && (
-                    <div className="text-xs text-text-muted mt-1">of {server.ramGB} GB allocated</div>
-                  )}
-                  {usageHistory.ramMB.length > 1 && (
-                    <MiniSparkline
-                      values={usageHistory.ramMB}
-                      max={server?.ramGB ? server.ramGB * 1024 : Math.max(...usageHistory.ramMB, 1)}
-                      className="mt-2 h-8 text-accent"
-                    />
+                    <div className="text-xs text-text-muted mt-0.5 truncate">of {server.ramGB} GB</div>
                   )}
                 </div>
-                <div className="border border-border rounded-lg p-4 bg-background-secondary">
-                  <div className="text-xs text-text-muted uppercase tracking-wider mb-1">RAM %</div>
-                  <div className="text-xl text-accent font-medium">
+                <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
+                  <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">RAM %</div>
+                  <div className="text-base text-accent font-mono truncate">
                     {serverUsage && server?.ramGB
                       ? `${((serverUsage.ramMB / (server.ramGB * 1024)) * 100).toFixed(1)}%`
                       : isRunning ? '—' : '0%'}
                   </div>
                 </div>
-                <div className="border border-border rounded-lg p-4 bg-background-secondary">
-                  <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Players</div>
-                  <div className="text-xl text-accent font-medium">
+                <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
+                  <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">Players</div>
+                  <div className="text-base text-accent font-mono truncate">
                     {playerCount != null ? `${playerCount.online} / ${playerCount.max}` : isRunning ? '—' : '0 / 0'}
                   </div>
                 </div>
+                <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
+                  <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">System memory</div>
+                  <div className="text-base text-accent font-mono truncate" title={systemInfo ? `${systemInfo.memory.usedGB} / ${systemInfo.memory.totalGB} GB` : ''}>
+                    {systemInfo ? `${systemInfo.memory.usedGB} / ${systemInfo.memory.totalGB} GB` : '—'}
+                  </div>
+                </div>
+                <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
+                  <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">CPU temp</div>
+                  <div className="text-base text-accent font-mono truncate">
+                    {systemInfo?.cpu.tempCelsius != null ? `${systemInfo.cpu.tempCelsius} °C` : '—'}
+                  </div>
+                </div>
               </div>
-
-              <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider border-b border-border pb-2 mt-8">
-                System
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {systemInfo && (
-                  <>
-                    <div className="border border-border rounded-lg p-4 bg-background-secondary">
-                      <div className="text-xs text-text-muted uppercase tracking-wider mb-1">System memory</div>
-                      <div className="text-xl text-accent font-medium">
-                        {systemInfo.memory.usedGB} / {systemInfo.memory.totalGB} GB
-                      </div>
-                    </div>
-                    <div className="border border-border rounded-lg p-4 bg-background-secondary">
-                      <div className="text-xs text-text-muted uppercase tracking-wider mb-1">CPU temp</div>
-                      <div className="text-xl text-accent font-medium">
-                        {systemInfo.cpu.tempCelsius != null ? `${systemInfo.cpu.tempCelsius} °C` : '—'}
-                      </div>
-                    </div>
-                  </>
-                )}
-                {!systemInfo && (
-                  <div className="text-text-muted text-sm">Loading system info…</div>
-                )}
-              </div>
-            </div>
           </div>
         )}
         {activeTab === "console" && (
