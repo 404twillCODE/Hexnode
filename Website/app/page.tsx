@@ -308,9 +308,9 @@ export default function Home() {
                   className="text-base leading-relaxed text-text-secondary sm:text-lg lg:text-xl font-mono relative"
                 >
                   <span className="block">
-                    We’re building a local first Minecraft server setup. The desktop app
-                    is in development now; a launcher and hosting options are planned.
-                    Your data stays on your machine by default.
+                    Nodexity is a local first Minecraft server stack: desktop app to run and manage servers,
+                    with a launcher and hosting options on the way.
+                    Your worlds and data stay on your machine unless you choose otherwise.
                   </span>
                 </motion.p>
                 <motion.div
