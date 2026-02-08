@@ -76,7 +76,7 @@ const features = [
   },
   {
     title: "File Editor",
-    description: "Built-in text editor for direct server configuration file editing. Edit server.properties, bukkit.yml, spigot.yml, and other configuration files without leaving the application.",
+    description: "Built in text editor for direct server configuration file editing. Edit server.properties, bukkit.yml, spigot.yml, and other configuration files without leaving the application.",
     details: [
       "Syntax highlighting for configuration files",
       "Save changes directly to server files",
@@ -269,7 +269,7 @@ export default function SoftwarePage() {
         </p>
         <div className="flex flex-wrap items-center gap-4">
           <motion.a
-            href="https://github.com/404twillCODE/Hexnode/releases/latest"
+            href="https://github.com/404twillCODE/Nodexity/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-6 py-3 text-sm font-mono uppercase tracking-wider text-accent transition-colors hover:bg-accent/20 hover:border-accent/80"

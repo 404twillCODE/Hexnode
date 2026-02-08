@@ -1,6 +1,6 @@
 ## Code of Conduct
 
-We want Hexnode’s community (GitHub + Discord) to be welcoming and respectful.
+We want Nodexity’s community (GitHub + Discord) to be welcoming and respectful.
 
 ### Be respectful
 - Assume good intent.

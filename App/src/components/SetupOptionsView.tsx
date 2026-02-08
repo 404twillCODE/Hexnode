@@ -337,7 +337,7 @@ export default function SetupOptionsView({
             SETUP OPTIONS
           </h1>
           <p className="text-text-secondary font-mono text-sm">
-            Configure your HexNode experience
+            Configure your Nodexity experience
           </p>
         </div>
 
@@ -371,7 +371,7 @@ export default function SetupOptionsView({
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={serversPath || "(Using default: AppData\\Roaming\\.hexnode\\servers)"}
+                    value={serversPath || "(Using default: AppData\\Roaming\\.nodexity\\servers)"}
                     readOnly
                     className="flex-1 bg-background border border-border px-3 py-2 text-text-primary font-mono text-xs focus:outline-none focus:border-accent/50 rounded"
                     style={{ color: serversPath ? undefined : 'rgba(102, 102, 102, 1)' }}
@@ -385,7 +385,7 @@ export default function SetupOptionsView({
                     BROWSE
                   </motion.button>
                 </div>
-                <p className="text-xs text-text-muted mt-1">Where server files will be stored (default: AppData\Roaming\.hexnode\servers)</p>
+                <p className="text-xs text-text-muted mt-1">Where server files will be stored (default: AppData\Roaming\.nodexity\servers)</p>
               </div>
             </div>
           </div>
@@ -458,7 +458,7 @@ export default function SetupOptionsView({
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={backupsPath || "(Using default: AppData\\Roaming\\.hexnode\\backups)"}
+                        value={backupsPath || "(Using default: AppData\\Roaming\\.nodexity\\backups)"}
                         readOnly
                         className="flex-1 bg-background border border-border px-3 py-2 text-text-primary font-mono text-xs focus:outline-none focus:border-accent/50 rounded"
                         style={{ color: backupsPath ? undefined : 'rgba(102, 102, 102, 1)' }}
@@ -472,7 +472,7 @@ export default function SetupOptionsView({
                         BROWSE
                       </motion.button>
                     </div>
-                    <p className="text-xs text-text-muted mt-1">Where server backups will be stored (default: AppData\Roaming\.hexnode\backups)</p>
+                    <p className="text-xs text-text-muted mt-1">Where server backups will be stored (default: AppData\Roaming\.nodexity\backups)</p>
                   </div>
                   <div>
                     <label className="block mb-2 text-text-primary">Backup Interval (hours)</label>

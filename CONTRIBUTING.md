@@ -1,4 +1,4 @@
-## Contributing to Hexnode
+## Contributing to Nodexity
 
 Thanks for wanting to help.
 

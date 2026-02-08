@@ -7,7 +7,7 @@ interface BootLine {
 }
 
 const bootLines: BootLine[] = [
-  { text: "HexNode Server Manager", delay: 0 },
+  { text: "Nodexity Server Manager", delay: 0 },
   { text: "> Initializing core systems...", delay: 500 },
   { text: "> Server Manager... OK", delay: 1100 },
   { text: "> Process Controller... OK", delay: 1700 },
@@ -127,7 +127,7 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
         >
           <div className="terminal-loader">
             <div className="terminal-header">
-              <div className="terminal-title">HexNode</div>
+              <div className="terminal-title">Nodexity</div>
               <div className="terminal-controls">
                 <div className="control close"></div>
                 <div className="control minimize"></div>

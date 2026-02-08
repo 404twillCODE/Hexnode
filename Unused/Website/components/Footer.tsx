@@ -13,13 +13,13 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <Image
                 src="/logo.png"
-                alt="HEXNODE Logo"
+                alt="NODEXITY Logo"
                 width={32}
                 height={32}
                 className="object-contain"
               />
               <span className="text-xl font-semibold text-foreground">
-                HEXNODE
+                NODEXITY
               </span>
             </div>
             <p className="text-sm text-muted">
@@ -115,7 +115,7 @@ export default function Footer() {
         {/* Bottom row - Copyright */}
         <div className="pt-8 border-t border-foreground/10">
           <p className="text-sm text-muted text-center">
-            © {currentYear} HEXNODE. All rights reserved.
+            © {currentYear} NODEXITY. All rights reserved.
           </p>
         </div>
       </div>

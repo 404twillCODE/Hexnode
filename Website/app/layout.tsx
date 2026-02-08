@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SystemTopBar, SystemFooter } from "@/components/SystemFrame";
+import { WebsiteSettingsProvider } from "@/components/WebsiteSettingsProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Hexnode",
+  title: "Nodexity",
   description: "Infrastructure management platform",
 };
 
@@ -22,11 +23,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body>
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <SystemTopBar />
-          <main className="relative z-10 flex-1">{children}</main>
-          <SystemFooter />
-        </div>
+        <WebsiteSettingsProvider>
+          <div className="relative z-10 flex min-h-screen flex-col">
+            <SystemTopBar />
+            <main className="relative z-10 flex-1">{children}</main>
+            <SystemFooter />
+          </div>
+        </WebsiteSettingsProvider>
       </body>
     </html>
   );

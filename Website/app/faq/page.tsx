@@ -2,11 +2,11 @@ import Link from "next/link";
 
 const faqItems = [
   {
-    question: "What is Hexnode?",
-    answer: "Hexnode is a local-first Minecraft server management platform with a desktop app, planned launcher, and future hosting."
+    question: "What is Nodexity?",
+    answer: "Nodexity is a local first Minecraft server management platform: desktop app in development, launcher and hosting planned."
   },
   {
-    question: "Is Hexnode open source?",
+    question: "Is Nodexity open source?",
     answer: "Yes. The desktop app is AGPL-3.0 and the website is MIT."
   },
   {
@@ -18,8 +18,8 @@ const faqItems = [
     answer: "All server data stays on your machine by default."
   },
   {
-    question: "Does Hexnode work offline?",
-    answer: "Yes. The desktop app is designed to work offline since everything is local-first."
+    question: "Does Nodexity work offline?",
+    answer: "Yes. The desktop app is built to work offline; everything stays on your machine."
   },
   {
     question: "What platforms are supported?",

@@ -556,7 +556,7 @@ export default function SettingsView() {
                       <label className="block mb-2 text-text-primary">Config file location</label>
                       <input
                         type="text"
-                        value={settings?.serversDirectory ? `${settings.serversDirectory.replace(/\\servers$/, '')}\\servers.json` : 'AppData\\Roaming\\.hexnode\\servers.json'}
+                        value={settings?.serversDirectory ? `${settings.serversDirectory.replace(/\\servers$/, '')}\\servers.json` : 'AppData\\Roaming\\.nodexity\\servers.json'}
                         readOnly
                         className="w-full bg-background-secondary border border-border px-3 py-2 text-text-primary font-mono text-xs focus:outline-none focus:border-accent/50 rounded"
                       />

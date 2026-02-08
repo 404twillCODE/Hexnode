@@ -47,7 +47,7 @@ export default function DocsPage() {
             transition={fadeUpTransition}
           >
             <p className="text-lg text-muted leading-relaxed text-center">
-              HEXNODE documentation will cover resource pools, server management, performance tuning, and advanced infrastructure concepts. Full documentation is coming soon.
+              NODEXITY documentation will cover resource pools, server management, performance tuning, and advanced infrastructure concepts. Full documentation is coming soon.
             </p>
           </motion.div>
         </div>

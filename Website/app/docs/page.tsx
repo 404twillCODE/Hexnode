@@ -9,7 +9,7 @@ export default function DocsPage() {
             DOCUMENTATION
           </h1>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            Hexnode is a local-first Minecraft server management platform. This
+            Nodexity is a local first Minecraft server management platform. This
             page mirrors the current README and will expand as features stabilize.
           </p>
         </div>
@@ -20,7 +20,7 @@ export default function DocsPage() {
               Overview
             </h2>
             <p className="mt-2 leading-relaxed">
-              Hexnode provides a desktop app for Minecraft server creation and
+              Nodexity provides a desktop app for Minecraft server creation and
               management, a planned launcher, and future hosting infrastructure.
               All data remains local and portable by default.
             </p>
@@ -63,9 +63,9 @@ export default function DocsPage() {
                 <span className="text-text-primary">Prerequisites:</span> Node.js (v20+), npm or yarn, Java
               </div>
               <div className="rounded border border-border bg-background px-4 py-3 font-mono text-xs text-text-primary">
-                git clone https://github.com/404twillCODE/Hexnode.git
+                git clone https://github.com/404twillCODE/Nodexity.git
                 <br />
-                cd Hexnode/App
+                cd Nodexity/App
                 <br />
                 npm install
                 <br />
@@ -79,7 +79,7 @@ export default function DocsPage() {
               Run the Website (Development)
             </h2>
             <div className="mt-2 rounded border border-border bg-background px-4 py-3 font-mono text-xs text-text-primary">
-              cd Hexnode/Website
+              cd Nodexity/Website
               <br />
               npm install
               <br />
@@ -105,7 +105,7 @@ export default function DocsPage() {
 
         <div className="mt-10 flex flex-wrap gap-4">
           <a
-            href="https://github.com/404twillCODE/Hexnode"
+            href="https://github.com/404twillCODE/Nodexity"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"

@@ -9,7 +9,7 @@ export default function DonatePage() {
             DONATE
           </h1>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            Donation links are coming soon. If you want to support Hexnode
+            Donation links are coming soon. If you want to support Nodexity
             before release, the best way right now is to join Discord and share
             feedback or star the GitHub repo.
           </p>
@@ -21,7 +21,7 @@ export default function DonatePage() {
         </div>
         <div className="mt-10 flex flex-wrap gap-4">
           <a
-            href="https://github.com/404twillCODE/Hexnode"
+            href="https://github.com/404twillCODE/Nodexity"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"

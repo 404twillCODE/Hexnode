@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-interface HexNodeTypingProps {
+interface NodexityTypingProps {
   onComplete?: () => void;
 }
 
-export default function HexNodeTyping({ onComplete }: HexNodeTypingProps) {
+export default function NodexityTyping({ onComplete }: NodexityTypingProps) {
   const [displayedText, setDisplayedText] = useState("");
-  const fullText = "HEXNODE";
+  const fullText = "NODEXITY";
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {

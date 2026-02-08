@@ -27,13 +27,13 @@ export default function DashboardSidebar() {
         <div className="flex items-center gap-3">
           <Image
             src="/logo.png"
-            alt="HEXNODE Logo"
+            alt="NODEXITY Logo"
             width={24}
             height={24}
             className="object-contain"
           />
           <span className="text-lg font-semibold text-foreground">
-            HEXNODE
+            NODEXITY
           </span>
         </div>
       </div>

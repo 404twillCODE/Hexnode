@@ -37,7 +37,7 @@ export default function StatusPage() {
               variants={fadeUp}
               transition={fadeUpTransition}
             >
-              Current operational status of HEXNODE services.
+              Current operational status of NODEXITY services.
             </motion.p>
           </motion.div>
         </div>

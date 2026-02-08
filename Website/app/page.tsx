@@ -1,10 +1,11 @@
 "use client";
 
-import { motion, useInView, useScroll, useTransform, AnimatePresence, useAnimation } from "framer-motion";
+import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import BootSequence from "@/components/BootSequence";
-import HexNodeTyping from "@/components/HexNodeTyping";
+import NodexityTyping from "@/components/NodexityTyping";
+import { useWebsiteSettings } from "@/components/WebsiteSettingsProvider";
 
 // Hook to track scroll direction
 function useScrollDirection() {
@@ -96,18 +97,18 @@ function FloatingCard({ children, delay = 0, bootComplete = false }: { children:
 const allFeatures = [
   "Create servers with multiple server types (Paper, Spigot, Vanilla, Fabric, Forge, and more)",
   "Full server lifecycle management (start, stop, restart, kill)",
-  "Integrated server console with command execution and real-time output",
+  "Integrated server console with command execution and real time output",
   "World manager for organizing and managing multiple world files",
   "Plugin manager for installing and managing server plugins",
   "File editor for direct server configuration file editing",
   "Resource monitoring with CPU, RAM, and disk usage tracking",
-  "Local-first architecture - all data stored on your machine, no cloud dependencies"
+  "Local first: all data on your machine, no cloud dependencies"
 ];
 
 const defaultFeatures = [
   "Create servers with multiple server types (Paper, Spigot, Vanilla, Fabric, Forge, and more)",
-  "Integrated server console with command execution and real-time output",
-  "Local-first architecture - all data stored on your machine, no cloud dependencies"
+  "Integrated server console with command execution and real time output",
+  "Local first: all data on your machine, no cloud dependencies"
 ];
 
 
@@ -192,7 +193,13 @@ function FeatureList() {
 export default function Home() {
   const heroRef = useRef(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [bootComplete, setBootComplete] = useState(false);
+  const { settings } = useWebsiteSettings();
+  const [bootComplete, setBootComplete] = useState(!settings.showBootSequence);
+
+  useEffect(() => {
+    if (!settings.showBootSequence) setBootComplete(true);
+  }, [settings.showBootSequence]);
+
   const scrollDirection = useScrollDirection();
 
   // Helper delay (keep stable; direction reversal handled by motion offset)
@@ -219,10 +226,12 @@ export default function Home() {
 
   return (
     <div ref={containerRef} className="relative flex flex-col">
-      <BootSequence onComplete={() => setBootComplete(true)} />
+      {settings.showBootSequence && (
+        <BootSequence onComplete={() => setBootComplete(true)} />
+      )}
 
       {/* Development Notice Banner */}
-      {bootComplete && (
+      {bootComplete && settings.showDevBanner && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -273,12 +282,12 @@ export default function Home() {
                 transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
                 className="mb-12"
               >
-                <HexNodeTyping />
+                <NodexityTyping />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ 
+                transition={{
                   delay: 0.5,
                   type: "spring",
                   stiffness: 100,
@@ -299,9 +308,9 @@ export default function Home() {
                   className="text-base leading-relaxed text-text-secondary sm:text-lg lg:text-xl font-mono relative"
                 >
                   <span className="block">
-                    Local-first Minecraft server management system. Provides desktop
-                    application for server creation and management, and planned hosting
-                    infrastructure. All data remains local and portable by default.
+                    We’re building a local first Minecraft server setup. The desktop app
+                    is in development now; a launcher and hosting options are planned.
+                    Your data stays on your machine by default.
                   </span>
                 </motion.p>
                 <motion.div
@@ -318,7 +327,7 @@ export default function Home() {
                 >
                   <div>
                     <a
-                      href="https://github.com/404twillCODE/Hexnode"
+                      href="https://github.com/404twillCODE/Nodexity"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary block"
@@ -487,9 +496,8 @@ export default function Home() {
                 </div>
               </motion.div>
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
-                Desktop application for creating and managing Minecraft servers.
-                Handles server lifecycle, world management, backups, and version
-                control. All data stored locally on host machine.
+                A desktop app for creating and managing Minecraft servers. Start, stop,
+                back up, and tweak worlds and plugins. Everything runs and stays on your machine.
               </p>
               <FeatureList />
               <motion.div
@@ -502,7 +510,7 @@ export default function Home() {
                 <div className="flex flex-col items-start gap-3">
                   <div className="flex items-center gap-4">
                     <motion.a
-                      href="https://github.com/404twillCODE/Hexnode/releases/latest"
+                      href="https://github.com/404twillCODE/Nodexity/releases/latest"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-primary relative"
@@ -747,9 +755,9 @@ export default function Home() {
                 </div>
               </motion.div>
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
-                Custom Minecraft launcher application for managing game installations,
-                mods, and profiles. Seamlessly integrates with HexNode server management
-                for a complete Minecraft ecosystem experience.
+                A custom Minecraft launcher for game installs, mods, and profiles. Planned
+                to work hand in hand with the Server Manager so you can run clients and servers
+                from one place.
               </p>
               <div className="space-y-3 border-t border-border pt-6">
                 <motion.div
@@ -785,7 +793,7 @@ export default function Home() {
                 >
                   <span className="mt-0.5 text-text-muted">→</span>
                   <span className="text-sm leading-relaxed text-text-muted sm:text-base">
-                    Direct integration with HexNode server manager
+                    Direct integration with Nodexity server manager
                   </span>
                 </motion.div>
               </div>
@@ -840,9 +848,8 @@ export default function Home() {
                 </div>
               </motion.div>
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
-                Sustainable hosting powered by recycled and repurposed hardware.
-                Eco-friendly alternative without compromising on reliability. Perfect
-                for development, staging, and budget-conscious deployments.
+                Hosting on recycled and repurposed hardware. Eco friendly, reliable, and
+                a good fit for dev, staging, or smaller projects. Planned.
               </p>
               <div className="space-y-3 border-t border-border pt-6">
                 <motion.div
@@ -866,7 +873,7 @@ export default function Home() {
                 >
                   <span className="mt-0.5 text-text-muted">→</span>
                   <span className="text-sm leading-relaxed text-text-muted sm:text-base">
-                    Cost-effective pricing for budget-conscious projects
+                    Cost effective pricing for budget conscious projects
                   </span>
                 </motion.div>
                 <motion.div
@@ -1112,9 +1119,8 @@ export default function Home() {
                 </div>
               </motion.div>
               <p className="mb-6 text-base leading-relaxed text-text-secondary sm:text-lg">
-                Premium hosting infrastructure built for demanding applications.
-                Delivers exceptional performance, reliability, and support for
-                mission-critical workloads on global edge network.
+                Hosting built for heavier workloads: strong performance, reliability, and
+                support on a global edge network. Planned.
               </p>
               <div className="space-y-3 border-t border-border pt-6">
                 <motion.div
@@ -1150,7 +1156,7 @@ export default function Home() {
                 >
                   <span className="mt-0.5 text-text-muted">→</span>
                   <span className="text-sm leading-relaxed text-text-muted sm:text-base">
-                    Built-in CDN and DDoS protection
+                    Built in CDN and DDoS protection
                   </span>
                 </motion.div>
               </div>
@@ -1194,9 +1200,9 @@ export default function Home() {
                 viewport={{ once: false }}
                 transition={{ delay: getDelay(0.1, 0.3), type: "spring", stiffness: 100, damping: 25 }}
               >
-                Local-first, always. All server data remains on user-controlled hardware
-                by default. No cloud dependencies or platform lock-in. When you need cloud
-                hosting, we provide that option—but local ownership is the foundation.
+                Right now we’re focused on the <strong className="text-text-primary">Server Manager</strong> (in development).
+                Next up we’re planning the <strong className="text-text-primary">Launcher</strong>, then <strong className="text-text-primary">Recycle Hosting</strong> and <strong className="text-text-primary">Premium Hosting</strong>.
+                We build software first; hosting comes when it’s ready.
               </motion.p>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -1204,9 +1210,9 @@ export default function Home() {
                 viewport={{ once: false }}
                 transition={{ delay: getDelay(0.2, 0.3), type: "spring", stiffness: 100, damping: 25 }}
               >
-                Environmental responsibility through recycled hardware. Recycle Hosting repurposes
-                enterprise PCs, reducing electronic waste while delivering reliable hosting.
-                Sustainable infrastructure that doesn&apos;t compromise on performance or reliability.
+                We believe in local first: your server data stays on your hardware by default. No lock in.
+                When we add hosting, Recycle will use repurposed hardware to cut waste; Premium will be for
+                when you need more power. You choose.
               </motion.p>
           </div>
           <motion.div
@@ -1218,26 +1224,26 @@ export default function Home() {
           >
             <div>
               <div className="mb-2 text-xs uppercase tracking-wider text-text-muted">
-                Software
+                In dev now
               </div>
               <div className="text-xl font-semibold text-accent sm:text-2xl">
-                First
+                Server Manager
               </div>
             </div>
             <div>
               <div className="mb-2 text-xs uppercase tracking-wider text-text-muted">
-                Local
+                Your data
               </div>
               <div className="text-xl font-semibold text-accent sm:text-2xl">
-                Ownership
+                Stays local
               </div>
             </div>
             <div>
               <div className="mb-2 text-xs uppercase tracking-wider text-text-muted">
-                Future
+                Coming later
               </div>
               <div className="text-xl font-semibold text-accent sm:text-2xl">
-                Expandable
+                Launcher &amp; hosting
               </div>
             </div>
           </motion.div>

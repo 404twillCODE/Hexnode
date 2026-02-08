@@ -43,7 +43,7 @@ const launcherFeatures = [
   },
   {
     title: "Server Integration",
-    description: "Seamless integration with HexNode Server Manager. Launch directly into servers you manage, or connect to any Minecraft server.",
+    description: "Seamless integration with Nodexity Server Manager. Launch directly into servers you manage, or connect to any Minecraft server.",
     details: [
       "Direct integration with Server Manager",
       "Quick connect to managed servers",
@@ -244,7 +244,7 @@ export default function LauncherPage() {
         </div>
         <p className="text-lg leading-relaxed text-text-secondary sm:text-xl max-w-3xl">
           Custom Minecraft launcher application for managing game installations,
-          mods, and profiles. Seamlessly integrates with HexNode server management
+          mods, and profiles. Seamlessly integrates with Nodexity server management
           for a complete Minecraft ecosystem experience.
         </p>
       </motion.div>

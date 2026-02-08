@@ -1,7 +1,7 @@
 {
-  "name": "hexnode-desktop",
+  "name": "nodexity-desktop",
   "version": "0.1.0",
-  "description": "HexNode Desktop Application",
+  "description": "Nodexity Desktop Application",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:react\" \"wait-on http://localhost:3000 && electron .\"",

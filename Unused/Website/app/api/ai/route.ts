@@ -273,7 +273,7 @@ You can now review or create the servers using the prepared configuration.`,
         ? (parseFloat(context.match(/Remaining RAM: ([\d.]+) GB/)?.[1] || '0') || 0)
         : 0;
       
-      let prompt = `You are HEXNODE Assistant. Return ONLY valid JSON. No explanations.
+      let prompt = `You are NODEXITY Assistant. Return ONLY valid JSON. No explanations.
 Format: {"type": "Paper | Fabric | Forge | Proxy", "version": "1.21 | 1.20.4 | 1.19.4", "ram": number}
 Rules:
 - ram must be between 0.5 and ${remainingRam} GB (remaining pool)
@@ -348,7 +348,7 @@ You can now review or create the servers using the prepared configuration.`,
         ? (parseFloat(context.match(/Remaining RAM: ([\d.]+) GB/)?.[1] || '0') || 0)
         : 0;
 
-      prompt = `You are HEXNODE Provisioning Assistant. Design Minecraft server configurations.
+      prompt = `You are NODEXITY Provisioning Assistant. Design Minecraft server configurations.
 
 Communication style:
 - Short, direct sentences.
@@ -393,7 +393,7 @@ RAM allocation rules:
 - Proxy defaults to 1 GB unless overridden.
 - World server gets priority RAM.
 - Creative gets remaining RAM.
-- RAM Allocation is a single number (GB) representing what HEXNODE allocates to the server.
+- RAM Allocation is a single number (GB) representing what NODEXITY allocates to the server.
 - Do not suggest -Xmx larger than allocated RAM.
 - JVM flags must fit inside allocated RAM (e.g., allocate 3 GB → suggest -Xmx3G).
 - Default: 3 GB for Paper with ~10 players (unless user specifies heavy mods/plugins).
@@ -414,7 +414,7 @@ Forbidden phrases (never use):
 `;
     } else {
       // GENERAL CHAT MODE
-      prompt = `You are HEXNODE Assistant. You provide technical guidance on Minecraft server configuration, optimization, and troubleshooting.
+      prompt = `You are NODEXITY Assistant. You provide technical guidance on Minecraft server configuration, optimization, and troubleshooting.
 
 Communication style:
 - Short, direct sentences.

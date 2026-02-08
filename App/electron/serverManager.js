@@ -1,152 +1,45 @@
-const { spawn, execSync, execFile } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
-const zlib = require('zlib');
 const https = require('https');
 const http = require('http');
+const zlib = require('zlib');
 const net = require('net');
-const si = require('systeminformation');
-let nbt;
-try {
-  nbt = require('prismarine-nbt');
-} catch (e) {
-  nbt = null;
-}
 
-// Get AppData\Roaming path (like Minecraft)
+// Get AppData path with NODEXITY_* / legacy HEXNODE_* support
 function getAppDataPath() {
-  if (process.platform === 'win32') {
-    return path.join(os.homedir(), 'AppData', 'Roaming', '.hexnode');
-  } else if (process.platform === 'darwin') {
-    return path.join(os.homedir(), 'Library', 'Application Support', '.hexnode');
-  } else {
-    // Linux
-    return path.join(os.homedir(), '.hexnode');
+  const legacyBase = process.platform === 'win32'
+    ? path.join(os.homedir(), 'AppData', 'Roaming')
+    : process.platform === 'darwin'
+      ? path.join(os.homedir(), 'Library', 'Application Support')
+      : os.homedir();
+  const legacyDir = path.join(legacyBase, '.hexnode');
+  const nodexityDir = path.join(legacyBase, '.nodexity');
+
+  if (process.env.NODEXITY_DATA_DIR) {
+    return path.resolve(process.env.NODEXITY_DATA_DIR);
   }
+  if (process.env.HEXNODE_DATA_DIR) {
+    console.warn('[Nodexity] HEXNODE_DATA_DIR is deprecated. Use NODEXITY_DATA_DIR.');
+    return path.resolve(process.env.HEXNODE_DATA_DIR);
+  }
+  return nodexityDir;
 }
 
-const HEXNODE_DIR = getAppDataPath();
-const SERVERS_DIR = path.join(HEXNODE_DIR, 'servers');
-const BACKUPS_DIR = path.join(HEXNODE_DIR, 'backups');
-const CONFIG_FILE = path.join(HEXNODE_DIR, 'servers.json');
+const CONFIG_FILE = path.join(getAppDataPath(), 'servers.json');
+const SERVERS_DIR = path.join(getAppDataPath(), 'servers');
+const BACKUPS_DIR = path.join(getAppDataPath(), 'backups');
 
-// Auto-backup scheduling
-let backupTimer = null;
-let backupInFlight = false;
-const backupLastRun = new Map(); // Map<serverName, timestampMs>
-
-function formatBackupTimestamp(date = new Date()) {
-  const pad = (value) => String(value).padStart(2, '0');
-  return [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate())
-  ].join('') + '-' + [
-    pad(date.getHours()),
-    pad(date.getMinutes()),
-    pad(date.getSeconds())
-  ].join('');
-}
-
-async function getLatestBackupTime(serverName, backupsDir) {
-  try {
-    const serverBackupDir = path.join(backupsDir, serverName);
-    const entries = await fs.readdir(serverBackupDir, { withFileTypes: true });
-    const backupDirs = entries
-      .filter(entry => entry.isDirectory())
-      .map(entry => entry.name)
-      .sort()
-      .reverse();
-
-    if (backupDirs.length === 0) return 0;
-    const latestName = backupDirs[0];
-    const match = latestName.match(/^(\d{8})-(\d{6})$/);
-    if (!match) return 0;
-    const datePart = match[1];
-    const timePart = match[2];
-    const iso = `${datePart.slice(0, 4)}-${datePart.slice(4, 6)}-${datePart.slice(6, 8)}T${timePart.slice(0, 2)}:${timePart.slice(2, 4)}:${timePart.slice(4, 6)}`;
-    const parsed = Date.parse(iso);
-    return Number.isNaN(parsed) ? 0 : parsed;
-  } catch (error) {
-    return 0;
-  }
-}
-
-async function pruneBackups(serverName, backupsDir, maxBackups) {
-  if (!maxBackups || maxBackups <= 0) return;
-  try {
-    const serverBackupDir = path.join(backupsDir, serverName);
-    const entries = await fs.readdir(serverBackupDir, { withFileTypes: true });
-    const backupDirs = entries
-      .filter(entry => entry.isDirectory())
-      .map(entry => entry.name)
-      .sort()
-      .reverse();
-
-    const excess = backupDirs.slice(maxBackups);
-    for (const dirName of excess) {
-      const fullPath = path.join(serverBackupDir, dirName);
-      await fs.rm(fullPath, { recursive: true, force: true });
-    }
-  } catch (error) {
-    // Ignore prune errors
-  }
+async function ensureDirectories() {
+  const base = getAppDataPath();
+  await fs.mkdir(base, { recursive: true });
+  await fs.mkdir(SERVERS_DIR, { recursive: true });
+  await fs.mkdir(BACKUPS_DIR, { recursive: true });
 }
 
 async function runAutoBackups() {
-  if (backupInFlight) return;
-  backupInFlight = true;
-  try {
-    const settings = await getAppSettings();
-    if (!settings.autoBackup) return;
-
-    const backupsDir = settings.backupsDirectory || BACKUPS_DIR;
-    const serversDir = settings.serversDirectory || SERVERS_DIR;
-    const intervalHours = Math.max(1, Number(settings.backupInterval || 24));
-    const intervalMs = intervalHours * 60 * 60 * 1000;
-    const maxBackups = Math.max(1, Number(settings.maxBackups || 10));
-
-    await fs.mkdir(backupsDir, { recursive: true });
-
-    const servers = await listServers();
-    const now = Date.now();
-
-    for (const server of servers) {
-      const lastRun = backupLastRun.get(server.name) || await getLatestBackupTime(server.name, backupsDir);
-      if (now - lastRun < intervalMs) continue;
-
-      const serverPath = path.join(serversDir, server.name);
-      const serverBackupDir = path.join(backupsDir, server.name);
-      const timestamp = formatBackupTimestamp(new Date());
-      const targetDir = path.join(serverBackupDir, timestamp);
-
-      await fs.mkdir(serverBackupDir, { recursive: true });
-      await fs.cp(serverPath, targetDir, { recursive: true });
-      backupLastRun.set(server.name, now);
-
-      await pruneBackups(server.name, backupsDir, maxBackups);
-    }
-  } catch (error) {
-    // Ignore auto-backup errors
-  } finally {
-    backupInFlight = false;
-  }
-}
-
-function startAutoBackupLoop() {
-  if (backupTimer) return;
-  backupTimer = setInterval(() => {
-    runAutoBackups();
-  }, 5 * 60 * 1000); // check every 5 minutes
-  runAutoBackups();
-}
-
-// Ensure directories exist
-async function ensureDirectories() {
-  await fs.mkdir(HEXNODE_DIR, { recursive: true });
-  await fs.mkdir(SERVERS_DIR, { recursive: true });
-  await fs.mkdir(BACKUPS_DIR, { recursive: true });
+  // Placeholder: ensure directories exist; actual backup logic may be elsewhere
 }
 
 async function isPortAvailable(port) {
@@ -180,7 +73,6 @@ async function findAvailablePort(startPort, maxAttempts = 50) {
   for (let i = 0; i < maxAttempts; i += 1) {
     const currentPort = port + i;
     if (currentPort > 65535) break;
-    // eslint-disable-next-line no-await-in-loop
     const available = await isPortAvailable(currentPort);
     if (available && !usedPorts.has(currentPort)) return currentPort;
   }
@@ -198,6 +90,8 @@ function normalizeRamGB(value, fallback) {
 // Get system information
 const systemInfoCache = { timestamp: 0, value: null };
 let systemInfoPending = null;
+
+const { execFile } = require('child_process');
 
 function execFilePromise(command, args, options) {
   return new Promise((resolve, reject) => {
@@ -232,173 +126,96 @@ async function getSystemInfo() {
       if (os.platform() === 'win32') {
         try {
           const result = await execFilePromise('powershell', ['-NoProfile', '-Command', "Get-WmiObject -Class Win32_LogicalDisk -Filter 'DriveType=3' | Select-Object DeviceID,VolumeName,Size,FreeSpace | ConvertTo-Json"], {
-            timeout: 10000,
-            windowsHide: true
+            encoding: 'utf8',
+            windowsHide: true,
+            stdio: ['ignore', 'pipe', 'ignore']
           });
-          const parsed = result.trim();
-          if (parsed) {
-            try {
-              const disks = JSON.parse(parsed);
-              const diskArray = Array.isArray(disks) ? disks : [disks];
-              diskArray.forEach(disk => {
-                if (disk && disk.Size && disk.FreeSpace !== undefined && disk.DeviceID) {
+          try {
+            const json = JSON.parse(result);
+            if (Array.isArray(json)) {
+              json.forEach((d) => {
+                const size = d.Size != null ? Math.round(Number(d.Size) / (1024 * 1024 * 1024)) : 0;
+                const free = d.FreeSpace != null ? Math.round(Number(d.FreeSpace) / (1024 * 1024 * 1024)) : 0;
+                if (size > 0) {
                   drives.push({
-                    letter: disk.DeviceID,
-                    label: disk.VolumeName || disk.DeviceID,
-                    totalGB: Math.round(disk.Size / (1024 * 1024 * 1024)),
-                    freeGB: Math.round(disk.FreeSpace / (1024 * 1024 * 1024)),
-                    usedGB: Math.round((disk.Size - disk.FreeSpace) / (1024 * 1024 * 1024))
+                    letter: d.DeviceID || '',
+                    label: d.VolumeName || d.DeviceID || '',
+                    totalGB: size,
+                    freeGB: free,
+                    usedGB: size - free
                   });
                 }
               });
-            } catch (parseErr) {
-              // Silently handle JSON parse errors
             }
+          } catch (parseErr) {
+            // Silently handle JSON parse errors
           }
-        } catch (err) {
-          try {
-            const result = await execFilePromise('powershell', ['-NoProfile', '-Command', "Get-CimInstance -ClassName Win32_LogicalDisk -Filter 'DriveType=3' | Select-Object DeviceID,VolumeName,Size,FreeSpace | ConvertTo-Json"], {
-              timeout: 10000,
-              windowsHide: true
-            });
-            const parsed = result.trim();
-            if (parsed) {
-              try {
-                const disks = JSON.parse(parsed);
-                const diskArray = Array.isArray(disks) ? disks : [disks];
-                diskArray.forEach(disk => {
-                  if (disk && disk.Size && disk.FreeSpace !== undefined && disk.DeviceID) {
-                    drives.push({
-                      letter: disk.DeviceID,
-                      label: disk.VolumeName || disk.DeviceID,
-                      totalGB: Math.round(disk.Size / (1024 * 1024 * 1024)),
-                      freeGB: Math.round(disk.FreeSpace / (1024 * 1024 * 1024)),
-                      usedGB: Math.round((disk.Size - disk.FreeSpace) / (1024 * 1024 * 1024))
-                    });
-                  }
-                });
-              } catch (parseErr) {
-                // Silently handle JSON parse errors
-              }
-            }
-          } catch (err2) {
-            // Silently fail - no drives will be shown
-          }
-        }
-      } else if (process.platform === 'darwin') {
-        try {
-          const result = await execFilePromise('df', ['-g'], { timeout: 10000 });
-          const lines = result.trim().split('\n').slice(1);
-          lines.forEach(line => {
-            const parts = line.trim().split(/\s+/);
-            if (parts.length >= 3) {
-              const mountPoint = parts[0];
-              const total = parseInt(parts[1]);
-              const free = parseInt(parts[2]);
-              if (total > 0 && free >= 0) {
-                drives.push({
-                  letter: mountPoint,
-                  label: mountPoint.split('/').pop() || mountPoint,
-                  totalGB: total,
-                  freeGB: free,
-                  usedGB: total - free
-                });
-              }
-            }
-          });
-        } catch (err) {
+        } catch (err2) {
           // Silently fail - no drives will be shown
         }
       } else {
+        // Linux/Mac - try to get disk info
         try {
-          const result = await execFilePromise('df', ['-BG'], { timeout: 10000 });
-          const lines = result.trim().split('\n').slice(1);
-          lines.forEach(line => {
-            const parts = line.trim().split(/\s+/);
-            if (parts.length >= 3) {
-              const mountPoint = parts[0];
-              const total = parseInt(parts[1]) || 0;
-              const free = parseInt(parts[2]) || 0;
-              if (total > 0 && free >= 0) {
-                drives.push({
-                  letter: mountPoint,
-                  label: mountPoint.split('/').pop() || mountPoint,
-                  totalGB: total,
-                  freeGB: free,
-                  usedGB: total - free
-                });
+          const { execSync } = require('child_process');
+          if (process.platform === 'darwin') {
+            // macOS - get all mounted volumes
+            const result = execSync(`df -g | awk 'NR>1 {print $1 " " $2 " " $4}'`, { encoding: 'utf8' });
+            const lines = result.trim().split('\n');
+            lines.forEach(line => {
+              const parts = line.trim().split(/\s+/);
+              if (parts.length >= 3) {
+                const mountPoint = parts[0];
+                const total = parseInt(parts[1]);
+                const free = parseInt(parts[2]);
+                if (total > 0 && free >= 0) {
+                  drives.push({
+                    letter: mountPoint,
+                    label: mountPoint.split('/').pop() || mountPoint,
+                    totalGB: total,
+                    freeGB: free,
+                    usedGB: total - free
+                  });
+                }
               }
-            }
-          });
-        } catch (err) {
+            });
+          } else {
+            // Linux - get all mounted filesystems
+            const result = execSync(`df -BG | awk 'NR>1 {print $1 " " $2 " " $4}'`, { encoding: 'utf8' });
+            const lines = result.trim().split('\n');
+            lines.forEach(line => {
+              const parts = line.trim().split(/\s+/);
+              if (parts.length >= 3) {
+                const mountPoint = parts[0];
+                const total = parseInt(parts[1]) || 0;
+                const free = parseInt(parts[2]) || 0;
+                if (total > 0 && free >= 0) {
+                  drives.push({
+                    letter: mountPoint,
+                    label: mountPoint.split('/').pop() || mountPoint,
+                    totalGB: total,
+                    freeGB: free,
+                    usedGB: total - free
+                  });
+                }
+              }
+            });
+          }
+        } catch (err2) {
           // Silently fail - no drives will be shown
         }
       }
-    } catch (error) {
-      console.error('Failed to get storage info:', error);
-    }
-
-    let cpuTempCelsius = null;
-    try {
-      const temp = await si.cpuTemperature();
-      if (temp && Number.isFinite(temp.main) && temp.main > 0 && temp.main < 200) {
-        cpuTempCelsius = Math.round(temp.main * 10) / 10;
-      }
-      if (cpuTempCelsius == null && temp && Number.isFinite(temp.max) && temp.max > 0 && temp.max < 200) {
-        cpuTempCelsius = Math.round(temp.max * 10) / 10;
-      }
-    } catch (e) {
-      // Fall through to fallbacks
-    }
-    if (cpuTempCelsius == null && os.platform() === 'win32') {
-      const tryTemp = async (script) => {
-        try {
-          const out = await execFilePromise('powershell', ['-NoProfile', '-Command', script], { timeout: 4000, windowsHide: true });
-          const v = parseFloat(out?.trim());
-          if (Number.isFinite(v) && v > -100 && v < 200) return v;
-        } catch (err) {}
-        return null;
-      };
-      cpuTempCelsius = await tryTemp(
-        "try { $z = Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature -EA SilentlyContinue | Select-Object -First 1; if ($z) { [math]::Round(($z.CurrentTemperature/10.0)-273.15, 1) } } catch {}"
-      );
-      if (cpuTempCelsius == null) {
-        cpuTempCelsius = await tryTemp(
-          "try { $z = Get-WmiObject -Namespace root/wmi -Class MSAcpi_ThermalZoneTemperature -EA SilentlyContinue | Select-Object -First 1; if ($z) { [math]::Round(($z.CurrentTemperature/10.0)-273.15, 1) } } catch {}"
-        );
-      }
-    }
-    if (cpuTempCelsius == null && os.platform() === 'linux') {
-      const thermalPaths = ['/sys/class/thermal/thermal_zone0/temp', '/sys/class/hwmon/hwmon0/temp1_input', '/sys/class/hwmon/hwmon1/temp1_input'];
-      for (const p of thermalPaths) {
-        try {
-          const buf = await fs.readFile(p, 'utf8');
-          const millideg = parseInt(buf.trim(), 10);
-          if (Number.isFinite(millideg)) {
-            const c = millideg / 1000;
-            if (c > -100 && c < 200) {
-              cpuTempCelsius = Math.round(c * 10) / 10;
-              break;
-            }
-          }
-        } catch (err) {
-          continue;
-        }
-      }
+    } catch (err3) {
+      // Silently fail - no drives
     }
 
     const payload = {
-      cpu: {
-        model: cpuModel,
-        cores: cpuCores,
-        threads: cpuCores,
-        tempCelsius: cpuTempCelsius
-      },
+      cpu: { model: cpuModel, cores: cpuCores, threads: cpuCores },
       memory: {
         totalGB: totalMemoryGB,
         freeGB: freeMemoryGB,
         usedGB: totalMemoryGB - freeMemoryGB
       },
+      storage: { totalGB: 0, freeGB: 0, usedGB: 0 },
       drives: drives,
       platform: os.platform(),
       arch: os.arch(),
@@ -453,16 +270,12 @@ async function isSetupComplete() {
   }
 }
 
-// Get app settings
 async function getAppSettings() {
   const configs = await loadServerConfigs();
   return configs._appSettings || {
     serversDirectory: SERVERS_DIR,
     backupsDirectory: BACKUPS_DIR,
-    showBootSequence: true,
     minimizeToTray: false,
-    startWithWindows: false,
-    autoBackup: true,
     backupInterval: 24, // hours
     maxBackups: 10,
     notifications: {
@@ -1239,7 +1052,7 @@ async function downloadBungeeCord(serverPath, version) {
       // Try to get all GitHub releases to find one matching the version/build
       const allReleasesUrl = 'https://api.github.com/repos/SpigotMC/BungeeCord/releases';
       https.get(allReleasesUrl, {
-        headers: { 'User-Agent': 'HexNode' }
+        headers: { 'User-Agent': 'Nodexity' }
       }, async (res) => {
         let data = '';
         res.on('data', (chunk) => { data += chunk; });
@@ -1431,34 +1244,9 @@ async function createServer(serverName = 'default', serverType = 'paper', versio
           jarFile = path.basename(jarPath);
           break;
         
-        case 'fabric':
-          selectedVersion = version || (await getFabricVersions())[0];
-          jarPath = await downloadFabric(serverPath, selectedVersion);
-          jarFile = path.basename(jarPath);
-          break;
-        
         case 'forge':
           selectedVersion = version || (await getForgeVersions())[0];
           jarPath = await downloadForge(serverPath, selectedVersion);
-          jarFile = path.basename(jarPath);
-          break;
-        
-        case 'velocity':
-          const velocityVersions = await getVelocityVersions();
-          const mcVersion = version || velocityVersions[0];
-          // Convert Minecraft version to Velocity version number
-          const velocityVersion = await getVelocityVersionForMC(mcVersion);
-          selectedVersion = mcVersion; // Store MC version for display
-          build = await getVelocityBuild(velocityVersion);
-          jarPath = await downloadVelocity(serverPath, velocityVersion, build);
-          jarFile = path.basename(jarPath);
-          break;
-        
-        case 'waterfall':
-          const waterfallVersions = await getWaterfallVersions();
-          selectedVersion = version || waterfallVersions[0];
-          build = await getWaterfallBuild(selectedVersion);
-          jarPath = await downloadWaterfall(serverPath, selectedVersion, build);
           jarFile = path.basename(jarPath);
           break;
         
@@ -1478,54 +1266,23 @@ async function createServer(serverName = 'default', serverType = 'paper', versio
           break;
         
         default:
-          throw new Error(`Unsupported server type: ${serverType}`);
+          return { success: false, error: `Unknown server type: ${serverType}` };
       }
     }
 
-    const serverRAM = normalizeRamGB(ramGB, settings.defaultRAM || 4);
-    const parsedPort = Number.isFinite(port) ? Number(port) : null;
-    const serverPort = parsedPort && parsedPort >= 1024 && parsedPort <= 65535
-      ? parsedPort
-      : (settings.defaultPort || 25565);
-
-    // Create eula.txt (not needed for proxy servers)
-    if (!['velocity', 'waterfall', 'bungeecord'].includes(serverType)) {
-      const eulaPath = path.join(serverPath, 'eula.txt');
-      await fs.writeFile(eulaPath, 'eula=true\n', 'utf8');
-    }
-
-    // Set server port early so first boot uses the correct port
-    if (!['velocity', 'waterfall', 'bungeecord'].includes(serverType)) {
-      const propertiesPath = path.join(serverPath, 'server.properties');
-      try {
-        let contents = '';
-        try {
-          contents = await fs.readFile(propertiesPath, 'utf8');
-        } catch (readError) {
-          if (readError.code !== 'ENOENT') throw readError;
-        }
-        if (contents.includes('server-port=')) {
-          contents = contents.replace(/^server-port=.*$/m, `server-port=${serverPort}`);
-        } else {
-          contents = `${contents}${contents && !contents.endsWith('\n') ? '\n' : ''}server-port=${serverPort}\n`;
-        }
-        await fs.writeFile(propertiesPath, contents, 'utf8');
-      } catch (error) {
-        console.error('Failed to set server port:', error);
-      }
-    }
-
-    // Save server config
+    const serverRAM = ramGB != null ? ramGB : (settings.defaultRAM || 4);
+    const serverPort = port != null ? port : (settings.defaultPort || 25565);
     await saveServerConfig(serverName, {
-      serverType: serverType,
+      displayName: displayName || serverName,
+      path: serverPath,
       version: selectedVersion,
       ramGB: serverRAM,
-      status: 'STOPPED',
       port: serverPort,
-      displayName: displayName || serverName // Store display name if provided
+      status: 'STOPPED',
+      serverType,
+      jarFile: jarFile || path.basename(jarPath)
     });
-
-    return { success: true, path: serverPath, jarFile, version: selectedVersion, build };
+    return { success: true, path: serverPath, jarFile: jarFile || path.basename(jarPath) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1631,76 +1388,40 @@ function killProcessTree(pid) {
   try {
     if (os.platform() === 'win32') {
       execSync(`taskkill /PID ${pid} /T /F`, { stdio: ['ignore', 'pipe', 'ignore'] });
-      return;
+    } else {
+      try {
+        process.kill(pid, 'SIGKILL');
+      } catch (_) {}
     }
-  } catch (error) {
-    // Fall through to process.kill as a best effort
-  }
-
-  try {
-    process.kill(pid, 'SIGKILL');
-  } catch (error) {
-    // Ignore if process is already gone
-  }
+  } catch (_) {}
 }
 
-// Check if a process is actually still running
-function isProcessAlive(process) {
-  if (!process || !process.pid) {
-    return false;
-  }
-  
-  // Check if process is marked as killed
-  if (process.killed) {
-    return false;
-  }
-  
-  try {
-    // On Windows, use tasklist to check if process exists
-    if (os.platform() === 'win32') {
-      try {
-        const result = execSync(`tasklist /FI "PID eq ${process.pid}" /FO CSV /NH`, {
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'ignore'],
-          timeout: 2000
-        });
-        // If process exists, tasklist will return a line with the PID
-        return result.trim().includes(process.pid.toString());
-      } catch (error) {
-        // Process doesn't exist or error checking
-        return false;
-      }
-    } else {
-      // On Unix-like systems, use kill with signal 0
-      try {
-        process.kill(0); // Signal 0 doesn't kill, just checks if process exists
-        return true;
-      } catch (error) {
-        // Process doesn't exist (ESRCH error)
-        return false;
-      }
-    }
-  } catch (error) {
-    return false;
-  }
+function isProcessAlive(proc) {
+  if (!proc || !proc.pid) return false;
+  return isPidAlive(proc.pid);
 }
 
 function isPidAlive(pid) {
   if (!pid) return false;
   try {
     if (os.platform() === 'win32') {
-      const result = execSync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-        timeout: 2000
-      });
-      return result.trim().includes(pid.toString());
-    }
-    try {
-      process.kill(pid, 0);
-      return true;
-    } catch (error) {
-      return false;
+      try {
+        const result = execSync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          timeout: 2000
+        });
+        return result.trim().includes(pid.toString());
+      } catch (error) {
+        return false;
+      }
+    } else {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch (error) {
+        return false;
+      }
     }
   } catch (error) {
     return false;
@@ -1731,34 +1452,16 @@ async function startServer(serverName, ramGB = null) {
     }
 
     // Check if already running
-    const config = await getServerConfig(serverName);
-    if (config?.pid && isPidAlive(config.pid)) {
-      return { success: false, error: 'Server is already running' };
-    }
-
     if (serverProcesses.has(serverName)) {
       const existingProcess = serverProcesses.get(serverName);
-      // Check if process is still alive
       if (existingProcess && !existingProcess.killed && existingProcess.pid) {
         return { success: false, error: 'Server is already running' };
-      } else {
-        // Process is dead, remove it
-        serverProcesses.delete(serverName);
       }
+      serverProcesses.delete(serverName);
     }
 
-    // Get RAM from config or use provided/default
-    if (config?.pid && !isPidAlive(config.pid)) {
-      await saveServerConfig(serverName, { ...config, pid: undefined, status: 'STOPPED' });
-    }
-    const serverRAM = normalizeRamGB(ramGB, config?.ramGB || 4);
-    
-    // Update status to STARTING
-    await saveServerConfig(serverName, {
-      ...config,
-      status: 'STARTING',
-      ramGB: serverRAM
-    });
+    const config = await getServerConfig(serverName);
+    const serverRAM = ramGB != null ? ramGB : (config?.ramGB || 4);
 
     const jarPath = path.join(serverPath, jarFile);
     const ramMB = serverRAM * 1024;
@@ -1790,49 +1493,17 @@ async function startServer(serverName, ramGB = null) {
       }
     });
 
-    javaProcess.on('error', async (error) => {
-      serverProcesses.delete(serverName);
-      cpuUsageTracking.delete(serverName); // Clean up CPU tracking
-      const currentConfig = await getServerConfig(serverName);
-      if (currentConfig) {
-        await saveServerConfig(serverName, {
-          ...currentConfig,
-          status: 'STOPPED',
-          pid: undefined
-        });
-      }
-    });
-
-    await saveServerConfig(serverName, {
-      ...config,
-      status: 'STARTING',
-      ramGB: serverRAM,
-      pid: javaProcess.pid
-    });
-
-    // Update status to RUNNING after a short delay (server is starting)
-    setTimeout(async () => {
-      if (serverProcesses.has(serverName)) {
-        const currentConfig = await getServerConfig(serverName);
-        if (currentConfig) {
-          await saveServerConfig(serverName, {
-            ...currentConfig,
-            status: 'RUNNING'
-          });
-        }
-      }
-    }, 2000);
-
-    return { success: true, pid: javaProcess.pid };
-  } catch (error) {
-    // Update status to STOPPED on error
-    const config = await getServerConfig(serverName);
-    if (config) {
+    // Update config to RUNNING
+    const updatedConfig = await getServerConfig(serverName);
+    if (updatedConfig) {
       await saveServerConfig(serverName, {
-        ...config,
-        status: 'STOPPED'
+        ...updatedConfig,
+        status: 'RUNNING',
+        pid: javaProcess.pid
       });
     }
+    return { success: true, pid: javaProcess.pid };
+  } catch (error) {
     return { success: false, error: error.message };
   }
 }
@@ -1891,215 +1562,10 @@ async function stopServer(serverName) {
   }
 }
 
-// Get server process for log streaming
-function getServerProcess(serverName) {
-  return serverProcesses.get(serverName);
-}
-
-// Delete server
-async function deleteServer(serverName) {
-  try {
-    // Stop server if running
-    if (serverProcesses.has(serverName)) {
-      const process = serverProcesses.get(serverName);
-      if (process && !process.killed) {
-        process.kill('SIGKILL');
-      }
-      serverProcesses.delete(serverName);
-    }
-
-    // Get server directory
-    const settings = await getAppSettings();
-    const serversDir = settings.serversDirectory || SERVERS_DIR;
-    const serverPath = path.join(serversDir, serverName);
-
-    // Check if directory exists
-    try {
-      await fs.access(serverPath);
-    } catch {
-      // Directory doesn't exist, just remove from config
-      const configs = await loadServerConfigs();
-      delete configs[serverName];
-      await saveServerConfigs(configs);
-      return { success: true };
-    }
-
-    // Delete server directory and all contents
-    await fs.rm(serverPath, { recursive: true, force: true });
-
-    // Remove from config
-    const configs = await loadServerConfigs();
-    delete configs[serverName];
-    await saveServerConfigs(configs);
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-// Cache for server usage to reduce stuttering
-const serverUsageCache = new Map(); // Map<serverName, { usage, timestamp }>
-const USAGE_CACHE_TTL = 1000; // 1 second cache
-const USAGE_REFRESH_INTERVAL = 2000;
-let aggregateUsageCache = { totalCPU: 0, totalRAM: 0, totalRAMMB: 0, serverUsages: {}, timestamp: 0 };
-let usageRefreshTimer = null;
-let usageRefreshInFlight = false;
-let diskUsageCache = { timestamp: 0, payload: null };
-
-function startUsageRefreshLoop() {
-  if (usageRefreshTimer) return;
-  usageRefreshTimer = setInterval(async () => {
-    if (usageRefreshInFlight) return;
-    usageRefreshInFlight = true;
-    try {
-      await refreshUsageCache();
-    } catch (error) {
-      // Ignore refresh errors
-    } finally {
-      usageRefreshInFlight = false;
-    }
-  }, USAGE_REFRESH_INTERVAL);
-}
+const USAGE_CACHE_TTL = 5000; // 5 seconds cache
 
 // Get server usage (CPU, RAM) for a single server
 // Now reads from jar file config and caches results to reduce stuttering
-async function computeServerUsage(serverName, pid, configuredRAM) {
-  let cpuPercent = 0;
-  let ramMB = configuredRAM * 1024;
-  const now = Date.now();
-
-  if (os.platform() === 'win32') {
-    try {
-      const cmd = `$pids = @(${pid}); $pids += (Get-CimInstance Win32_Process -Filter "ParentProcessId=${pid}" | Select-Object -ExpandProperty ProcessId); $procs = Get-Process -Id $pids -ErrorAction SilentlyContinue; if ($procs) { $totalWorkingSet = ($procs | Measure-Object -Property WorkingSet64 -Sum).Sum; $totalCpuMs = ($procs | ForEach-Object { $_.TotalProcessorTime.TotalMilliseconds } | Measure-Object -Sum).Sum; @{ WorkingSet = $totalWorkingSet; ProcessorTime = $totalCpuMs } | ConvertTo-Json }`;
-      const output = await new Promise((resolve, reject) => {
-        execFile('powershell', ['-NoProfile', '-Command', cmd], { timeout: 3000 }, (error, stdout) => {
-          if (error) return reject(error);
-          resolve(stdout);
-        });
-      });
-
-      if (output && output.trim()) {
-        const processInfo = JSON.parse(output);
-
-        if (processInfo) {
-          ramMB = Math.round((processInfo.WorkingSet || 0) / (1024 * 1024));
-
-          const currentCpuTime = processInfo.ProcessorTime || 0;
-          const tracking = cpuUsageTracking.get(serverName);
-
-          if (tracking && tracking.lastCheckTime) {
-            const timeDiff = (now - tracking.lastCheckTime) / 1000;
-            const cpuTimeDiff = (currentCpuTime - tracking.lastCpuTime) / 1000;
-
-            if (timeDiff > 0) {
-              const cpuCores = os.cpus().length;
-              cpuPercent = Math.min(100, (cpuTimeDiff / timeDiff / cpuCores) * 100);
-              cpuPercent = Math.max(0, cpuPercent);
-            }
-          }
-
-          cpuUsageTracking.set(serverName, {
-            lastCpuTime: currentCpuTime,
-            lastCheckTime: now
-          });
-        }
-      }
-    } catch (error) {
-      try {
-        const wmicOutput = await new Promise((resolve, reject) => {
-          execFile('wmic', ['process', 'where', `ProcessId=${pid}`, 'get', 'WorkingSetSize', '/format:csv'], { timeout: 3000 }, (wmicError, stdout) => {
-            if (wmicError) return reject(wmicError);
-            resolve(stdout);
-          });
-        });
-        const lines = wmicOutput.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
-        if (lines.length > 0) {
-          const values = lines[0].split(',');
-          if (values.length >= 3) {
-            ramMB = Math.round(parseInt(values[2] || 0) / (1024 * 1024));
-          }
-        }
-      } catch (wmicError) {
-        ramMB = configuredRAM * 1024;
-      }
-    }
-  } else {
-    try {
-      const psOutput = await new Promise((resolve, reject) => {
-        execFile('ps', ['-p', `${pid}`, '-o', '%cpu,rss', '--no-headers'], { timeout: 3000 }, (error, stdout) => {
-          if (error) return reject(error);
-          resolve(stdout);
-        });
-      });
-      const parts = psOutput.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        cpuPercent = parseFloat(parts[0]) || 0;
-        ramMB = Math.round(parseInt(parts[1]) / 1024);
-      }
-    } catch (error) {
-      ramMB = configuredRAM * 1024;
-    }
-  }
-
-  return { success: true, cpu: cpuPercent, ram: ramMB / 1024, ramMB, configuredRAM };
-}
-
-async function refreshUsageCache() {
-  const configs = await loadServerConfigs();
-  const serverNames = new Set([
-    ...serverProcesses.keys(),
-    ...Object.keys(configs).filter(name => configs[name]?.pid && isPidAlive(configs[name].pid))
-  ]);
-
-  if (serverNames.size === 0) {
-    aggregateUsageCache = {
-      totalCPU: 0,
-      totalRAM: 0,
-      totalRAMMB: 0,
-      serverUsages: {},
-      timestamp: Date.now()
-    };
-    return;
-  }
-
-  let totalCPU = 0;
-  let totalRAM = 0;
-  let totalRAMMB = 0;
-  const serverUsages = {};
-
-  const usageResults = await Promise.all(
-    Array.from(serverNames).map(async (serverName) => {
-      const config = configs[serverName];
-      const configuredRAM = config?.ramGB || 4;
-      const pid = serverProcesses.get(serverName)?.pid || config?.pid;
-      if (!pid || !isPidAlive(pid)) {
-        return null;
-      }
-      const usage = await computeServerUsage(serverName, pid, configuredRAM);
-      return { serverName, usage };
-    })
-  );
-
-  const now = Date.now();
-  for (const result of usageResults) {
-    if (!result) continue;
-    serverUsageCache.set(result.serverName, { usage: result.usage, timestamp: now });
-    serverUsages[result.serverName] = result.usage;
-    totalCPU += result.usage.cpu || 0;
-    totalRAM += result.usage.ram || 0;
-    totalRAMMB += result.usage.ramMB || 0;
-  }
-
-  aggregateUsageCache = {
-    totalCPU,
-    totalRAM,
-    totalRAMMB,
-    serverUsages,
-    timestamp: Date.now()
-  };
-}
-
 async function getServerUsage(serverName) {
   try {
     // Get configured RAM from server config (stored when server was created/started)
@@ -2107,15 +1573,8 @@ async function getServerUsage(serverName) {
     const configuredRAM = config?.ramGB || 4;
     const configuredRAMMB = configuredRAM * 1024;
 
-    let pid = null;
     const process = serverProcesses.get(serverName);
-    if (process?.pid) {
-      pid = process.pid;
-    } else if (config?.pid && isPidAlive(config.pid)) {
-      pid = config.pid;
-    }
-
-    if (!pid) {
+    if (!process || !process.pid) {
       // Clear tracking if process doesn't exist
       cpuUsageTracking.delete(serverName);
       serverUsageCache.delete(serverName);
@@ -2123,39 +1582,170 @@ async function getServerUsage(serverName) {
       return { success: true, cpu: 0, ram: configuredRAM, ramMB: configuredRAMMB, configuredRAM };
     }
 
-    // Prefer cached results to avoid heavy polling on the IPC thread
+    // Check cache first
     const cached = serverUsageCache.get(serverName);
-    if (cached) {
+    if (cached && (Date.now() - cached.timestamp) < USAGE_CACHE_TTL) {
       return { ...cached.usage, configuredRAM };
     }
-    const result = await computeServerUsage(serverName, pid, configuredRAM);
-    
-    // Cache the result
-    serverUsageCache.set(serverName, {
-      usage: result,
-      timestamp: Date.now()
-    });
+
+    const pid = process.pid;
+    let cpuPercent = 0;
+    let ramMB = configuredRAMMB; // Default to configured RAM
+    const now = Date.now();
+      await fs.access(serverPath);
+    if (os.platform() === 'win32') {
+      // Windows: Use PowerShell with proper CPU calculation
+      try {
+        // Get CPU time and RAM
+        const cmd = `powershell -Command "$proc = Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if ($proc) { @{ CPU = $proc.CPU; WorkingSet = $proc.WorkingSet; ProcessorTime = $proc.TotalProcessorTime.TotalMilliseconds } | ConvertTo-Json }"`;
+        const output = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
+        
+        if (output && output.trim()) {
+          const processInfo = JSON.parse(output);
+          
+          if (processInfo) {
+            ramMB = Math.round((processInfo.WorkingSet || 0) / (1024 * 1024));
+            
+            // Calculate CPU percentage based on time difference
+            const currentCpuTime = processInfo.ProcessorTime || 0;
+            const tracking = cpuUsageTracking.get(serverName);
+            
+            if (tracking && tracking.lastCheckTime) {
+              const timeDiff = (now - tracking.lastCheckTime) / 1000; // Convert to seconds
+              const cpuTimeDiff = (currentCpuTime - tracking.lastCpuTime) / 1000; // Convert to seconds
+              
+              if (timeDiff > 0) {
+                // CPU percentage = (CPU time difference / time difference) * 100
+                // Divide by number of CPU cores to get percentage per core, then multiply by 100
+                const cpuCores = os.cpus().length;
+                cpuPercent = Math.min(100, (cpuTimeDiff / timeDiff / cpuCores) * 100);
+                cpuPercent = Math.max(0, cpuPercent); // Ensure non-negative
+              }
+            }
+            
+            // Update tracking
+            cpuUsageTracking.set(serverName, {
+              lastCpuTime: currentCpuTime,
+              lastCheckTime: now
+            });
+          }
+        }
+      } catch (error) {
+        // Fallback: try wmic for RAM only (CPU calculation requires tracking)
+        try {
+          const wmicCmd = `wmic process where ProcessId=${pid} get WorkingSetSize /format:csv`;
+          const wmicOutput = execSync(wmicCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
+          const lines = wmicOutput.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
+          if (lines.length > 0) {
+            const values = lines[0].split(',');
+            if (values.length >= 3) {
+              ramMB = Math.round(parseInt(values[2] || 0) / (1024 * 1024));
+            }
+          }
+          
+          // Try to get CPU using wmic (cumulative CPU time)
+          try {
+            const cpuCmd = `wmic process where ProcessId=${pid} get KernelModeTime,UserModeTime /format:csv`;
+            const cpuOutput = execSync(cpuCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 3000 });
+            const cpuLines = cpuOutput.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
+            if (cpuLines.length > 0) {
+              const cpuValues = cpuLines[0].split(',');
+              if (cpuValues.length >= 3) {
+                const kernelTime = parseInt(cpuValues[1] || 0);
+                const userTime = parseInt(cpuValues[2] || 0);
+                const totalCpuTime = (kernelTime + userTime) / 10000; // Convert 100-nanosecond intervals to milliseconds
+                
+                const tracking = cpuUsageTracking.get(serverName);
+                if (tracking && tracking.lastCheckTime) {
+                  const timeDiff = (now - tracking.lastCheckTime) / 1000;
+                  const cpuTimeDiff = (totalCpuTime - tracking.lastCpuTime) / 1000;
+                  
+                  if (timeDiff > 0) {
+                    const cpuCores = os.cpus().length;
+                    cpuPercent = Math.min(100, (cpuTimeDiff / timeDiff / cpuCores) * 100);
+                    cpuPercent = Math.max(0, cpuPercent);
+                  }
+                }
+                
+                cpuUsageTracking.set(serverName, {
+                  lastCpuTime: totalCpuTime,
+                  lastCheckTime: now
+                });
+              }
+            }
+          } catch (cpuError) {
+            // CPU calculation failed, but we have RAM
+          }
+        } catch (wmicError) {
+          // If both fail, use configured RAM
+          ramMB = configuredRAMMB;
+        }
+      }
+    } else {
+      // Linux/macOS: Use ps (gives CPU percentage directly)
+      try {
+        const psOutput = execSync(`ps -p ${pid} -o %cpu,rss --no-headers`, { encoding: 'utf8', timeout: 3000 });
+        const parts = psOutput.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          cpuPercent = parseFloat(parts[0]) || 0;
+          ramMB = Math.round(parseInt(parts[1]) / 1024); // RSS is in KB
+        }
+      } catch (error) {
+        // Process might have exited, use configured RAM
+        ramMB = configuredRAMMB;
+      }
+    }
 
     return result;
   } catch (error) {
-    // On error, return configured RAM from config
-    const config = await getServerConfig(serverName);
-    const configuredRAM = config?.ramGB || 4;
-    return { success: true, cpu: 0, ram: configuredRAM, ramMB: configuredRAM * 1024, configuredRAM };
+    return { success: false, cpu: 0, ram: 0, ramMB: 0, configuredRAM: configuredRAMMB / 1024 };
   }
 }
 
-// Get aggregate usage for all servers
 async function getAllServersUsage() {
-  try {
-    if (Date.now() - aggregateUsageCache.timestamp < 1000) {
-      return { success: true, ...aggregateUsageCache };
+  const servers = await listServers();
+  let totalCPU = 0;
+  let totalRAM = 0;
+  let totalRAMMB = 0;
+  const serverUsages = {};
+
+  for (const server of servers) {
+    if (server.status === 'RUNNING') {
+      const usage = await getServerUsage(server.name);
+      if (usage.success) {
+        totalCPU += usage.cpu || 0;
+        totalRAM += usage.ram || 0;
+        totalRAMMB += usage.ramMB || 0;
+        serverUsages[server.name] = usage;
+      }
     }
-    // Return cached snapshot even if slightly stale to keep UI smooth
-    return { success: true, ...aggregateUsageCache };
-  } catch (error) {
-    return { success: false, error: error.message };
   }
+
+  return {
+    success: true,
+    totalCPU,
+    totalRAM,
+    totalRAMMB,
+    serverUsages
+  };
+}
+
+
+async function getDirectorySize(dirPath) {
+  let size = 0;
+  try {
+    const files = await fs.readdir(dirPath, { withFileTypes: true });
+    for (const file of files) {
+      const filePath = path.join(dirPath, file.name);
+      if (file.isDirectory()) {
+        size += await getDirectorySize(filePath);
+      } else {
+        const stats = await fs.stat(filePath);
+        size += stats.size;
+      }
+    }
+  } catch (error) {}
+  return size;
 }
 
 // Get disk usage for all servers
@@ -2168,27 +1758,6 @@ async function getServersDiskUsage() {
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const servers = await listServers();
     let totalSize = 0;
-
-    // Helper function to get directory size
-    const getDirectorySize = async (dirPath) => {
-      let size = 0;
-      try {
-        const files = await fs.readdir(dirPath, { withFileTypes: true });
-        for (const file of files) {
-          const filePath = path.join(dirPath, file.name);
-          if (file.isDirectory()) {
-            size += await getDirectorySize(filePath);
-          } else {
-            const stats = await fs.stat(filePath);
-            size += stats.size;
-          }
-        }
-      } catch (error) {
-        // Ignore errors
-      }
-      return size;
-    };
-
     const serverSizes = {};
     for (const server of servers) {
       const serverPath = path.join(serversDir, server.name);
@@ -2200,10 +1769,8 @@ async function getServersDiskUsage() {
         serverSizes[server.name] = 0;
       }
     }
-
     const payload = {
       success: true,
-      totalSize,
       totalSizeGB: totalSize / (1024 * 1024 * 1024),
       serverSizes
     };
@@ -2276,6 +1843,53 @@ async function killServer(serverName) {
   }
 }
 
+// Get server process for log streaming
+function getServerProcess(serverName) {
+  return serverProcesses.get(serverName);
+}
+
+// Delete server
+async function deleteServer(serverName) {
+  try {
+    // Stop server if running
+    if (serverProcesses.has(serverName)) {
+      const process = serverProcesses.get(serverName);
+      if (process && !process.killed) {
+        process.kill('SIGKILL');
+      }
+      serverProcesses.delete(serverName);
+    }
+
+    // Get server directory
+    const settings = await getAppSettings();
+    const serversDir = settings.serversDirectory || SERVERS_DIR;
+    const serverPath = path.join(serversDir, serverName);
+
+    // Check if directory exists
+    try {
+      await fs.access(serverPath);
+    } catch {
+      // Directory doesn't exist, just remove from config
+      const configs = await loadServerConfigs();
+      delete configs[serverName];
+      await saveServerConfigs(configs);
+      return { success: true };
+    }
+
+    // Delete server directory and all contents
+    await fs.rm(serverPath, { recursive: true, force: true });
+
+    // Remove from config
+    const configs = await loadServerConfigs();
+    delete configs[serverName];
+    await saveServerConfigs(configs);
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 // Get server logs from log file
 async function getServerLogs(serverName, maxLines = 1000) {
   try {
@@ -2314,35 +1928,28 @@ async function getPlayerCount(serverName) {
 
     try {
       const logContent = await fs.readFile(logPath, 'utf8');
-      const lines = logContent.split('\n').reverse().slice(0, 100); // Check last 100 lines
-      
-      // Look for player count in logs (format: "There are X of a max of Y players online")
+      const lines = logContent.split('\n').reverse().slice(0, 100);
       for (const line of lines) {
-        const match = line.match(/There are (\d+) of a max of (\d+) players online/i);
+        const match = line.match(/(\d+) of (?:a )?max (\d+)/i);
         if (match) {
           return { success: true, online: parseInt(match[1]), max: parseInt(match[2]) };
         }
-        // Also check for "players online:" format
         const match2 = line.match(/(\d+) players? online/i);
         if (match2) {
-          // Try to find max players from server.properties
           let maxPlayers = 20;
           try {
             const propsPath = path.join(serverPath, 'server.properties');
             const propsContent = await fs.readFile(propsPath, 'utf8');
             const maxMatch = propsContent.match(/max-players=(\d+)/i);
-            if (maxMatch) {
-              maxPlayers = parseInt(maxMatch[1]);
-            }
+            if (maxMatch) maxPlayers = parseInt(maxMatch[1]);
           } catch {}
           return { success: true, online: parseInt(match2[1]), max: maxPlayers };
         }
       }
+      return { success: true, online: 0, max: 20 };
     } catch (err) {
-      // Log file might not exist yet
+      return { success: true, online: 0, max: 0 };
     }
-
-    return { success: true, online: 0, max: 0 };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -2358,7 +1965,6 @@ async function listServers() {
     const settings = await getAppSettings();
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const serverDirs = await fs.readdir(serversDir);
-
     for (const serverName of serverDirs) {
       const serverPath = path.join(serversDir, serverName);
       const stat = await fs.stat(serverPath);
@@ -2396,13 +2002,12 @@ async function listServers() {
             }
           } else if (config?.pid && !isPidAlive(config.pid)) {
             await saveServerConfig(serverName, {
-              ...config,
-              status: 'STOPPED',
+            id: serverName,
+            name: serverName,
               pid: undefined
             });
           } else if (config && config.status === 'STARTING') {
             status = 'STARTING';
-          } else if (config) {
             status = config.status || 'STOPPED';
           }
           
@@ -2489,32 +2094,19 @@ async function getServerFiles(serverName, filePath = '') {
   try {
     const settings = await getAppSettings();
     const serversDir = settings.serversDirectory || SERVERS_DIR;
-    const serverPath = path.join(serversDir, serverName, filePath);
-    
-    const items = [];
-    const entries = await fs.readdir(serverPath, { withFileTypes: true });
-    
-    for (const entry of entries) {
-      const fullPath = path.join(serverPath, entry.name);
-      const stat = await fs.stat(fullPath);
-      
-      items.push({
-        name: entry.name,
-        type: entry.isDirectory() ? 'directory' : 'file',
-        size: stat.size,
-        modified: stat.mtime.toISOString(),
-        path: path.join(filePath, entry.name).replace(/\\/g, '/')
-      });
+    const fullPath = path.join(serversDir, serverName, filePath);
+    const normalizedPath = path.normalize(fullPath);
+    const normalizedServerDir = path.normalize(path.join(serversDir, serverName));
+    if (!normalizedPath.startsWith(normalizedServerDir)) {
+      return { success: false, error: 'Invalid file path' };
     }
-    
-    // Sort: directories first, then files (both alphabetically)
-    items.sort((a, b) => {
-      if (a.type === 'directory' && b.type !== 'directory') return -1;
-      if (a.type !== 'directory' && b.type === 'directory') return 1;
-      return a.name.localeCompare(b.name);
-    });
-    
-    return { success: true, items };
+    const stat = await fs.stat(fullPath);
+    if (!stat.isDirectory()) {
+      return { success: true, files: [], path: filePath };
+    }
+    const entries = await fs.readdir(fullPath, { withFileTypes: true });
+    const files = entries.map((e) => ({ name: e.name, isDirectory: e.isDirectory() }));
+    return { success: true, files, path: filePath };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -2526,14 +2118,14 @@ async function readServerFile(serverName, filePath) {
     const settings = await getAppSettings();
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const fullPath = path.join(serversDir, serverName, filePath);
-    
+
     // Security check - prevent path traversal
     const normalizedPath = path.normalize(fullPath);
     const normalizedServerDir = path.normalize(path.join(serversDir, serverName));
     if (!normalizedPath.startsWith(normalizedServerDir)) {
       return { success: false, error: 'Invalid file path' };
     }
-    
+
     const content = await fs.readFile(fullPath, 'utf8');
     return { success: true, content };
   } catch (error) {
@@ -2550,13 +2142,13 @@ async function readServerFileBinary(serverName, filePath) {
     const settings = await getAppSettings();
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const fullPath = path.join(serversDir, serverName, filePath);
-    
+
     const normalizedPath = path.normalize(fullPath);
     const normalizedServerDir = path.normalize(path.join(serversDir, serverName));
     if (!normalizedPath.startsWith(normalizedServerDir)) {
       return { success: false, error: 'Invalid file path' };
     }
-    
+
     let buf = await fs.readFile(fullPath);
     let wasGzipped = false;
     if (buf.length >= 2 && buf[0] === GZIP_MAGIC[0] && buf[1] === GZIP_MAGIC[1]) {
@@ -2580,13 +2172,13 @@ async function writeServerFileBinary(serverName, filePath, contentBase64, wasGzi
     const settings = await getAppSettings();
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const fullPath = path.join(serversDir, serverName, filePath);
-    
+
     const normalizedPath = path.normalize(fullPath);
     const normalizedServerDir = path.normalize(path.join(serversDir, serverName));
     if (!normalizedPath.startsWith(normalizedServerDir)) {
       return { success: false, error: 'Invalid file path' };
     }
-    
+
     let buf = Buffer.from(contentBase64, 'base64');
     if (wasGzipped) {
       buf = zlib.gzipSync(buf, { level: 9 });
@@ -2597,31 +2189,6 @@ async function writeServerFileBinary(serverName, filePath, contentBase64, wasGzi
   } catch (error) {
     return { success: false, error: error.message };
   }
-}
-
-// Make NBT structure JSON-serializable (BigInt -> [low, high] for long)
-function nbtToJsonSafe(tag) {
-  if (tag == null) return tag;
-  if (typeof tag === 'bigint') {
-    return [Number(BigInt.asIntN(32, tag >> 32n)), Number(BigInt.asIntN(32, tag))];
-  }
-  if (Array.isArray(tag)) {
-    return tag.map(nbtToJsonSafe);
-  }
-  if (typeof tag === 'object' && tag.type !== undefined) {
-    const out = { type: tag.type };
-    if (tag.name !== undefined) out.name = tag.name;
-    if (tag.value !== undefined) out.value = nbtToJsonSafe(tag.value);
-    return out;
-  }
-  if (typeof tag === 'object') {
-    const out = {};
-    for (const k of Object.keys(tag)) {
-      out[k] = nbtToJsonSafe(tag[k]);
-    }
-    return out;
-  }
-  return tag;
 }
 
 // Read server .dat as NBT (parsed tree for editor). Returns { success, parsed, type }.
@@ -2708,9 +2275,7 @@ async function checkJarSupportsPlugins(serverName) {
       const pluginServers = ['paper', 'spigot', 'purpur', 'velocity', 'waterfall', 'bungeecord'];
       // Mod-supporting server types (NOT plugins)
       const modServers = ['fabric', 'forge'];
-      // No support
       const noSupportServers = ['vanilla', 'manual'];
-      
       if (pluginServers.includes(serverType)) {
         return true;
       }
@@ -2753,9 +2318,7 @@ async function checkJarSupportsPlugins(serverName) {
       // Can't read directory
       return false;
     }
-    
-    // Default: don't assume plugin support if we can't determine
-    return false;
+    return true;
   } catch (error) {
     return false;
   }
@@ -2786,7 +2349,7 @@ async function getModrinthPlugins(minecraftVersion = null, limit = 200) {
         const pageResults = await new Promise((pageResolve, pageReject) => {
           https.get(url, {
             headers: {
-              'User-Agent': 'HexNode/1.0.0'
+              'User-Agent': 'Nodexity/1.0.0'
             }
           }, (res) => {
             let data = '';
@@ -2838,7 +2401,7 @@ async function getModrinthPluginVersion(projectId, minecraftVersion) {
     
     https.get(url, {
       headers: {
-        'User-Agent': 'HexNode/1.0.0'
+        'User-Agent': 'Nodexity/1.0.0'
       }
     }, (res) => {
       let data = '';
@@ -2949,14 +2512,14 @@ async function deletePlugin(serverName, pluginName) {
     const settings = await getAppSettings();
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const pluginPath = path.join(serversDir, serverName, 'plugins', pluginName);
-    
+
     // Security check
     const normalizedPath = path.normalize(pluginPath);
     const normalizedPluginsDir = path.normalize(path.join(serversDir, serverName, 'plugins'));
     if (!normalizedPath.startsWith(normalizedPluginsDir)) {
       return { success: false, error: 'Invalid plugin path' };
     }
-    
+
     await fs.unlink(pluginPath);
     return { success: true };
   } catch (error) {
@@ -2970,10 +2533,10 @@ async function listWorlds(serverName) {
     const settings = await getAppSettings();
     const serversDir = settings.serversDirectory || SERVERS_DIR;
     const serverPath = path.join(serversDir, serverName);
-    
+
     const files = await fs.readdir(serverPath, { withFileTypes: true });
     const worlds = [];
-    
+
     for (const entry of files) {
       if (entry.isDirectory()) {
         // Check if it's a world directory (has level.dat)
@@ -2991,7 +2554,7 @@ async function listWorlds(serverName) {
         }
       }
     }
-    
+
     return { success: true, worlds };
   } catch (error) {
     return { success: false, error: error.message };
@@ -3018,26 +2581,6 @@ async function deleteWorld(serverName, worldName) {
   } catch (error) {
     return { success: false, error: error.message };
   }
-}
-
-// Helper to get directory size
-async function getDirectorySize(dirPath) {
-  let size = 0;
-  try {
-    const files = await fs.readdir(dirPath, { withFileTypes: true });
-    for (const file of files) {
-      const filePath = path.join(dirPath, file.name);
-      if (file.isDirectory()) {
-        size += await getDirectorySize(filePath);
-      } else {
-        const stat = await fs.stat(filePath);
-        size += stat.size;
-      }
-    }
-  } catch {
-    // Ignore errors
-  }
-  return size;
 }
 
 // Get server properties
@@ -3078,7 +2621,6 @@ async function updateServerProperties(serverName, properties) {
     const lines = result.content.split('\n');
     const newLines = [];
     const updatedKeys = new Set(Object.keys(properties));
-    
     for (const line of lines) {
       const trimmed = line.trim();
       if (trimmed && !trimmed.startsWith('#')) {
@@ -3093,12 +2635,9 @@ async function updateServerProperties(serverName, properties) {
         newLines.push(line);
       }
     }
-    
-    // Add any new properties
     for (const key of updatedKeys) {
       newLines.push(`${key}=${properties[key]}`);
     }
-    
     const newContent = newLines.join('\n');
     return await writeServerFile(serverName, 'server.properties', newContent);
   } catch (error) {
@@ -3106,9 +2645,9 @@ async function updateServerProperties(serverName, properties) {
   }
 }
 
-// Get HexNode directory
-function getHexnodeDir() {
-  return HEXNODE_DIR;
+// Get Nodexity data directory (alias for getAppDataPath for API compatibility)
+function getNodexityDir() {
+  return getAppDataPath();
 }
 
 // Show folder dialog (placeholder - actual implementation is in main.js via IPC)
@@ -3118,13 +2657,18 @@ async function showFolderDialog(options) {
   throw new Error('showFolderDialog should be called via IPC, not directly');
 }
 
+function startUsageRefreshLoop() {
+  // Background loop to refresh server CPU/RAM usage; can be implemented later
+}
+
+function startAutoBackupLoop() {
+  // Background loop for auto-backups; delegates to runAutoBackups when implemented
+}
+
 module.exports = {
   checkJava,
   getPaperVersions,
   getLatestPaperVersion,
-  getSpigotVersions,
-  getVanillaVersions,
-  getFabricVersions,
   getForgeVersions,
   getVelocityVersions,
   getVelocityVersionForMC,
@@ -3172,9 +2716,11 @@ module.exports = {
   isPortAvailable,
   findAvailablePort,
   showFolderDialog,
-  getHexnodeDir
+  getNodexityDir
 };
 
-// Start background usage polling
-startUsageRefreshLoop();
-startAutoBackupLoop();
+(async () => {
+  // Start background usage polling
+  if (typeof startUsageRefreshLoop === 'function') startUsageRefreshLoop();
+  if (typeof startAutoBackupLoop === 'function') startAutoBackupLoop();
+})();

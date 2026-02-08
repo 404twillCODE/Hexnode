@@ -32,7 +32,7 @@ function UpdateNotifier() {
     if (!window.electronAPI?.server?.onUpdateAvailable) return;
     const handle = (payload: { version: string; url: string }) => {
       if (settings?.notifications?.updates === false) return;
-      notify({ type: "info", title: "Update available", message: `HexNode ${payload.version} is available.` });
+      notify({ type: "info", title: "Update available", message: `Nodexity ${payload.version} is available.` });
     };
     const unsub = window.electronAPI.server.onUpdateAvailable(handle);
     return () => { unsub?.(); };
@@ -120,7 +120,7 @@ function App() {
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-sm p-6">
         <div className="system-card w-full max-w-md p-6">
           <div className="text-lg font-semibold text-text-primary font-mono mb-3">
-            Close HexNode
+            Close Nodexity
           </div>
           <div className="text-sm text-text-secondary font-mono mb-2">
             Are you sure you want to close the program?

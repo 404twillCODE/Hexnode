@@ -58,10 +58,10 @@ function ensureTray() {
   if (tray) return;
   const icon = resolveTrayIcon();
   tray = new Tray(icon);
-  tray.setToolTip('HexNode');
+  tray.setToolTip('Nodexity');
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show HexNode',
+      label: 'Show Nodexity',
       click: () => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.show();
@@ -107,11 +107,11 @@ function checkForUpdates() {
 
   const requestOptions = {
     headers: {
-      'User-Agent': 'HexNode'
+      'User-Agent': 'Nodexity'
     }
   };
 
-  https.get('https://api.github.com/repos/404twillCODE/Hexnode/releases/latest', requestOptions, (res) => {
+  https.get('https://api.github.com/repos/404twillCODE/Nodexity/releases/latest', requestOptions, (res) => {
     let data = '';
     res.on('data', (chunk) => {
       data += chunk;
@@ -127,7 +127,7 @@ function checkForUpdates() {
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('update-available', {
               version: latestVersion,
-              url: payload.html_url || 'https://github.com/404twillCODE/Hexnode/releases'
+              url: payload.html_url || 'https://github.com/404twillCODE/Nodexity/releases'
             });
           }
         }

@@ -1,6 +1,6 @@
-## Support Hexnode
+## Support Nodexity
 
-Hexnode is free and local-first. If you want to support development before release:
+Nodexity is free and local-first. If you want to support development before release:
 
 - Join the Discord and share feedback: `https://discord.gg/RVTAEbdDBJ`
 - Star the repo on GitHub

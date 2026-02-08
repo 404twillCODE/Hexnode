@@ -239,7 +239,7 @@ export default function SetupView({ onNext }: SetupViewProps) {
       >
         <div className="mb-6 flex-shrink-0">
           <h1 className="text-3xl font-semibold text-text-primary font-mono mb-2">
-            WELCOME TO HEXNODE
+            WELCOME TO NODEXITY
           </h1>
           <p className="text-text-secondary font-mono text-sm">
             First-time setup - System detection

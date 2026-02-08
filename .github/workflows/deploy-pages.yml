@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Nodexity – Deploy to GitHub Pages
 
 on:
   push:

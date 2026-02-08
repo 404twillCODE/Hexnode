@@ -1,10 +1,10 @@
 # GitHub Setup Guide
 
-This guide will walk you through setting up GitHub Discussions, Security Advisories, and Labels for your Hexnode repository.
+This guide will walk you through setting up GitHub Discussions, Security Advisories, and Labels for your Nodexity repository.
 
 ## Prerequisites
 
-- You need to be the repository owner or have admin access to `https://github.com/404twillCODE/Hexnode`
+- You need to be the repository owner or have admin access to `https://github.com/404twillCODE/Nodexity`
 - A web browser
 
 ---
@@ -12,7 +12,7 @@ This guide will walk you through setting up GitHub Discussions, Security Advisor
 ## Step 1: Enable GitHub Discussions
 
 1. **Navigate to your repository:**
-   - Go to: `https://github.com/404twillCODE/Hexnode`
+   - Go to: `https://github.com/404twillCODE/Nodexity`
 
 2. **Open Settings:**
    - Click on the **"Settings"** tab at the top of the repository page (it's in the horizontal menu bar, next to "Insights")
@@ -40,7 +40,7 @@ This guide will walk you through setting up GitHub Discussions, Security Advisor
 ## Step 2: Enable Security Advisories
 
 1. **Still in Settings:**
-   - Make sure you're still on the Settings page: `https://github.com/404twillCODE/Hexnode/settings`
+   - Make sure you're still on the Settings page: `https://github.com/404twillCODE/Nodexity/settings`
 
 2. **Go to Security section:**
    - In the left sidebar, scroll down and click on **"Security"**
@@ -72,7 +72,7 @@ This guide will walk you through setting up GitHub Discussions, Security Advisor
 2. **Open Labels:**
    - On the Issues page, look at the right sidebar
    - You'll see a section called **"Labels"** with a link that says **"Labels"** - click it
-   - OR go directly to: `https://github.com/404twillCODE/Hexnode/labels`
+   - OR go directly to: `https://github.com/404twillCODE/Nodexity/labels`
 
 3. **Create the "bug" label:**
    - Click the **"New label"** button (usually in the top right)
@@ -100,9 +100,9 @@ This guide will walk you through setting up GitHub Discussions, Security Advisor
 If you have GitHub CLI (`gh`) installed, you can run these commands in your terminal:
 
 ```bash
-gh label create bug --color d73a4a --repo 404twillCODE/Hexnode
-gh label create enhancement --color a2eeef --repo 404twillCODE/Hexnode
-gh label create "help wanted" --color 008672 --repo 404twillCODE/Hexnode
+gh label create bug --color d73a4a --repo 404twillCODE/Nodexity
+gh label create enhancement --color a2eeef --repo 404twillCODE/Nodexity
+gh label create "help wanted" --color 008672 --repo 404twillCODE/Nodexity
 ```
 
 ---
@@ -120,7 +120,7 @@ gh label create "help wanted" --color 008672 --repo 404twillCODE/Hexnode
 - Make sure you're in the "General" section of Settings
 
 ### Labels page is empty or confusing?
-- Make sure you're on the Labels page: `https://github.com/404twillCODE/Hexnode/labels`
+- Make sure you're on the Labels page: `https://github.com/404twillCODE/Nodexity/labels`
 - The "New label" button should be visible at the top right of the labels list
 
 ### Still having issues?

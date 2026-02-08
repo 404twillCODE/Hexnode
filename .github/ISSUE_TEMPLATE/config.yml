@@ -1,6 +1,9 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Discord community
+  - name: Nodexity – Discord
     url: https://discord.gg/RVTAEbdDBJ
     about: Ask questions, share feedback, or get help.
+  - name: Nodexity – GitHub
+    url: https://github.com/404twillCODE/Nodexity
+    about: Repository and documentation.
 

@@ -30,7 +30,7 @@ export default function RegisterPage() {
             transition={fadeUpTransition}
           >
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Create your HEXNODE account
+              Create your NODEXITY account
             </h1>
             <p className="text-muted">
               Start building without limits.

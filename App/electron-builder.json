@@ -1,6 +1,6 @@
 {
-  "appId": "com.hexnode.desktop",
-  "productName": "HexNode",
+  "appId": "com.nodexity.desktop",
+  "productName": "Nodexity",
   "directories": {
     "output": "release"
   },
@@ -23,7 +23,7 @@
     "verifyUpdateCodeSignature": false
   },
   "portable": {
-    "artifactName": "HexNode.exe"
+    "artifactName": "Nodexity.exe"
   },
   "forceCodeSigning": false
 }

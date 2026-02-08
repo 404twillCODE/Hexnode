@@ -1,6 +1,6 @@
 ## Security Policy
 
-If you believe you’ve found a security vulnerability in Hexnode, please **do not** open a public GitHub issue.
+If you believe you’ve found a security vulnerability in Nodexity, please **do not** open a public GitHub issue.
 
 ### How to report
 - Prefer: open a private report via GitHub Security Advisories (once enabled), or

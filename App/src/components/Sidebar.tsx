@@ -22,7 +22,7 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
           transition={{ type: "spring", stiffness: 100, damping: 15 }}
           className="text-lg font-semibold text-text-primary font-mono"
         >
-          HEXNODE
+          NODEXITY
         </motion.h2>
       </div>
       <nav className="flex-1 p-4 space-y-1">

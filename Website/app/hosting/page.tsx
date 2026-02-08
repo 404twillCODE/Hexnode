@@ -19,7 +19,7 @@ const hostingFeatures = [
   },
   {
     title: "Dedicated Resources",
-    description: "Guaranteed performance SLAs with dedicated CPU, RAM, and storage. No resource contention, consistent performance for your mission-critical workloads.",
+    description: "Guaranteed performance with dedicated CPU, RAM, and storage. No resource contention, consistent performance when you need it most.",
     details: [
       "Dedicated CPU cores per instance",
       "Guaranteed RAM allocation",
@@ -31,9 +31,9 @@ const hostingFeatures = [
   },
   {
     title: "Security & Protection",
-    description: "Enterprise-grade security with built-in DDoS protection, CDN integration, and advanced firewall configurations. Keep your servers safe from attacks.",
+    description: "Strong security with built in DDoS protection, CDN, and firewall options. Keep your servers safe.",
     details: [
-      "Built-in DDoS protection and mitigation",
+      "Built in DDoS protection and mitigation",
       "CDN integration for global content delivery",
       "Advanced firewall and security rules",
       "Custom SSL certificate management",
@@ -82,7 +82,7 @@ const hostingFeatures = [
 const recycleHostFeatures = [
   {
     title: "Sustainable Infrastructure",
-    description: "Eco-friendly hosting powered by repurposed enterprise hardware. Reduce electronic waste while getting reliable hosting for your projects.",
+    description: "Eco friendly hosting on repurposed enterprise hardware. Less waste, reliable hosting for your projects.",
     details: [
       "Repurposed enterprise-grade hardware",
       "Reduced environmental impact",
@@ -93,15 +93,15 @@ const recycleHostFeatures = [
     ]
   },
   {
-    title: "Cost-Effective Pricing",
-    description: "Budget-friendly hosting without compromising on reliability. Perfect for development, staging, and smaller production deployments.",
+    title: "Cost Effective Pricing",
+    description: "Budget friendly hosting without sacrificing reliability. Good for dev, staging, and smaller production.",
     details: [
       "Affordable pricing for all budgets",
       "Flexible resource allocation",
       "Pay-as-you-go options",
       "No long-term commitments required",
       "Transparent pricing structure",
-      "Cost-effective for small projects"
+      "Cost effective for small projects"
     ]
   },
   {
@@ -113,7 +113,7 @@ const recycleHostFeatures = [
       "Resource allocation management",
       "Performance monitoring",
       "Automatic resource balancing",
-      "Community-friendly hosting"
+      "Community friendly hosting"
     ]
   },
   {
@@ -311,7 +311,7 @@ export default function HostingPage() {
         </div>
         <p className="text-lg leading-relaxed text-text-secondary sm:text-xl max-w-3xl">
           Premium and sustainable hosting solutions for Minecraft servers.
-          Choose between enterprise-grade infrastructure or eco-friendly budget hosting.
+          Choose between high performance infrastructure or eco friendly budget hosting.
         </p>
       </motion.div>
 
@@ -489,7 +489,7 @@ export default function HostingPage() {
         </div>
         <p className="text-base leading-relaxed text-text-secondary sm:text-lg mb-8 max-w-3xl">
           Enterprise-grade hosting infrastructure built for demanding applications.
-          Delivers exceptional performance, reliability, and support for mission-critical workloads.
+          Strong performance, reliability, and support when you need it most.
         </p>
         <div className="space-y-8">
           {hostingFeatures.map((feature, index) => (
@@ -550,8 +550,8 @@ export default function HostingPage() {
           </motion.span>
         </div>
         <p className="text-base leading-relaxed text-text-secondary sm:text-lg mb-8 max-w-3xl">
-          Sustainable hosting powered by recycled and repurposed hardware.
-          Eco-friendly alternative without compromising on reliability. Perfect for development, staging, and budget-conscious deployments.
+          Sustainable hosting on recycled and repurposed hardware.
+          Eco friendly and reliable. Good for dev, staging, and budget conscious projects.
         </p>
         
         {/* Scroll to Hero Preview Section */}

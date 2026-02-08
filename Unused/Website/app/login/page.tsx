@@ -30,7 +30,7 @@ export default function LoginPage() {
             transition={fadeUpTransition}
           >
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Sign in to HEXNODE
+              Sign in to NODEXITY
             </h1>
             <p className="text-muted">
               Access your infrastructure.

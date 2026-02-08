@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Dashboard",
-  description: "Manage your HEXNODE infrastructure, resource pools, and servers.",
+  description: "Manage your NODEXITY infrastructure, resource pools, and servers.",
 };
 
 export default function DashboardLayout({

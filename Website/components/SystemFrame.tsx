@@ -6,7 +6,7 @@ export function SystemTopBar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium text-text-primary">
-            HexNode
+            Nodexity
           </span>
         </div>
         <nav className="flex items-center gap-6">
@@ -28,6 +28,12 @@ export function SystemTopBar() {
           >
             Status
           </a>
+          <a
+            href="/settings"
+            className="text-sm text-text-secondary hover:text-accent transition-colors"
+          >
+            Settings
+          </a>
         </nav>
       </div>
     </div>
@@ -42,7 +48,7 @@ export function SystemFooter() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-sm text-text-muted">
-            © {currentYear} Hexnode. All rights reserved.
+            © {currentYear} Nodexity. All rights reserved.
           </p>
           <div className="flex gap-6">
             <a
@@ -84,6 +90,12 @@ export function SystemFooter() {
               className="text-sm text-text-muted transition-colors hover:text-accent"
             >
               Terms
+            </a>
+            <a
+              href="/settings"
+              className="text-sm text-text-muted transition-colors hover:text-accent"
+            >
+              Settings
             </a>
           </div>
         </div>

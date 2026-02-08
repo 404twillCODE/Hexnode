@@ -12,8 +12,8 @@ import {
 
 export default function SettingsPage() {
   // Mock user data (UI only)
-  const [username] = useState('user@hexnode.com');
-  const [email] = useState('user@hexnode.com');
+  const [username] = useState('user@nodexity.com');
+  const [email] = useState('user@nodexity.com');
   
   // Preferences state (UI only)
   const [defaultServerType, setDefaultServerType] = useState('Paper');

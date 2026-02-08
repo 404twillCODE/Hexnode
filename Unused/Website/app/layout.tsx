@@ -5,15 +5,15 @@ import ConditionalFooter from "@/components/ConditionalFooter";
 import { ResourcePoolConfigProvider } from "@/components/context/ResourcePoolConfigContext";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://hexnode.com'),
+  metadataBase: new URL('https://nodexity.com'),
   title: {
-    default: "HEXNODE — Resources, not restrictions",
-    template: "%s | HEXNODE",
+    default: "NODEXITY — Resources, not restrictions",
+    template: "%s | NODEXITY",
   },
   description: "Resource-based Minecraft hosting. Buy a pool of resources and deploy servers without limits.",
-  applicationName: "HEXNODE",
+  applicationName: "NODEXITY",
   openGraph: {
-    title: "HEXNODE",
+    title: "NODEXITY",
     description: "Resource-based Minecraft hosting. Buy a pool of resources and deploy servers without limits.",
     type: "website",
   },

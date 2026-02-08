@@ -67,7 +67,7 @@ export default function DashboardAssistant() {
       const usedRam = resourcePool.usedRam;
       const remainingRam = totalRam - usedRam;
 
-      let contextString = `Current HEXNODE infrastructure:
+      let contextString = `Current NODEXITY infrastructure:
 - Total RAM pool: ${totalRam} GB
 - Used RAM: ${usedRam} GB
 - Remaining RAM: ${remainingRam} GB`;

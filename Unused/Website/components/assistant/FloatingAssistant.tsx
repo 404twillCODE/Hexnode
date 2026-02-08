@@ -168,7 +168,7 @@ export default function FloatingAssistant() {
       const usedRam = resourcePool.usedRam;
       const remainingRam = totalRam - usedRam;
 
-      let contextString = `Current HEXNODE infrastructure:
+      let contextString = `Current NODEXITY infrastructure:
 - Total RAM pool: ${totalRam} GB
 - Used RAM: ${usedRam} GB
 - Remaining RAM: ${remainingRam} GB`;
@@ -303,7 +303,7 @@ export default function FloatingAssistant() {
               <div className="p-4 border-b border-foreground/10 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">
-                    HEXNODE Assistant
+                    NODEXITY Assistant
                   </h3>
                   <p className="text-xs text-muted">
                     Server setup & optimization

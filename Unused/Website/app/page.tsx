@@ -63,7 +63,7 @@ export default function Home() {
               variants={heroFadeUp}
               transition={heroTransition}
             >
-              HEXNODE
+              NODEXITY
             </motion.h1>
             <motion.p
               className="text-2xl text-muted"
@@ -129,7 +129,7 @@ export default function Home() {
               variants={fadeUp}
               transition={fadeUpTransition}
             >
-              How HEXNODE Works
+              How NODEXITY Works
             </motion.h2>
             <motion.p
               className="text-xl text-muted"

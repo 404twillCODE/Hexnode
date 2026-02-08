@@ -523,7 +523,7 @@ export default function CreateServerButton() {
                 Import existing server
               </label>
               <p className="text-xs text-text-muted font-mono mb-4">
-                Choose a folder that contains an existing Minecraft server (with server.jar, server.properties, etc.). It will be copied into Hexnode.
+                Choose a folder that contains an existing Minecraft server (with server.jar, server.properties, etc.). It will be copied into Nodexity.
               </p>
               <div className="space-y-4">
                 <div>
@@ -549,7 +549,7 @@ export default function CreateServerButton() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-text-muted font-mono mb-1">Server name (in Hexnode)</label>
+                  <label className="block text-xs text-text-muted font-mono mb-1">Server name (in Nodexity)</label>
                   <input
                     type="text"
                     value={importServerName}
@@ -725,7 +725,7 @@ export default function CreateServerButton() {
                             Import
                           </div>
                           <div className="text-xs text-text-muted font-mono">
-                            Import an existing server folder into Hexnode
+                            Import an existing server folder into Nodexity
                           </div>
                         </div>
                       </div>
@@ -999,7 +999,7 @@ export default function CreateServerButton() {
             >
               {isCreating ? "CREATING..." : "CREATE SERVER"}
             </motion.button>
-          ) )}
+          ) }
           <motion.button
             onClick={handleCancel}
             disabled={isCreating}

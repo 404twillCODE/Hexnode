@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Server Details",
-  description: "View and manage your HEXNODE server details.",
+  description: "View and manage your NODEXITY server details.",
 };
 
 export default function ServerDetailLayout({

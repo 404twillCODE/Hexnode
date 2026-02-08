@@ -9,7 +9,7 @@ export default function PrivacyPage() {
             PRIVACY
           </h1>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            Hexnode is local-first. We do not collect your server data, and
+            Nodexity is local first. We do not collect your server data, and
             your worlds and configurations remain on your machine by default.
           </p>
         </div>

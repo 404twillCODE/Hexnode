@@ -10,7 +10,7 @@ export default function TermsPage() {
           </h1>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
             These pre-release terms describe how the project can be used while
-            Hexnode is still in development.
+            Nodexity is still in development.
           </p>
         </div>
         <div className="space-y-6 border-t border-border pt-8 text-sm text-text-secondary sm:text-base">
@@ -24,7 +24,7 @@ export default function TermsPage() {
             <span className="text-text-primary">No warranty:</span> The software is provided as-is.
           </div>
           <div>
-            <span className="text-text-primary">Feedback:</span> By posting feedback, you allow us to use it to improve Hexnode.
+            <span className="text-text-primary">Feedback:</span> By posting feedback, you allow us to use it to improve Nodexity.
           </div>
           <div className="text-text-muted">
             Full terms will be published before public launch.

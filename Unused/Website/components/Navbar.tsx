@@ -13,7 +13,7 @@ export default function Navbar() {
         <Link href="/" className="flex items-center h-full">
           <Image
             src="/logo.png"
-            alt="HEXNODE Logo"
+            alt="NODEXITY Logo"
             width={120}
             height={30}
             priority

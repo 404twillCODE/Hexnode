@@ -366,7 +366,7 @@ export default function ServerList({ onServerClick }: ServerListProps) {
               NO SERVERS FOUND
             </h2>
             <p className="text-text-muted font-mono text-sm mb-6">
-              Create your first server to get started with HexNode
+              Create your first server to get started with Nodexity
             </p>
           </div>
           <CreateServerButton />

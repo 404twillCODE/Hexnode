@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Create Account",
-  description: "Create your HEXNODE account and start building without limits.",
+  description: "Create your NODEXITY account and start building without limits.",
 };
 
 export default function RegisterLayout({

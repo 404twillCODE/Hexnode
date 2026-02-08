@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const isProduction = process.env.NODE_ENV === 'production';
-const basePath = isProduction ? '/Hexnode' : '';
+const basePath = isProduction ? '/Nodexity' : '';
 
 const nextConfig = {
   reactStrictMode: true,
