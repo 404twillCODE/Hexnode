@@ -28,19 +28,8 @@ export function SystemTopBar() {
       }}
       className="w-full shrink-0 px-4 pt-4 pb-1 sm:px-6 lg:px-8"
     >
-      <div
-        className="mx-auto flex max-w-7xl items-center justify-between gap-8 rounded-md border-[3px] border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 sm:px-6 lg:px-8"
-        style={{
-          boxShadow: `
-            2px 2px 0 0 rgba(0,0,0,0.5),
-            inset 1px 1px 0 0 rgba(46, 242, 162, 0.25),
-            inset -1px -1px 0 0 rgba(0,0,0,0.3)
-          `,
-          borderStyle: "solid",
-          borderColor: "rgba(46, 242, 162, 0.35) #1a1a1a #1a1a1a rgba(46, 242, 162, 0.35)",
-        }}
-      >
-        <Link href="/" className="shrink-0 text-sm font-bold tracking-wide text-accent hover:text-accent/90 transition-colors font-mono uppercase">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-8 rounded-lg border border-[#333] bg-[#141414]/95 px-5 py-3 sm:px-6 lg:px-8 shadow-sm">
+        <Link href="/" className="shrink-0 text-sm font-semibold text-accent hover:text-accent/80 transition-colors font-mono">
           Nodexity
         </Link>
 
@@ -49,7 +38,7 @@ export function SystemTopBar() {
             <Link
               key={href}
               href={href}
-              className="hidden sm:flex items-center gap-2 text-sm font-medium text-[#CCCCCC] hover:text-accent transition-colors font-mono uppercase tracking-wide"
+              className="hidden sm:flex items-center gap-2 text-sm text-[#a0a0a0] hover:text-accent transition-colors font-mono"
             >
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} /></svg>
               {label}
@@ -59,7 +48,7 @@ export function SystemTopBar() {
             <button
               type="button"
               onClick={() => setMobileNavOpen((o) => !o)}
-              className="flex items-center gap-2 text-sm font-medium font-mono uppercase tracking-wide text-[#CCCCCC] hover:text-accent"
+              className="flex items-center gap-2 text-sm font-mono text-[#a0a0a0] hover:text-accent transition-colors"
               aria-expanded={mobileNavOpen}
               aria-haspopup="true"
             >
@@ -67,15 +56,9 @@ export function SystemTopBar() {
               <svg className={`h-4 w-4 transition-transform ${mobileNavOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
             {mobileNavOpen && (
-              <div
-                className="absolute right-0 top-full z-40 mt-2 w-48 rounded-md border-2 border-[#2a2a2a] bg-[#1a1a1a] py-2"
-                style={{
-                  boxShadow: "2px 2px 0 rgba(0,0,0,0.5), inset 1px 1px 0 rgba(46, 242, 162, 0.2)",
-                  borderColor: "rgba(46, 242, 162, 0.3) #1a1a1a #1a1a1a rgba(46, 242, 162, 0.3)",
-                }}
-              >
+              <div className="absolute right-0 top-full z-40 mt-2 w-44 rounded-lg border border-[#333] bg-[#141414]/98 py-1.5 shadow-lg">
                 {mainNav.map(({ href, label }) => (
-                  <Link key={href} href={href} className="block px-4 py-2.5 text-sm font-mono uppercase tracking-wide text-[#CCCCCC] hover:bg-accent/10 hover:text-accent rounded-sm mx-1 border border-transparent hover:border-accent/30" onClick={() => setMobileNavOpen(false)}>{label}</Link>
+                  <Link key={href} href={href} className="block px-4 py-2 text-sm font-mono text-[#a0a0a0] hover:bg-white/5 hover:text-accent transition-colors rounded-md mx-1" onClick={() => setMobileNavOpen(false)}>{label}</Link>
                 ))}
               </div>
             )}
