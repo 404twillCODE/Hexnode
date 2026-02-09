@@ -663,6 +663,41 @@ ipcMain.handle('playit-has-secret', async (event, serverName) => {
   }
 });
 
+ipcMain.handle('playit-import-config', async (event, serverName) => {
+  const win = BrowserWindow.getFocusedWindow() || mainWindow;
+  const result = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    title: 'Select playit config file',
+    filters: [
+      { name: 'Config files', extensions: ['toml', 'json', 'cfg'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  if (result.canceled || !result.filePaths.length) {
+    return { success: false, canceled: true };
+  }
+  const filePath = result.filePaths[0];
+  try {
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    // TOML: secret_key = "xxx" or secret_key = 'xxx'
+    // JSON: "secret_key": "xxx"
+    let secret = null;
+    const tomlMatch = content.match(/secret_key\s*=\s*["']([^"']+)["']/);
+    if (tomlMatch) secret = tomlMatch[1];
+    if (!secret) {
+      const jsonMatch = content.match(/"secret_key"\s*:\s*["']([^"']+)["']/);
+      if (jsonMatch) secret = jsonMatch[1];
+    }
+    if (!secret || !secret.trim()) {
+      return { success: false, error: 'No secret_key found in the selected file. Make sure you selected the config file that playit created after you set it up.' };
+    }
+    await playitManager.setStoredSecret(serverName, secret.trim());
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || 'Could not read file.' };
+  }
+});
+
 app.whenReady().then(() => {
   createWindow();
   serverManager.getAppSettings().then((settings) => {

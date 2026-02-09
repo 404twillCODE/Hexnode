@@ -36,6 +36,9 @@ const PLAYIT_ROOT = path.join(APP_DATA, 'playit');
 const PLAYIT_BIN_DIR = path.join(PLAYIT_ROOT, 'bin');
 const PLAYIT_SECRETS_FILE = path.join(PLAYIT_ROOT, 'secrets.enc');
 
+/** Single app-wide playit agent (sidebar "Connect playit.gg" page). */
+const PLAYIT_GLOBAL_ID = '__playit_global__';
+
 // In-memory state per server: { process, logCallbacks, status }
 const agents = new Map();
 
@@ -179,8 +182,6 @@ async function ensurePlayitAgentInstalled(onProgress) {
   }
   const downloadUrl = asset.browser_download_url;
   const downloadPath = path.join(PLAYIT_BIN_DIR, asset.name);
-
-  const downloadPath = path.join(PLAYIT_BIN_DIR, asset.name);
   if (onProgress) onProgress({ phase: 'downloading', message: 'Downloading playit agent...' });
   await downloadFile(downloadUrl, downloadPath);
   try {
@@ -264,9 +265,10 @@ async function startPlayit(serverName, options, mainWindow) {
   }
 
   const { path: agentPath } = await ensurePlayitAgentInstalled();
-  const config = await getServerConfig(serverName);
-  const localPort = config && config.port ? Number(config.port) : 25565;
-  const cwd = path.join(PLAYIT_ROOT, 'servers', serverName);
+  const isGlobal = serverName === PLAYIT_GLOBAL_ID;
+  const cwd = isGlobal
+    ? path.join(PLAYIT_ROOT, 'global')
+    : path.join(PLAYIT_ROOT, 'servers', serverName);
   await fs.mkdir(cwd, { recursive: true });
 
   const env = { ...process.env, SECRET_KEY: secret };
@@ -377,4 +379,5 @@ module.exports = {
   getStoredSecret,
   setStoredSecret,
   hasPlayitSecret,
+  PLAYIT_GLOBAL_ID,
 };

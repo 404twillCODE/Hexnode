@@ -109,6 +109,7 @@ declare global {
         getStatus: (serverName: string) => Promise<{ running: boolean; connected: boolean; publicAddress: string | null; lastError: string | null; claimUrl?: string | null }>;
         setSecret: (serverName: string, secret: string) => Promise<{ success: boolean; error?: string }>;
         hasSecret: (serverName: string) => Promise<{ hasSecret: boolean }>;
+        importConfigFromFile: (serverName: string) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
         onLog: (callback: (serverName: string, line: string, type: string) => void) => () => void;
       };
     };

@@ -8,7 +8,6 @@ import FileEditor from "./FileEditor";
 import PluginManager from "./PluginManager";
 import WorldManager from "./WorldManager";
 import ServerPropertiesEditor from "./ServerPropertiesEditor";
-import PlayitManager from "./PlayitManager";
 import { lineHasServerTimestamp } from "../utils/consoleUtils";
 
 interface ServerDetailViewProps {
@@ -16,7 +15,7 @@ interface ServerDetailViewProps {
   onBack: () => void;
 }
 
-type Tab = "dashboard" | "console" | "files" | "plugins" | "worlds" | "properties" | "playit" | "settings";
+type Tab = "dashboard" | "console" | "files" | "plugins" | "worlds" | "properties" | "settings";
 
 interface ConsoleLine {
   id: string;
@@ -810,7 +809,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
 
       {/* Tabs */}
       <div className="flex gap-2 px-4 sm:px-6 pt-3 sm:pt-4 border-b border-border bg-background-secondary overflow-x-auto min-w-0 shrink-0">
-        {(['dashboard', 'console', 'files', 'plugins', 'worlds', 'properties', 'playit', 'settings'] as Tab[])
+        {(['dashboard', 'console', 'files', 'plugins', 'worlds', 'properties', 'settings'] as Tab[])
           .filter(tab => {
             if (tab === 'plugins' && supportsPlugins === false) return false;
             return true;
@@ -830,8 +829,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
              tab === 'files' ? 'FILES' :
              tab === 'plugins' ? 'PLUGINS' :
              tab === 'worlds' ? 'WORLDS' :
-             tab === 'properties' ? 'PROPERTIES' :
-             tab === 'playit' ? 'EXTERNAL ACCESS' : 'SETTINGS'}
+             tab === 'properties' ? 'PROPERTIES' : 'SETTINGS'}
           </button>
         ))}
       </div>
@@ -1195,10 +1193,6 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
           </div>
         )}
 
-        {activeTab === "playit" && (
-          <PlayitManager serverName={serverName} />
-        )}
-
         {activeTab === "settings" && (
           <div className="h-full overflow-y-auto p-8 custom-scrollbar">
             <div className="max-w-2xl mx-auto">
@@ -1229,6 +1223,16 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                       <StatusBadge status={server.status} />
                     </div>
                   </div>
+                </div>
+
+                {/* External access */}
+                <div className="system-card p-6">
+                  <h3 className="text-sm font-semibold text-text-primary font-mono mb-2 uppercase tracking-wider">
+                    External access
+                  </h3>
+                  <p className="text-xs text-text-muted font-mono">
+                    To give this server a public address, use <strong className="text-text-secondary">Connect playit.gg</strong> in the sidebar. There you can run playit and add a Minecraft tunnel for port <strong className="text-text-primary">{server.port}</strong> in the playit.gg dashboard.
+                  </p>
                 </div>
 
                 {/* RAM Configuration */}

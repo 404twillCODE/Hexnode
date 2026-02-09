@@ -7,10 +7,11 @@ import Sidebar from "./components/Sidebar";
 import ServerList from "./components/ServerList";
 import ServerDetailView from "./components/ServerDetailView";
 import SettingsView from "./components/SettingsView";
+import PlayitConnectView from "./components/PlayitConnectView";
 import TitleBar from "./components/TitleBar";
 import { ToastProvider, useToast } from "./components/ToastProvider";
 
-type View = "servers" | "settings" | "server-detail";
+type View = "servers" | "settings" | "playit" | "server-detail";
 
 /** Listens for update-available and shows in-app toast (must be inside ToastProvider). */
 function UpdateNotifier() {
@@ -49,6 +50,8 @@ function App() {
   const [bootComplete, setBootComplete] = useState(false);
   const [currentView, setCurrentView] = useState<View>("servers");
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
+
+  const sidebarView = currentView === "server-detail" ? "servers" : currentView;
   const [appSettings, setAppSettings] = useState<import("@/hooks/useServerManager").AppSettings>({});
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const setupFinalizedRef = useRef(false);
@@ -229,6 +232,8 @@ function App() {
         return <ServerList onServerClick={handleServerClick} />;
       case "settings":
         return <SettingsView />;
+      case "playit":
+        return <PlayitConnectView />;
       default:
         return <ServerList onServerClick={handleServerClick} />;
     }
@@ -325,7 +330,7 @@ function App() {
                 <TitleBar />
                 <div className="flex flex-1 min-h-0 overflow-hidden">
                   {currentView !== "server-detail" && (
-                    <Sidebar currentView={currentView as "servers" | "settings"} onViewChange={setCurrentView} />
+                    <Sidebar currentView={sidebarView as "servers" | "settings" | "playit"} onViewChange={(v) => setCurrentView(v)} />
                   )}
                   <motion.main
                     key={currentView + (selectedServer || '')}

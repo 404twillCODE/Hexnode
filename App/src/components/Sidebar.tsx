@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-type View = "servers" | "settings";
+type View = "servers" | "settings" | "playit";
 
 interface SidebarProps {
   currentView: View;
@@ -50,8 +50,27 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
           </motion.button>
         ))}
       </nav>
-      <div className="px-3 py-2 border-t border-border">
-        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+      <div className="border-t border-border">
+        <div className="px-4 py-3">
+          <motion.button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onViewChange("playit");
+              (e.currentTarget as HTMLButtonElement).blur();
+            }}
+            className={`w-full text-left px-4 py-2.5 text-sm font-mono uppercase tracking-wider transition-all ${
+              currentView === "playit"
+                ? "text-accent bg-accent/10 border-l-2 border-accent"
+                : "text-text-secondary hover:text-text-primary hover:bg-background"
+            }`}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Connect playit.gg
+          </motion.button>
+        </div>
+        <div className="px-3 py-2 flex items-center justify-between gap-1.5 flex-wrap">
           <div className="text-[10px] text-text-muted font-mono uppercase tracking-wider leading-tight">
             <span>v0.1.0</span>
             <span className="opacity-50 mx-1">·</span>
