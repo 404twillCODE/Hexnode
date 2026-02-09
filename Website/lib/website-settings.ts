@@ -2,12 +2,10 @@ const STORAGE_KEY = "nodexity-website-settings";
 
 export interface WebsiteSettings {
   showBootSequence: boolean;
-  showDevBanner: boolean;
 }
 
 const defaults: WebsiteSettings = {
   showBootSequence: true,
-  showDevBanner: true,
 };
 
 function getStored(): WebsiteSettings {

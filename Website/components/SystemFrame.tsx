@@ -28,12 +28,16 @@ export function SystemTopBar() {
       }}
       className="w-full shrink-0 px-4 pt-4 pb-1 sm:px-6 lg:px-8"
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-8 rounded-lg border border-[#333] bg-[#141414]/95 px-5 py-3 sm:px-6 lg:px-8 shadow-sm">
+      <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-lg border border-[#333] bg-[#141414]/95 px-5 py-3 sm:px-6 lg:px-8 shadow-sm">
         <Link href="/" className="shrink-0 text-sm font-semibold text-accent hover:text-accent/80 transition-colors font-mono">
           Nodexity
         </Link>
 
-        <nav className="flex items-center gap-6" aria-label="Main">
+        <span className="absolute left-1/2 -translate-x-1/2 text-xs font-mono text-amber-500/90 hidden sm:inline" aria-hidden>
+          Website in active development
+        </span>
+
+        <nav className="flex items-center gap-6 sm:ml-auto" aria-label="Main">
           {mainNav.map(({ href, label, icon }) => (
             <Link
               key={href}

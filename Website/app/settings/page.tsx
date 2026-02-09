@@ -20,7 +20,7 @@ export default function SettingsPage() {
           WEBSITE SETTINGS
         </h1>
         <p className="mt-2 font-mono text-sm text-text-secondary">
-          Configure website preferences (e.g. boot sequence, banners). Stored in your browser.
+          Configure website preferences (e.g. boot sequence). Stored in your browser.
         </p>
       </motion.div>
 
@@ -46,19 +46,6 @@ export default function SettingsPage() {
                 checked={settings.showBootSequence}
                 onChange={(v) => setSetting("showBootSequence", v)}
                 ariaLabel="Show boot sequence"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <span className="block text-text-primary">Show development banner</span>
-                <p className="text-xs text-text-muted">
-                  Show &quot;Website in active development&quot; notice at the top
-                </p>
-              </div>
-              <ToggleSwitch
-                checked={settings.showDevBanner}
-                onChange={(v) => setSetting("showDevBanner", v)}
-                ariaLabel="Show development banner"
               />
             </div>
           </div>
