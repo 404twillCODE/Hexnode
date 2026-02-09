@@ -35,6 +35,7 @@ const APP_DATA = getAppDataPath();
 const PLAYIT_ROOT = path.join(APP_DATA, 'playit');
 const PLAYIT_BIN_DIR = path.join(PLAYIT_ROOT, 'bin');
 const PLAYIT_SECRETS_FILE = path.join(PLAYIT_ROOT, 'secrets.enc');
+const PLAYIT_LINKED_SERVER_FILE = path.join(PLAYIT_ROOT, 'linked-server.json');
 
 /** Single app-wide playit agent (sidebar "Connect playit.gg" page). */
 const PLAYIT_GLOBAL_ID = '__playit_global__';
@@ -117,6 +118,55 @@ async function setStoredSecret(serverName, secret) {
 async function hasPlayitSecret(serverName) {
   const s = await getStoredSecret(serverName);
   return !!s && s.length > 0;
+}
+
+/** Try to find playit config in common install locations and extract secret_key. */
+function getDefaultPlayitConfigPaths() {
+  const home = os.homedir();
+  const paths = [];
+  // Nodexity's own global run dir (agent may write config here after first claim)
+  paths.push(path.join(PLAYIT_ROOT, 'global', 'config.toml'));
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
+    const localAppData = process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
+    paths.push(path.join(appData, 'playit', 'config.toml'));
+    paths.push(path.join(localAppData, 'playit', 'config.toml'));
+    paths.push(path.join(appData, 'Playit', 'config.toml'));
+    paths.push(path.join(appData, 'playit-agent', 'config.toml'));
+    paths.push(path.join(localAppData, 'Playit', 'config.toml'));
+  } else if (process.platform === 'darwin') {
+    paths.push(path.join(home, 'Library', 'Application Support', 'playit', 'config.toml'));
+    paths.push(path.join(home, '.config', 'playit', 'config.toml'));
+  } else {
+    paths.push(path.join(home, '.config', 'playit', 'config.toml'));
+    paths.push(path.join(home, '.playit', 'config.toml'));
+  }
+  return paths;
+}
+
+function extractSecretFromConfigContent(content) {
+  if (!content || typeof content !== 'string') return null;
+  const tomlMatch = content.match(/secret_key\s*=\s*["']([^"']+)["']/);
+  if (tomlMatch) return tomlMatch[1].trim();
+  const jsonMatch = content.match(/"secret_key"\s*:\s*["']([^"']+)["']/);
+  if (jsonMatch) return jsonMatch[1].trim();
+  return null;
+}
+
+async function tryDetectPlayitConfig() {
+  const paths = getDefaultPlayitConfigPaths();
+  for (const filePath of paths) {
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      const secret = extractSecretFromConfigContent(content);
+      if (secret && secret.length > 0) return { success: true, secret };
+    } catch (e) {
+      if (e.code !== 'ENOENT') {
+        // Ignore missing file; continue to next path
+      }
+    }
+  }
+  return { success: false };
 }
 
 /** Get download URL and binary name for current platform. */
@@ -223,19 +273,127 @@ function downloadFile(url, filepath) {
   });
 }
 
+/** Strip ANSI escape codes; use space so words don't get concatenated (cursor moves etc.). */
+function stripAnsi(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/\u001b\[[0-9;]*[a-zA-Z]/g, ' ')
+    .replace(/\u001b\[?[0-9;]*[a-zA-Z]/g, ' ')
+    .replace(/\u001b\][^\u001b]*(\u001b\\)?/g, ' ')
+    .replace(/\u001b./g, ' ')
+    .replace(/[\u0000-\u001f]/g, ' ')
+    .trim();
+}
+
+/** Remove orphaned escape fragments that appear when ESC is lost (e.g. ?25l, ?1049h). */
+function stripEscapeFragments(str) {
+  return str
+    .replace(/\?[0-9]*[hl]/g, ' ')
+    .replace(/\?[0-9]+[a-zA-Z]/g, ' ')
+    .replace(/\?25[hl]/g, ' ');
+}
+
+/** Fix common word breaks caused by TTY cursor/overwrite sequences in playit output. */
+function prettifyLogLine(s) {
+  return s
+    .replace(/\bchecki g\b/gi, 'checking')
+    .replace(/\bsecret ey\b/gi, 'secret key')
+    .replace(/\bs arting\b/gi, 'starting')
+    .replace(/\btunn l\b/gi, 'tunnel')
+    .replace(/\btunnel connectio\b/gi, 'tunnel connection')
+    .replace(/\br gist red\b/gi, 'registered')
+    .replace(/\bregist red\b/gi, 'registered')
+    .replace(/\bsess on\b/gi, 'session')
+    .replace(/\bses ion\b/gi, 'session')
+    .replace(/\bex ired\b/gi, 'expired')
+    .replace(/\bxpir d\b/gi, 'expired')
+    .replace(/\bexp r d\b/gi, 'expired')
+    .replace(/\bssion exp r d\b/gi, 'session expired')
+    .replace(/\bssion expired\b/gi, 'session expired')
+    .replace(/\bcontr l\b/gi, 'control')
+    .replace(/\baddress _selector\b/gi, 'address_selector')
+    .replace(/\bconnected_contr l\b/gi, 'connected_control')
+    .replace(/\bmaintained_cont ol\b/gi, 'maintained_control')
+    .replace(/\bestabl shed\b/gi, 'established')
+    .replace(/\bestabl shed_control\b/gi, 'established_control')
+    .replace(/\bes ablished\b/gi, 'established')
+    .replace(/\bes ablished_control\b/gi, 'established_control')
+    .replace(/\bauth nticat\b/gi, 'authenticate')
+    .replace(/\bauthe ticate\b/gi, 'authenticate')
+    .replace(/\buthenticate\b/gi, 'authenticate')
+    .replace(/\b d uthenticate\b/gi, 'authenticate')
+    .replace(/\bmainta ned\b/gi, 'maintained')
+    .replace(/\bmai tained\b/gi, 'maintained')
+    .replace(/\bmainta ned_control\b/gi, 'maintained_control')
+    .replace(/\bmai tained_control\b/gi, 'maintained_control')
+    .replace(/\brequir s\b/gi, 'requires')
+    .replace(/\br qu res\b/gi, 'requires')
+    .replace(/\bad res\b/gi, 'address')
+    .replace(/\bd ta ls\b/gi, 'details')
+    .replace(/\bag nt\b/gi, 'agent')
+    .replace(/\b gent\b/gi, ' agent')
+    .replace(/\bplayit_ag nt\b/gi, 'playit_agent')
+    .replace(/\bau h\b/gi, 'auth')
+    .replace(/\butorun\b/gi, 'autorun')
+    .replace(/\bini ial\b/gi, 'initial')
+    .replace(/\bconn cted_con rol\b/gi, 'connected_control')
+    .replace(/\breg ster\b/gi, 'register')
+    .replace(/\bKeepAl v\b/gi, 'KeepAlive')
+    .replace(/\bnd KeepAl v\b/gi, 'send KeepAlive')
+    .replace(/\bnd KeepAlive\b/gi, 'send KeepAlive')
+    .replace(/\bchannel r qu res\b/gi, 'channel requires')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Clean a log line for display: strip ANSI, fragments, box-drawing; collapse spaces; drop noise. */
+function cleanLogLine(str) {
+  const s = stripEscapeFragments(stripAnsi(str))
+    .replace(/[┌┐└┘│─├┤┬┴┼]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // Skip lines that are only digits, only ? junk, or too short to be useful
+  if (!s || /^[\d\s?]+$/.test(s) || s.length < 3) return '';
+  return s;
+}
+
+/** Clean and prettify a log line for display. All lines get word-fix prettify. */
+function cleanLogLineForDisplay(str) {
+  const s = cleanLogLine(str);
+  if (!s) return '';
+  return prettifyLogLine(s);
+}
+
+/** Extract a short, readable error message from a log line (no ANSI, no box-drawing). */
+function cleanErrorLine(str) {
+  const s = stripEscapeFragments(stripAnsi(str));
+  const noBox = s.replace(/[┌┐└┘│─├┤┬┴┼]/g, ' ').replace(/\s+/g, ' ').trim();
+  const errMatch = noBox.match(/\[ERROR\]\s*(.+)/i) || noBox.match(/error[:\s]+(.+)/i);
+  const msg = errMatch ? errMatch[1].trim() : noBox.slice(0, 200);
+  return prettifyLogLine(msg);
+}
+
 /** Parse a line of playit output for connection status or public address. */
 function parsePlayitLine(line, state) {
-  const s = line.toString();
-  if (/error|failed|invalid|unauthorized/i.test(s)) {
-    state.lastError = s.trim();
+  const raw = line.toString();
+  const s = stripEscapeFragments(stripAnsi(raw));
+  if (!s) return;
+  if (/\[ERROR\]|error|failed|invalid|unauthorized/i.test(s)) {
+    state.lastError = cleanErrorLine(raw);
   }
-  // Common patterns: "Your connection: playit.gg:12345" or "tunnel at ..." or "Claim agent: https://..."
-  const claimMatch = s.match(/https?:\/\/[^\s]+playit\.gg[^\s]*/i);
-  if (claimMatch) state.claimUrl = claimMatch[0];
-  const addrMatch = s.match(/(?:connection|address|connect to|playit\.gg)[:\s]+([^\s]+\.playit\.gg(?::\d+)?|[a-z0-9.-]+\.playit\.gg(?::\d+)?)/i)
-    || s.match(/([a-z0-9.-]+\.playit\.gg(?::\d+)?)/i);
-  if (addrMatch) state.publicAddress = addrMatch[1].trim();
-  if (/connected|running|ready|listening/i.test(s)) state.connected = true;
+  // Claim/join URL: https://playit.gg/... (for first-time setup)
+  const claimMatch = s.match(/https?:\/\/[^\s"'<>)\]]+playit\.gg[^\s"'<>)\]]*/i);
+  if (claimMatch) state.claimUrl = claimMatch[0].trim();
+  // Public address: playit tunnel host (e.g. ability-personality.gl.joinmc.link or xxx.playit.gg)
+  const joinMcMatch = s.match(/([a-z0-9][a-z0-9.-]*\.(?:gl\.)?joinmc\.link)(?::\d+)?(?:\s*=>|$)/i);
+  if (joinMcMatch) state.publicAddress = joinMcMatch[1].trim();
+  const playitAddrMatch = s.match(/(?:connection|address|connect to|join|tunnel|your (?:server )?address is?)[:\s]+([a-z0-9.-]+\.playit\.gg(?::\d+)?)/i)
+    || s.match(/([a-z0-9.-]+\.playit\.gg(?::\d+)?)/i)
+    || s.match(/playit\.gg[:\s]+([a-z0-9.-]+(?::\d+)?)/i)
+    || s.match(/([a-z0-9][a-z0-9.-]*\.playit\.gg(?::\d+)?)/i)
+    || s.match(/(?:address|connect|join)[:\s]+([a-z0-9][a-z0-9.-]*(?::\d+)?)/i);
+  if (playitAddrMatch) state.publicAddress = playitAddrMatch[1].trim();
+  if (/connected|running|ready|listening|logged in|authenticated|tunnel (?:is )?active|=>\s*\d/i.test(s)) state.connected = true;
 }
 
 function getAgentState(serverName) {
@@ -257,12 +415,23 @@ function emitLog(serverName, line, type) {
 async function startPlayit(serverName, options, mainWindow) {
   const state = getAgentState(serverName);
   if (state.process) {
-    return { success: false, error: 'Playit agent is already running for this server.' };
+    return { success: false, error: 'Playit agent is already running.' };
   }
-  const secret = await getStoredSecret(serverName);
+  let secret = await getStoredSecret(serverName);
   if (!secret || !secret.trim()) {
-    return { success: false, error: 'No playit.gg secret key saved. Please add your secret key first.' };
+    if (serverName === PLAYIT_GLOBAL_ID) {
+      const detected = await tryDetectPlayitConfig();
+      if (detected.success) {
+        secret = detected.secret;
+        await setStoredSecret(serverName, secret);
+      }
+    }
   }
+  // For global agent: allow starting without secret so the agent can run and show a claim URL in the logs
+  if ((!secret || !secret.trim()) && serverName !== PLAYIT_GLOBAL_ID) {
+    return { success: false, error: 'No playit secret set for this server.' };
+  }
+  if (!secret) secret = '';
 
   const { path: agentPath } = await ensurePlayitAgentInstalled();
   const isGlobal = serverName === PLAYIT_GLOBAL_ID;
@@ -271,12 +440,14 @@ async function startPlayit(serverName, options, mainWindow) {
     : path.join(PLAYIT_ROOT, 'servers', serverName);
   await fs.mkdir(cwd, { recursive: true });
 
-  const env = { ...process.env, SECRET_KEY: secret };
+  const env = { ...process.env, SECRET_KEY: secret, NO_COLOR: '1', TERM: 'dumb' };
   const spawnOpts = {
     cwd,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
+    detached: false,
   };
+  // No console window on Windows: run playit in the background
   if (process.platform === 'win32') {
     spawnOpts.windowsHide = true;
     spawnOpts.creationFlags = 0x08000000; // CREATE_NO_WINDOW
@@ -301,7 +472,8 @@ async function startPlayit(serverName, options, mainWindow) {
     const lines = data.toString().split(/\r?\n/).filter(Boolean);
     lines.forEach((line) => {
       parsePlayitLine(line, state);
-      pushToRenderer(line, type);
+      const cleaned = cleanLogLineForDisplay(line);
+      if (cleaned.length > 0) pushToRenderer(cleaned, type);
     });
   };
 
@@ -368,6 +540,28 @@ function stopAllPlayit() {
   names.forEach((name) => stopPlayit(name));
 }
 
+/** Get the server id that the playit tunnel address is linked to (or null). */
+async function getLinkedServer() {
+  try {
+    const raw = await fs.readFile(PLAYIT_LINKED_SERVER_FILE, 'utf8');
+    const data = JSON.parse(raw);
+    return typeof data.serverId === 'string' && data.serverId.length > 0 ? data.serverId : null;
+  } catch (e) {
+    if (e.code === 'ENOENT') return null;
+    throw e;
+  }
+}
+
+/** Link the playit tunnel address to a Minecraft server by id. Pass null to unlink. */
+async function setLinkedServer(serverId) {
+  await fs.mkdir(PLAYIT_ROOT, { recursive: true });
+  if (!serverId || serverId.trim() === '') {
+    await fs.unlink(PLAYIT_LINKED_SERVER_FILE).catch(() => {});
+    return;
+  }
+  await fs.writeFile(PLAYIT_LINKED_SERVER_FILE, JSON.stringify({ serverId: serverId.trim() }), 'utf8');
+}
+
 module.exports = {
   ensurePlayitAgentInstalled,
   startPlayit,
@@ -379,5 +573,8 @@ module.exports = {
   getStoredSecret,
   setStoredSecret,
   hasPlayitSecret,
+  tryDetectPlayitConfig,
+  getLinkedServer,
+  setLinkedServer,
   PLAYIT_GLOBAL_ID,
 };

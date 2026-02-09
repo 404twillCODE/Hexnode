@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -180,6 +180,20 @@ function createWindow() {
   });
 
   mainWindow = win;
+
+  // Open external links (http/https) in the user's system browser, not in-app
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+  win.webContents.on('will-navigate', (event, url) => {
+    if (/^https?:\/\//i.test(url) && !url.startsWith('http://localhost') && !url.startsWith('file://')) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
 
   win.on('minimize', (event) => {
     if (minimizeToTrayEnabled && !isQuitting) {
@@ -661,6 +675,18 @@ ipcMain.handle('playit-has-secret', async (event, serverName) => {
   } catch (error) {
     return { hasSecret: false };
   }
+});
+
+ipcMain.handle('playit-get-linked-server', async () => {
+  try {
+    return { serverId: await playitManager.getLinkedServer() };
+  } catch (error) {
+    return { serverId: null };
+  }
+});
+
+ipcMain.handle('playit-set-linked-server', async (event, serverId) => {
+  await playitManager.setLinkedServer(serverId || null);
 });
 
 ipcMain.handle('playit-import-config', async (event, serverName) => {

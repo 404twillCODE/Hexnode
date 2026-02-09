@@ -5,11 +5,11 @@ import { useToast } from "./ToastProvider";
 const PLAYIT_GLOBAL_ID = "__playit_global__";
 const MAX_LOG_LINES = 200;
 const PLAYIT_DOWNLOAD = "https://playit.gg/download";
-const PLAYIT_DASHBOARD = "https://playit.gg/dashboard";
+const PLAYIT_DASHBOARD = "https://playit.gg/account/agents";
+
+type ServerItem = { id: string; name: string };
 
 export default function PlayitConnectView() {
-  const [hasSecret, setHasSecret] = useState(false);
-  const [importingConfig, setImportingConfig] = useState(false);
   const [status, setStatus] = useState<{
     running: boolean;
     connected: boolean;
@@ -20,19 +20,33 @@ export default function PlayitConnectView() {
   const [starting, setStarting] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [logLines, setLogLines] = useState<{ id: number; line: string; type: string }[]>([]);
+  const [servers, setServers] = useState<ServerItem[]>([]);
+  const [linkedServerId, setLinkedServerId] = useState<string | null>(null);
+  const [linkSelectId, setLinkSelectId] = useState<string>("");
+  const [linking, setLinking] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
   const { notify } = useToast();
 
   const api = window.electronAPI?.playit;
+  const serverApi = window.electronAPI?.server;
 
   useEffect(() => {
     if (!api) return;
     api.getStatus(PLAYIT_GLOBAL_ID).then(setStatus);
-    api.hasSecret(PLAYIT_GLOBAL_ID).then((r: { hasSecret: boolean }) => setHasSecret(r.hasSecret));
     const interval = setInterval(() => {
       api.getStatus(PLAYIT_GLOBAL_ID).then(setStatus);
     }, 2000);
     return () => clearInterval(interval);
+  }, [api]);
+
+  useEffect(() => {
+    if (!serverApi?.listServers) return;
+    serverApi.listServers().then((list: ServerItem[]) => setServers(list || []));
+  }, [serverApi]);
+
+  useEffect(() => {
+    if (!api?.getLinkedServer) return;
+    api.getLinkedServer().then((r: { serverId: string | null }) => setLinkedServerId(r?.serverId ?? null));
   }, [api]);
 
   useEffect(() => {
@@ -52,36 +66,6 @@ export default function PlayitConnectView() {
       logEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [logLines.length]);
-
-  const handleImportConfig = async () => {
-    if (!api) return;
-    if (typeof api.importConfigFromFile !== "function") {
-      notify({
-        type: "error",
-        title: "Import unavailable",
-        message: "Restart Nodexity fully (quit and reopen) to use this.",
-      });
-      return;
-    }
-    setImportingConfig(true);
-    try {
-      const result = await api.importConfigFromFile(PLAYIT_GLOBAL_ID);
-      if (result.canceled) {
-        setImportingConfig(false);
-        return;
-      }
-      if (result.success) {
-        setHasSecret(true);
-        notify({ type: "success", title: "Config linked", message: "Playit is linked. You can start the agent below." });
-      } else {
-        notify({ type: "error", title: "Import failed", message: result.error || "Could not read config file." });
-      }
-    } catch (e) {
-      notify({ type: "error", title: "Import failed", message: e instanceof Error ? e.message : "Unknown error" });
-    } finally {
-      setImportingConfig(false);
-    }
-  };
 
   const handleStart = async () => {
     if (!api) return;
@@ -127,6 +111,36 @@ export default function PlayitConnectView() {
     notify({ type: "success", title: "Copied", message: "Address copied to clipboard." });
   };
 
+  const handleLinkToServer = async () => {
+    if (!api?.setLinkedServer || !linkSelectId) return;
+    setLinking(true);
+    try {
+      await api.setLinkedServer(linkSelectId);
+      setLinkedServerId(linkSelectId);
+      const name = servers.find((s) => s.id === linkSelectId)?.name ?? linkSelectId;
+      notify({ type: "success", title: "Linked", message: `Address linked to ${name}.` });
+    } catch (e) {
+      notify({ type: "error", title: "Link failed", message: e instanceof Error ? e.message : "Unknown error" });
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handleUnlink = async () => {
+    if (!api?.setLinkedServer) return;
+    setLinking(true);
+    try {
+      await api.setLinkedServer(null);
+      setLinkedServerId(null);
+      setLinkSelectId("");
+      notify({ type: "info", title: "Unlinked", message: "Address is no longer linked to a server." });
+    } catch (e) {
+      notify({ type: "error", title: "Unlink failed", message: e instanceof Error ? e.message : "Unknown error" });
+    } finally {
+      setLinking(false);
+    }
+  };
+
   if (!api) {
     return (
       <div className="h-full overflow-y-auto p-8">
@@ -164,34 +178,9 @@ export default function PlayitConnectView() {
               <strong className="text-text-primary">Set up your tunnel</strong> in the playit app (claim your agent in the browser if asked, then add a Minecraft tunnel for port 25565 or your server’s port).
             </li>
             <li>
-              <strong className="text-text-primary">Close the playit app</strong> completely. Nodexity will run the agent for you from here.
-            </li>
-            <li>
-              Below, click <strong className="text-text-primary">Select config file</strong> and choose the config file playit created (often in your user folder or playit’s data folder — e.g. <code className="bg-background-secondary px-1 rounded text-xs">config.toml</code>). That links your setup to Nodexity.
+              <strong className="text-text-primary">Close the playit app</strong> completely. Then click <strong className="text-text-primary">Start agent</strong> below — Nodexity will find your playit setup and run the agent in the background. The address connected to your playit account will appear here when the agent is running.
             </li>
           </ol>
-        </div>
-
-        {/* Link config */}
-        <div className="system-card p-6">
-          <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-2">
-            Link your playit config
-          </h2>
-          <p className="text-xs text-text-muted mb-4">
-            After you’ve installed playit and set up your tunnel, select the config file so Nodexity can run the agent. You only need to do this once.
-          </p>
-          <motion.button
-            onClick={handleImportConfig}
-            disabled={importingConfig}
-            className="btn-primary text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {importingConfig ? "SELECTING..." : "SELECT CONFIG FILE"}
-          </motion.button>
-          {hasSecret && (
-            <p className="text-xs text-green-400/90 mt-2">Config linked. Start the agent below.</p>
-          )}
         </div>
 
         {/* Start / Stop */}
@@ -199,11 +188,14 @@ export default function PlayitConnectView() {
           <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
             Run playit through Nodexity
           </h2>
+          <p className="text-xs text-text-muted mb-3">
+            Start the agent to run playit in the background. It will use your existing playit setup and the address for your account will show below when connected.
+          </p>
           <div className="flex flex-wrap gap-2 items-center">
             {!status.running ? (
               <motion.button
                 onClick={handleStart}
-                disabled={starting || !hasSecret}
+                disabled={starting}
                 className="btn-primary text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -220,9 +212,6 @@ export default function PlayitConnectView() {
               >
                 {stopping ? "STOPPING..." : "STOP AGENT"}
               </motion.button>
-            )}
-            {!hasSecret && (
-              <span className="text-xs text-text-muted">Link your config file above first.</span>
             )}
           </div>
         </div>
@@ -243,6 +232,12 @@ export default function PlayitConnectView() {
                 {status.connected ? "Yes" : "No"}
               </span>
             </div>
+            {status.publicAddress && (
+              <div className="col-span-2">
+                <span className="text-text-muted">Public address: </span>
+                <span className="text-accent font-mono text-xs break-all">{status.publicAddress}</span>
+              </div>
+            )}
             {status.lastError && (
               <div className="col-span-2">
                 <span className="text-text-muted">Last error: </span>
@@ -255,9 +250,14 @@ export default function PlayitConnectView() {
         {/* Public address */}
         {(status.publicAddress || status.claimUrl) && (
           <div className="system-card p-6">
-            <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">Public address</h2>
+            <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
+              {status.publicAddress ? "Public address" : "Claim your agent"}
+            </h2>
+            {status.claimUrl && !status.publicAddress && (
+              <p className="text-xs text-text-muted mb-2">First time? Open this link in your browser to claim the agent, then your address will appear here.</p>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
-              <code className="flex-1 min-w-0 truncate bg-background-secondary px-3 py-2 rounded text-sm text-accent">
+              <code className="flex-1 min-w-0 truncate bg-background-secondary px-3 py-2 rounded text-sm text-accent break-all">
                 {status.publicAddress || status.claimUrl}
               </code>
               <motion.button
@@ -269,6 +269,53 @@ export default function PlayitConnectView() {
                 COPY
               </motion.button>
             </div>
+
+            {status.publicAddress && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider mb-2">Link to Minecraft server</h3>
+                <p className="text-xs text-text-muted mb-2">Show this address on a server’s dashboard so players know where to connect.</p>
+                {linkedServerId ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-text-secondary">
+                      Linked to: <strong className="text-text-primary">{servers.find((s) => s.id === linkedServerId)?.name ?? linkedServerId}</strong>
+                    </span>
+                    <motion.button
+                      type="button"
+                      onClick={handleUnlink}
+                      disabled={linking}
+                      className="btn-secondary text-xs px-3 py-1.5"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {linking ? "…" : "Unlink"}
+                    </motion.button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={linkSelectId}
+                      onChange={(e) => setLinkSelectId(e.target.value)}
+                      className="bg-background border border-border rounded px-3 py-2 text-sm text-text-primary font-mono focus:outline-none focus:border-accent/50 min-w-[140px]"
+                    >
+                      <option value="">Select server</option>
+                      {servers.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <motion.button
+                      type="button"
+                      onClick={handleLinkToServer}
+                      disabled={linking || !linkSelectId}
+                      className="btn-primary text-xs px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {linking ? "Linking…" : "Link to server"}
+                    </motion.button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -287,13 +334,28 @@ export default function PlayitConnectView() {
             {logLines.length === 0 && status.running && (
               <div className="text-text-muted">Waiting for output...</div>
             )}
-            {logLines.map(({ id, line, type }) => (
-              <div key={id} className={`py-0.5 break-all ${type === "stderr" ? "text-red-400/90" : ""}`}>
-                {line}
-              </div>
-            ))}
+            {logLines.map(({ id, line }) => {
+              const isError = line.startsWith("[ERROR]");
+              const isWarn = line.startsWith("[WARN]");
+              return (
+                <div
+                  key={id}
+                  className={`py-0.5 break-all ${isError ? "text-red-400/90" : isWarn ? "text-amber-400/90" : ""}`}
+                >
+                  {line}
+                </div>
+              );
+            })}
             <div ref={logEndRef} />
           </div>
+          <details className="mt-3 text-xs text-text-muted">
+            <summary className="cursor-pointer hover:text-text-secondary">What these messages mean</summary>
+            <ul className="mt-2 space-y-1 list-disc list-inside text-text-muted">
+              <li><span className="text-red-400/90">[ERROR] failed to ping tunnel server</span> — Usually a temporary network or firewall issue; the agent will retry. If it keeps failing, check your internet and try again.</li>
+              <li><span className="text-amber-400/90">[WARN] session expired</span> — The control connection was refreshed. Normal; no action needed.</li>
+              <li><span className="text-text-secondary">Agent exited (SIGTERM)</span> — You (or the app) stopped the agent. Start again when you need it.</li>
+            </ul>
+          </details>
         </div>
       </div>
     </div>

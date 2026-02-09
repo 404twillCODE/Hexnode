@@ -50,27 +50,25 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
           </motion.button>
         ))}
       </nav>
-      <div className="border-t border-border">
-        <div className="px-4 py-3">
-          <motion.button
+      <div>
+        <div className="px-3 pt-3 pb-2">
+          <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
               onViewChange("playit");
               (e.currentTarget as HTMLButtonElement).blur();
             }}
-            className={`w-full text-left px-4 py-2.5 text-sm font-mono uppercase tracking-wider transition-all ${
+            className={`w-full text-center px-3 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-all duration-150 border ${
               currentView === "playit"
-                ? "text-accent bg-accent/10 border-l-2 border-accent"
-                : "text-text-secondary hover:text-text-primary hover:bg-background"
+                ? "text-accent border-accent/50 bg-accent/10"
+                : "text-text-secondary border-border bg-background/50 hover:border-accent/30 hover:text-text-primary hover:bg-background"
             }`}
-            whileHover={{ x: 4 }}
-            whileTap={{ scale: 0.98 }}
           >
             Connect playit.gg
-          </motion.button>
+          </button>
         </div>
-        <div className="px-3 py-2 flex items-center justify-between gap-1.5 flex-wrap">
+        <div className="px-3 py-2 bg-background/30 flex items-center justify-between gap-1.5 flex-wrap">
           <div className="text-[10px] text-text-muted font-mono uppercase tracking-wider leading-tight">
             <span>v0.1.0</span>
             <span className="opacity-50 mx-1">·</span>

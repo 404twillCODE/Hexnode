@@ -92,6 +92,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setSecret: (serverName, secret) => ipcRenderer.invoke('playit-set-secret', serverName, secret),
     hasSecret: (serverName) => ipcRenderer.invoke('playit-has-secret', serverName),
     importConfigFromFile: (serverName) => ipcRenderer.invoke('playit-import-config', serverName),
+    getLinkedServer: () => ipcRenderer.invoke('playit-get-linked-server'),
+    setLinkedServer: (serverId) => ipcRenderer.invoke('playit-set-linked-server', serverId),
     onLog: (callback) => {
       const handler = (event, data) => callback(data.serverName, data.line, data.type);
       ipcRenderer.on('playit-log', handler);

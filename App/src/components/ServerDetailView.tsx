@@ -149,6 +149,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const [playerCount, setPlayerCount] = useState<{ online: number; max: number } | null>(null);
   const [usageHistory, setUsageHistory] = useState<{ timestamps: number[]; cpu: number[]; ramMB: number[] }>({ timestamps: [], cpu: [], ramMB: [] });
   const [graphRange, setGraphRange] = useState<(typeof GRAPH_RANGE_OPTIONS)[number]['id']>('5m');
+  const [playitConnectAddress, setPlayitConnectAddress] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -205,7 +206,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
     });
   }, [activeTab, serverUsage?.cpu, serverUsage?.ramMB]);
 
-  // Load dashboard data when dashboard tab is active (system info, player count)
+  // Load dashboard data when dashboard tab is active (system info, player count, playit link)
   useEffect(() => {
     if (activeTab !== 'dashboard') return;
     let cancelled = false;
@@ -231,6 +232,36 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       clearInterval(interval);
     };
   }, [activeTab, serverName, isRunning, getPlayerCount]);
+
+  // Playit: show connect address when this server is linked to the playit tunnel
+  useEffect(() => {
+    const playit = window.electronAPI?.playit;
+    if (!playit?.getStatus || !playit?.getLinkedServer) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [status, link] = await Promise.all([
+          playit.getStatus('__playit_global__'),
+          playit.getLinkedServer()
+        ]);
+        if (cancelled) return;
+        const linkedId = link?.serverId ?? null;
+        if (linkedId === serverName && status?.publicAddress) {
+          setPlayitConnectAddress(status.publicAddress);
+        } else {
+          setPlayitConnectAddress(null);
+        }
+      } catch {
+        if (!cancelled) setPlayitConnectAddress(null);
+      }
+    };
+    load();
+    const interval = setInterval(load, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [serverName]);
 
   // Initialize RAM from server
   useEffect(() => {
@@ -954,6 +985,24 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                     {systemInfo?.cpu.tempCelsius != null ? `${systemInfo.cpu.tempCelsius} °C` : '—'}
                   </div>
                 </div>
+                {playitConnectAddress && (
+                  <div className="border border-accent/30 rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden col-span-2 sm:col-span-3 lg:col-span-6">
+                    <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">Connect (playit.gg)</div>
+                    <div className="text-accent font-mono text-sm break-all truncate" title={playitConnectAddress}>
+                      {playitConnectAddress}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(playitConnectAddress);
+                        notify({ type: 'success', title: 'Copied', message: 'Address copied to clipboard.' });
+                      }}
+                      className="mt-1.5 text-xs text-accent hover:underline font-mono"
+                    >
+                      Copy address
+                    </button>
+                  </div>
+                )}
               </div>
           </div>
         )}
