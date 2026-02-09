@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
+// Use /Nodexity basePath only for GitHub Pages; on Vercel use root (VERCEL=1).
 const isProduction = process.env.NODE_ENV === 'production';
-const basePath = isProduction ? '/Nodexity' : '';
+const isVercel = process.env.VERCEL === '1';
+const basePath = isVercel ? '' : (isProduction ? '/Nodexity' : '');
 
 const nextConfig = {
   reactStrictMode: true,
