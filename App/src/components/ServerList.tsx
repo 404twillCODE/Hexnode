@@ -270,7 +270,7 @@ export default function ServerList({ onServerClick }: ServerListProps) {
       }
     };
 
-    const handleSettingsUpdate = (updated: any) => {
+    const handleSettingsUpdate = (updated: import("../hooks/useServerManager").AppSettings) => {
       const nextRate = Math.max(1, Math.min(10, Number(updated?.statusRefreshRate ?? 2)));
       setRefreshMs(nextRate * 1000);
     };

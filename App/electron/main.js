@@ -455,6 +455,10 @@ ipcMain.handle('write-server-file', async (event, serverName, filePath, content)
   return await serverManager.writeServerFile(serverName, filePath, content);
 });
 
+ipcMain.handle('get-server-config', async (event, serverName) => {
+  return await serverManager.getServerConfig(serverName);
+});
+
 ipcMain.handle('read-server-file-binary', async (event, serverName, filePath) => {
   return await serverManager.readServerFileBinary(serverName, filePath);
 });
@@ -483,13 +487,13 @@ ipcMain.handle('check-jar-supports-plugins', async (event, serverName) => {
   try {
     if (!serverManager.checkJarSupportsPlugins) {
       console.error('checkJarSupportsPlugins function not found in serverManager');
-      return false;
+      return { supportsPlugins: false };
     }
     const result = await serverManager.checkJarSupportsPlugins(serverName);
-    return result;
+    return typeof result === 'object' && result !== null && 'supportsPlugins' in result ? result : { supportsPlugins: !!result };
   } catch (error) {
     console.error('Error in check-jar-supports-plugins handler:', error);
-    return false;
+    return { supportsPlugins: false };
   }
 });
 

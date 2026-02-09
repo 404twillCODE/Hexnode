@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 
 export type NbtTag = {
   type: string;
@@ -37,7 +36,8 @@ function setNbtValueAtPath(root: NbtTag, path: (string | number)[], newValue: un
   return root;
 }
 
-function getNbtValueAtPath(root: NbtTag, path: (string | number)[]): unknown {
+/** Get NBT value at path (kept for future use). */
+export function getNbtValueAtPath(root: NbtTag, path: (string | number)[]): unknown {
   if (path.length === 0) return root.value;
   const [head, ...rest] = path;
   if (root.type === 'compound' && typeof head === 'string' && root.value && typeof root.value === 'object' && !Array.isArray(root.value)) {

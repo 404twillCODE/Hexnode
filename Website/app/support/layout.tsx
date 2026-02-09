@@ -49,6 +49,12 @@ export default async function SupportLayout({
               Chat
             </div>
             <Link
+              href="/support/chat/public"
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-text-secondary hover:bg-background hover:text-text-primary"
+            >
+              Public chat
+            </Link>
+            <Link
               href="/support/chat"
               className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-text-secondary hover:bg-background hover:text-text-primary"
             >

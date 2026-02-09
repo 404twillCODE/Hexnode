@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSession } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { supabase } from "@/lib/supabase";
 import { ensureCategories } from "@/lib/forum";
 import { NewThreadButton } from "./NewThreadButton";
@@ -31,7 +31,7 @@ type CategoryRow = {
 
 export default async function SupportPage() {
   await ensureCategories();
-  const session = await getSession();
+  const user = await getCurrentUser();
 
   const { data: categoriesRaw } = await supabase
     .from("Category")
@@ -64,7 +64,7 @@ export default async function SupportPage() {
             Pick a category on the left or browse below. Log in to create threads and reply.
           </p>
         </div>
-        {session && (
+        {user && (
           <NewThreadButton categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name }))} />
         )}
       </div>
@@ -113,7 +113,7 @@ export default async function SupportPage() {
         ))}
       </div>
 
-      {!session && (
+      {!user && (
         <p className="mt-6 rounded-lg border border-border bg-background-secondary/50 px-4 py-3 text-sm text-text-secondary">
           <Link href="/login?callbackUrl=/support" className="text-accent hover:underline">Log in</Link>
           {" or "}

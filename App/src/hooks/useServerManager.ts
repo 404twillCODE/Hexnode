@@ -1,6 +1,31 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '../components/ToastProvider';
 
+/** App settings shape from getAppSettings / saveAppSettings */
+export interface AppSettings {
+  defaultRAM?: number;
+  defaultPort?: number;
+  serversDirectory?: string;
+  backupsDirectory?: string;
+  consoleAutoScroll?: boolean;
+  showBootSequence?: boolean;
+  reduceAnimations?: boolean;
+  devMode?: boolean;
+  defaultServerType?: string;
+  defaultVersion?: string;
+  minimizeToTray?: boolean;
+  startWithWindows?: boolean;
+  autoBackup?: boolean;
+  backupInterval?: number;
+  maxBackups?: number;
+  maxConsoleLines?: number;
+  statusRefreshRate?: number;
+  consoleWordWrap?: boolean;
+  consoleFontSize?: number;
+  notifications?: { updates?: boolean; statusChanges?: boolean; crashes?: boolean };
+  [key: string]: unknown;
+}
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -8,6 +33,8 @@ declare global {
         minimize: () => void;
         maximize: () => void;
         close: () => void;
+        onClosePrompt: (callback: () => void) => () => void;
+        respondToClosePrompt: (confirmed: boolean) => void;
       };
       server: {
         checkJava: () => Promise<{ installed: boolean; version: string | null }>;
@@ -30,14 +57,15 @@ declare global {
           hostname: string;
         }>;
         isSetupComplete: () => Promise<boolean>;
-        getAppSettings: () => Promise<any>;
-        saveAppSettings: (settings: any) => Promise<void>;
-        completeSetup: (settings?: any) => Promise<void>;
+        getAppSettings: () => Promise<AppSettings>;
+        saveAppSettings: (settings: AppSettings) => Promise<AppSettings>;
+        completeSetup: (settings?: AppSettings) => Promise<void>;
         resetSetup: () => Promise<void>;
         showFolderDialog: (options: { title: string; defaultPath?: string }) => Promise<{ success: boolean; path?: string; canceled?: boolean }>;
         listServers: () => Promise<Server[]>;
         findAvailablePort: (startPort: number) => Promise<number | null>;
         createServer: (serverName: string, serverType: string, version?: string | null, ramGB?: number, port?: number | null, manualJarPath?: string | null, displayName?: string | null) => Promise<{ success: boolean; error?: string; path?: string; jarFile?: string; version?: string; build?: number }>;
+        importServer: (sourceFolderPath: string, serverName: string) => Promise<{ success: boolean; error?: string }>;
         startServer: (serverName: string, ramGB?: number) => Promise<{ success: boolean; error?: string; pid?: number }>;
         stopServer: (serverName: string) => Promise<{ success: boolean; error?: string }>;
         restartServer: (serverName: string, ramGB?: number) => Promise<{ success: boolean; error?: string; pid?: number }>;
@@ -49,10 +77,19 @@ declare global {
         sendCommand: (serverName: string, command: string) => Promise<{ success: boolean; error?: string }>;
         getServerFiles: (serverName: string, filePath?: string) => Promise<{ success: boolean; items?: Array<{ name: string; type: 'file' | 'directory'; size: number; modified: string; path: string }>; error?: string }>;
         readServerFile: (serverName: string, filePath: string) => Promise<{ success: boolean; content?: string; error?: string }>;
+        readServerFileBinary: (serverName: string, filePath: string) => Promise<{ success: boolean; contentBase64?: string; wasGzipped?: boolean; error?: string }>;
         writeServerFile: (serverName: string, filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
-        listPlugins: (serverName: string) => Promise<{ success: boolean; plugins?: Array<{ name: string; size: number; modified: string }>; error?: string }>;
+        writeServerFileBinary: (serverName: string, filePath: string, contentBase64: string, wasGzipped?: boolean) => Promise<{ success: boolean; error?: string }>;
+        readServerFileNbt: (serverName: string, filePath: string) => Promise<{ success: boolean; parsed?: unknown; type?: string; error?: string }>;
+        writeServerFileNbt: (serverName: string, filePath: string, parsed: unknown, nbtFormat: string) => Promise<{ success: boolean; error?: string }>;
+        listPlugins: (serverName: string) => Promise<{ success: boolean; plugins?: Array<{ name: string; size: number; modified: string }>; supportsPlugins?: boolean; error?: string }>;
         deletePlugin: (serverName: string, pluginName: string) => Promise<{ success: boolean; error?: string }>;
+        checkJarSupportsPlugins: (serverName: string) => Promise<{ supportsPlugins: boolean }>;
+        getModrinthPlugins: (minecraftVersion: string | null, limit?: number) => Promise<Array<{ id: string; name: string; slug: string; [key: string]: unknown }>>;
+        installModrinthPlugin: (serverName: string, projectId: string, minecraftVersion: string) => Promise<{ success: boolean; error?: string }>;
+        getServerConfig: (serverName: string) => Promise<{ version?: string; path?: string; [key: string]: unknown } | null>;
         listWorlds: (serverName: string) => Promise<{ success: boolean; worlds?: Array<{ name: string; size: number; modified: string }>; error?: string }>;
+        deleteWorld: (serverName: string, worldName: string) => Promise<{ success: boolean; error?: string }>;
         getServerProperties: (serverName: string) => Promise<{ success: boolean; properties?: Record<string, string>; error?: string }>;
         updateServerProperties: (serverName: string, properties: Record<string, string>) => Promise<{ success: boolean; error?: string }>;
         deleteServer: (serverName: string) => Promise<{ success: boolean; error?: string }>;
@@ -61,7 +98,7 @@ declare global {
         getServersDiskUsage: () => Promise<{ success: boolean; totalSize?: number; totalSizeGB?: number; serverSizes?: Record<string, number>; error?: string }>;
         onServerLog: (callback: (data: { serverName: string; type: 'stdout' | 'stderr'; data: string }) => void) => void;
         removeServerLogListener: () => void;
-        onAppSettingsUpdated: (callback: (data: any) => void) => () => void;
+        onAppSettingsUpdated: (callback: (data: AppSettings) => void) => () => void;
         onUpdateAvailable: (callback: (data: { version: string; url: string }) => void) => () => void;
       };
     };
@@ -89,7 +126,7 @@ export function useServerManager() {
   const [servers, setServers] = useState<Server[]>([]);
   const [javaStatus, setJavaStatus] = useState<JavaStatus>({ installed: false, version: null, loading: true });
   const [loading, setLoading] = useState(true);
-  const [appSettings, setAppSettings] = useState<any>({});
+  const [appSettings, setAppSettings] = useState<AppSettings>({});
   const [refreshMs, setRefreshMs] = useState(2000);
   const prevServersRef = useRef<Server[]>([]);
   const userStopRef = useRef<Map<string, number>>(new Map());
@@ -124,7 +161,7 @@ export function useServerManager() {
       }
     };
 
-    const handleSettingsUpdate = (updated: any) => {
+    const handleSettingsUpdate = (updated: AppSettings) => {
       setAppSettings(updated || {});
       const nextRate = Math.max(1, Math.min(10, Number(updated?.statusRefreshRate ?? 2)));
       setRefreshMs(nextRate * 1000);
@@ -173,7 +210,7 @@ export function useServerManager() {
           const prevServer = prevServersRef.current.find((item) => item.id === nextServer.id);
           if (!prevServer || prevServer.status === nextServer.status) return;
 
-          if (appSettings.notifications.statusChanges !== false) {
+          if (appSettings.notifications?.statusChanges !== false) {
             if (nextServer.status === 'RUNNING') {
               notifyIfAllowed('Server started', `${nextServer.name} is now running.`, 'success');
             } else if (nextServer.status === 'STOPPED') {
@@ -181,7 +218,7 @@ export function useServerManager() {
             }
           }
 
-          if (appSettings.notifications.crashes && prevServer.status === 'RUNNING' && nextServer.status === 'STOPPED') {
+          if (appSettings.notifications?.crashes && prevServer.status === 'RUNNING' && nextServer.status === 'STOPPED') {
             if (!wasUserStop(nextServer.id)) {
               notifyIfAllowed('Server crash detected', `${nextServer.name} stopped unexpectedly.`, 'error');
             }
@@ -204,8 +241,8 @@ export function useServerManager() {
         await loadServers();
       }
       return result;
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, [loadServers]);
 
@@ -227,8 +264,8 @@ export function useServerManager() {
         await loadServers();
       }
       return result;
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, [loadServers]);
 
@@ -240,8 +277,8 @@ export function useServerManager() {
         await loadServers();
       }
       return result;
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, [loadServers]);
 
@@ -254,8 +291,8 @@ export function useServerManager() {
         await loadServers();
       }
       return result;
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, [loadServers]);
 
@@ -268,8 +305,8 @@ export function useServerManager() {
         await loadServers();
       }
       return result;
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, [loadServers]);
 
@@ -282,8 +319,8 @@ export function useServerManager() {
         await loadServers();
       }
       return result;
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, [loadServers]);
 
@@ -291,8 +328,8 @@ export function useServerManager() {
     if (!window.electronAPI) return { success: false, error: 'Electron API not available' };
     try {
       return await window.electronAPI.server.getPlayerCount(serverName);
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, []);
 
@@ -300,8 +337,8 @@ export function useServerManager() {
     if (!window.electronAPI) return { success: false, error: 'Electron API not available' };
     try {
       return await window.electronAPI.server.sendCommand(serverName, command);
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, []);
 
@@ -313,8 +350,8 @@ export function useServerManager() {
         await loadServers();
       }
       return result;
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, [loadServers]);
 
@@ -322,8 +359,8 @@ export function useServerManager() {
     if (!window.electronAPI) return { success: false, error: 'Electron API not available' };
     try {
       return await window.electronAPI.server.getServerUsage(serverName);
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, []);
 
@@ -331,8 +368,8 @@ export function useServerManager() {
     if (!window.electronAPI) return { success: false, error: 'Electron API not available' };
     try {
       return await window.electronAPI.server.getAllServersUsage();
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, []);
 
@@ -340,8 +377,8 @@ export function useServerManager() {
     if (!window.electronAPI) return { success: false, error: 'Electron API not available' };
     try {
       return await window.electronAPI.server.getServersDiskUsage();
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, []);
 

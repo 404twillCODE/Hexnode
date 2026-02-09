@@ -134,7 +134,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const [input, setInput] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<import("../hooks/useServerManager").AppSettings | null>(null);
   const [serverUsage, setServerUsage] = useState<{ cpu: number; ram: number; ramMB: number } | null>(null);
   const [ramGB, setRamGB] = useState<number>(4);
   const [savingRAM, setSavingRAM] = useState(false);
@@ -152,7 +152,6 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const lastScrollTopRef = useRef<number>(0);
   const userScrolledRef = useRef<boolean>(false);
 
@@ -171,7 +170,8 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       }
       
       try {
-        const supports = await window.electronAPI.server.checkJarSupportsPlugins(serverName);
+        const result = await window.electronAPI.server.checkJarSupportsPlugins(serverName);
+        const supports = result?.supportsPlugins ?? false;
         setSupportsPlugins(supports);
         // If plugins tab is active but server doesn't support plugins, switch to console
         if (!supports && activeTab === 'plugins') {
@@ -217,8 +217,8 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
           isRunning ? getPlayerCount(serverName) : Promise.resolve(null)
         ]);
         if (!cancelled && info) setSystemInfo(info);
-        if (!cancelled && players?.success && players.online !== undefined) {
-          setPlayerCount({ online: players.online, max: players.max ?? 0 });
+        if (!cancelled && players && players.success && 'online' in players && typeof players.online === 'number') {
+          setPlayerCount({ online: players.online, max: (players.max ?? 0) });
         } else if (!cancelled && !isRunning) setPlayerCount(null);
       } catch (e) {
         if (!cancelled) setSystemInfo(null);
@@ -256,9 +256,9 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
     };
     loadSettings();
 
-    const handleSettingsUpdate = (updated: any) => {
+    const handleSettingsUpdate = (updated: import("../hooks/useServerManager").AppSettings) => {
       setSettings(updated || {});
-      setAutoScroll(updated?.consoleAutoScroll !== false);
+      setAutoScroll((updated?.consoleAutoScroll as boolean | undefined) !== false);
     };
 
     const unsubscribe = window.electronAPI?.server?.onAppSettingsUpdated?.(handleSettingsUpdate);
@@ -992,7 +992,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                 </div>
                 <select
                   value={filterType}
-                  onChange={(e) => setFilterType(e.target.value as any)}
+                  onChange={(e) => setFilterType((e.target.value as 'all' | 'stdout' | 'stderr' | 'command') || 'all')}
                   className="select-custom"
                 >
                   <option value="all">All</option>

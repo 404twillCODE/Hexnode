@@ -32,16 +32,23 @@ export async function getSession() {
   return session;
 }
 
+/** Returns the authenticated user from the Auth server (verified). Prefer over getSession() when trusting user id. */
+export async function getUser() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+}
+
 export type UserRole = "user" | "mod" | "admin" | "owner";
 
 export async function getCurrentUser() {
-  const session = await getSession();
-  if (!session?.user?.id) return null;
+  const authUser = await getUser();
+  if (!authUser?.id) return null;
   const { supabase } = await import("@/lib/supabase");
   const { data: user } = await supabase
     .from("User")
     .select("id, email, name, image, role")
-    .eq("id", session.user.id)
+    .eq("id", authUser.id)
     .single();
   return user as { id: string; email: string; name: string | null; image: string | null; role: UserRole } | null;
 }

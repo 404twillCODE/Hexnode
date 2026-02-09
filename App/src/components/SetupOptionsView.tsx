@@ -105,10 +105,10 @@ export default function SetupOptionsView({
       setDefaultRAM(settings.defaultRAM || 4);
       setDefaultPort(settings.defaultPort || 25565);
       setQuickStartRAM(settings.defaultRAM || 4);
-      setNotifications(settings.notifications || {
-        statusChanges: true,
-        crashes: true,
-        updates: true
+      setNotifications({
+        statusChanges: settings.notifications?.statusChanges ?? true,
+        crashes: settings.notifications?.crashes ?? true,
+        updates: settings.notifications?.updates ?? true
       });
     } catch (error) {
       console.error('Failed to load settings:', error);

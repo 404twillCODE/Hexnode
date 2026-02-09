@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { RoleBadge } from "@/components/RoleBadge";
@@ -12,17 +12,10 @@ export const metadata = {
 };
 
 export default async function ProfilePage() {
-  const session = await getSession();
-  if (!session?.user?.id) {
+  const user = await getCurrentUser();
+  if (!user?.id) {
     redirect("/login?callbackUrl=/profile");
   }
-
-  const { data: user } = await supabase
-    .from("User")
-    .select("id, name, email, image, role, createdAt")
-    .eq("id", session.user.id)
-    .single();
-  if (!user) redirect("/login");
 
   const { data: myThreads } = await supabase
     .from("Thread")

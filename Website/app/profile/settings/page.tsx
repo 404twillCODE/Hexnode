@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/supabase/server";
-import { supabase } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ProfileSettingsForm } from "./ProfileSettingsForm";
 
@@ -12,18 +11,10 @@ export const metadata = {
 };
 
 export default async function ProfileSettingsPage() {
-  const session = await getSession();
-  if (!session?.user?.id) {
+  const user = await getCurrentUser();
+  if (!user?.id) {
     redirect("/login?callbackUrl=/profile/settings");
   }
-
-  const { data: user } = await supabase
-    .from("User")
-    .select("id, name, email")
-    .eq("id", session.user.id)
-    .single();
-
-  if (!user) redirect("/login");
 
   return (
     <section className="full-width-section relative">

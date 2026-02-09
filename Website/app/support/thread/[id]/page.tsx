@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSession } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { supabase } from "@/lib/supabase";
 import { ReplyForm } from "./ReplyForm";
 import { RoleBadge } from "@/components/RoleBadge";
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ThreadPage({ params }: Props) {
   const { id } = params;
-  const session = await getSession();
+  const user = await getCurrentUser();
 
   const { data: thread, error } = await supabase
     .from("Thread")
@@ -107,7 +107,7 @@ export default async function ThreadPage({ params }: Props) {
         ))}
       </div>
 
-      {session ? (
+      {user ? (
         <div className="mt-6">
           <ReplyForm threadId={thread.id} />
         </div>

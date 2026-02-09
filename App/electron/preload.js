@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     writeServerFileBinary: (serverName, filePath, contentBase64, wasGzipped) => ipcRenderer.invoke('write-server-file-binary', serverName, filePath, contentBase64, wasGzipped),
     readServerFileNbt: (serverName, filePath) => ipcRenderer.invoke('read-server-file-nbt', serverName, filePath),
     writeServerFileNbt: (serverName, filePath, parsed, nbtFormat) => ipcRenderer.invoke('write-server-file-nbt', serverName, filePath, parsed, nbtFormat),
+    getServerConfig: (serverName) => ipcRenderer.invoke('get-server-config', serverName),
     listPlugins: (serverName) => ipcRenderer.invoke('list-plugins', serverName),
     deletePlugin: (serverName, pluginName) => ipcRenderer.invoke('delete-plugin', serverName, pluginName),
     checkJarSupportsPlugins: (serverName) => ipcRenderer.invoke('check-jar-supports-plugins', serverName),

@@ -21,7 +21,7 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
   const [input, setInput] = useState("");
   const [internalSelectedServer, setInternalSelectedServer] = useState<string | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<import("../hooks/useServerManager").AppSettings | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'stdout' | 'stderr' | 'command'>('all');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -31,7 +31,6 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const lastScrollTopRef = useRef<number>(0);
   const userScrolledRef = useRef<boolean>(false);
   const logBufferRef = useRef<string>("");
@@ -54,9 +53,9 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
     };
     loadSettings();
 
-    const handleSettingsUpdate = (updated: any) => {
+    const handleSettingsUpdate = (updated: import("../hooks/useServerManager").AppSettings) => {
       setSettings(updated || {});
-      setAutoScroll(updated?.consoleAutoScroll !== false);
+      setAutoScroll((updated?.consoleAutoScroll as boolean | undefined) !== false);
     };
 
     const unsubscribe = window.electronAPI?.server?.onAppSettingsUpdated?.(handleSettingsUpdate);
@@ -152,8 +151,7 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
   // Scroll to bottom when lines change, after layout (double rAF so scrollHeight is correct)
   useEffect(() => {
     if (!autoScroll || !scrollRef.current || userScrolledRef.current) return;
-    let rafId: number;
-    rafId = requestAnimationFrame(() => {
+    const rafId = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         if (scrollRef.current && autoScroll) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -410,7 +408,7 @@ export default function ConsolePanel({ selectedServer: propSelectedServer }: Con
           <div className="flex items-center gap-2">
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
+              onChange={(e) => setFilterType((e.target.value as 'all' | 'stdout' | 'stderr' | 'command') || 'all')}
               className="select-custom"
             >
               <option value="all">All</option>

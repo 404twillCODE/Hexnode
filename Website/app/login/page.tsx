@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { loginWithPassword } from "./actions";
 
 type Mode = "password" | "magic";
 
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/support";
   const [mode, setMode] = useState<Mode>("password");
+  const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,13 +25,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      if (signInError) {
-        setError("Invalid email or password");
+      const result = await loginWithPassword(identifier, password);
+      if (!result.success) {
+        setError(result.error);
         setLoading(false);
         return;
       }
@@ -131,18 +129,18 @@ export default function LoginPage() {
               </div>
             )}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-text-muted">
-                Email
+              <label htmlFor="identifier" className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-text-muted">
+                Email or username
               </label>
               <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                autoComplete="username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
                 className="w-full rounded border border-border bg-background-secondary px-3 py-2.5 text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="you@example.com"
+                placeholder="you@example.com or your username"
               />
             </div>
             <div>

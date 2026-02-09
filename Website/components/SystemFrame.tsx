@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { RoleBadge } from "@/components/RoleBadge";
@@ -14,7 +14,7 @@ const mainNav = [
 ] as const;
 
 export function SystemTopBar({ userRole }: { userRole?: UserRole | null }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [accountOpen, setAccountOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -23,12 +23,12 @@ export function SystemTopBar({ userRole }: { userRole?: UserRole | null }) {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user ?? null);
       setLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      supabase.auth.getUser().then(({ data: { user } }) => setUser(user ?? null));
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -117,11 +117,11 @@ export function SystemTopBar({ userRole }: { userRole?: UserRole | null }) {
               <div className="absolute right-0 top-full z-50 mt-1.5 w-40 rounded border border-border bg-background-secondary py-1 shadow-lg">
                 {loading ? (
                   <div className="px-4 py-2 text-sm text-text-muted">Loading…</div>
-                ) : session ? (
+                ) : user ? (
                   <>
                     <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
                       <RoleBadge role={userRole ?? null} size="sm" />
-                      <span className="text-xs text-text-muted truncate">{session.user.email}</span>
+                      <span className="text-xs text-text-muted truncate">{user.email}</span>
                     </div>
                     <Link
                       href="/profile"

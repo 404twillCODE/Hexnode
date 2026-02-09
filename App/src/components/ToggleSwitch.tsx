@@ -1,4 +1,3 @@
-import React from "react";
 
 type ToggleSwitchProps = {
   checked: boolean;

@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSession, getCurrentUser, isModOrAbove } from "@/lib/supabase/server";
+import { getCurrentUser, isModOrAbove } from "@/lib/supabase/server";
 import { supabase } from "@/lib/supabase";
 
 export async function createThread(formData: FormData) {
-  const session = await getSession();
-  if (!session?.user?.email) return { error: "You must be logged in to create a thread." };
+  const user = await getCurrentUser();
+  if (!user?.email) return { error: "You must be logged in to create a thread." };
 
   const title = formData.get("title") as string | null;
   const body = formData.get("body") as string | null;
@@ -27,7 +27,7 @@ export async function createThread(formData: FormData) {
     title: title.trim().slice(0, 500),
     body: body.trim().slice(0, 10000),
     categoryId: category.id,
-    authorId: session.user.id,
+    authorId: user.id,
   });
 
   revalidatePath("/support");
@@ -37,8 +37,8 @@ export async function createThread(formData: FormData) {
 }
 
 export async function createReply(formData: FormData) {
-  const session = await getSession();
-  if (!session?.user?.email) return { error: "You must be logged in to reply." };
+  const user = await getCurrentUser();
+  if (!user?.email) return { error: "You must be logged in to reply." };
 
   const threadId = formData.get("threadId") as string | null;
   const body = formData.get("body") as string | null;
@@ -57,7 +57,7 @@ export async function createReply(formData: FormData) {
 
   await supabase.from("Reply").insert({
     threadId: thread.id,
-    authorId: session.user.id,
+    authorId: user.id,
     body: body.trim().slice(0, 10000),
   });
 
@@ -129,5 +129,23 @@ export async function sendDirectMessage(formData: FormData) {
 
   revalidatePath("/support/chat");
   revalidatePath(`/support/chat/${conversationId}`);
+  return { ok: true };
+}
+
+// ——— Public chat ———
+
+export async function sendPublicMessage(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "You must be logged in to chat." };
+
+  const body = formData.get("body") as string | null;
+  if (!body?.trim()) return { error: "Message cannot be empty." };
+
+  await supabase.from("PublicMessage").insert({
+    senderId: user.id,
+    body: body.trim().slice(0, 5000),
+  });
+
+  revalidatePath("/support/chat/public");
   return { ok: true };
 }

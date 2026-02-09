@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { sendDirectMessage } from "../../actions";
+import { sendPublicMessage } from "../../actions";
 
-export function DMMessageForm({ conversationId }: { conversationId: string }) {
+export function PublicChatForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,8 +15,7 @@ export function DMMessageForm({ conversationId }: { conversationId: string }) {
     setLoading(true);
     const form = e.currentTarget;
     const formData = new FormData(form);
-    formData.set("conversationId", conversationId);
-    const result = await sendDirectMessage(formData);
+    const result = await sendPublicMessage(formData);
     setLoading(false);
     if (result?.error) {
       setError(result.error);
@@ -28,7 +27,6 @@ export function DMMessageForm({ conversationId }: { conversationId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
-      <input type="hidden" name="conversationId" value={conversationId} />
       <textarea
         name="body"
         placeholder="Type a message..."

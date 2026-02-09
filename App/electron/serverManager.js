@@ -2910,6 +2910,7 @@ module.exports = {
   getServerFiles,
   readServerFile,
   writeServerFile,
+  getServerConfig,
   listPlugins,
   deletePlugin,
   checkJarSupportsPlugins,

@@ -15,16 +15,17 @@ type View = "servers" | "settings" | "server-detail";
 /** Listens for update-available and shows in-app toast (must be inside ToastProvider). */
 function UpdateNotifier() {
   const { notify } = useToast();
-  const [settings, setSettings] = useState<any>({});
+  const [settings, setSettings] = useState<import("@/hooks/useServerManager").AppSettings>({});
 
   useEffect(() => {
-    if (!window.electronAPI) return;
+    const api = window.electronAPI;
+    if (!api) return;
     const load = async () => {
-      const s = await window.electronAPI.server.getAppSettings();
+      const s = await api.server.getAppSettings();
       setSettings(s || {});
     };
     load();
-    const unsub = window.electronAPI.server?.onAppSettingsUpdated?.(setSettings);
+    const unsub = api.server?.onAppSettingsUpdated?.(setSettings);
     return () => { unsub?.(); };
   }, []);
 
@@ -48,7 +49,7 @@ function App() {
   const [bootComplete, setBootComplete] = useState(false);
   const [currentView, setCurrentView] = useState<View>("servers");
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
-  const [appSettings, setAppSettings] = useState<any>({});
+  const [appSettings, setAppSettings] = useState<import("@/hooks/useServerManager").AppSettings>({});
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const setupFinalizedRef = useRef(false);
   const [showClosePrompt, setShowClosePrompt] = useState(false);
@@ -75,7 +76,7 @@ function App() {
       }
     };
 
-    const handleSettingsUpdate = (updated: any) => {
+    const handleSettingsUpdate = (updated: import("@/hooks/useServerManager").AppSettings) => {
       setAppSettings(updated || {});
     };
 

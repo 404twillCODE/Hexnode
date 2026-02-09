@@ -58,11 +58,11 @@ export default function ServerPropertiesEditor({ serverName }: ServerPropertiesE
           message: result.error || "Unable to save properties."
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       notify({
         type: "error",
         title: "Save failed",
-        message: error.message || "Unable to save properties."
+        message: error instanceof Error ? error.message : "Unable to save properties."
       });
     } finally {
       setSaving(false);

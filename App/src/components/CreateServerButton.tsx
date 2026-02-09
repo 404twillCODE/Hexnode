@@ -26,7 +26,7 @@ export default function CreateServerButton() {
   const [portAutoApplied, setPortAutoApplied] = useState(false);
   const [creatingStatus, setCreatingStatus] = useState("Creating server files...");
   const [autoStart, setAutoStart] = useState(true);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<import("../hooks/useServerManager").AppSettings | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const ramSliderRef = useRef<HTMLDivElement>(null);
@@ -315,8 +315,8 @@ export default function CreateServerButton() {
           setWarningMessage('Download BungeeCord: https://www.spigotmc.org/wiki/bungeecord/');
         }
       }
-    } catch (error: any) {
-      setErrorMessage(error.message || "Unknown error occurred");
+    } catch (error: unknown) {
+      setErrorMessage(error instanceof Error ? error.message : "Unknown error occurred");
     } finally {
       setCreatingStatus("Creating server files...");
       setIsCreating(false);

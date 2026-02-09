@@ -63,21 +63,22 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
     }
     
     try {
-      const supports = await window.electronAPI.server.checkJarSupportsPlugins(serverName);
+      const result = await window.electronAPI.server.checkJarSupportsPlugins(serverName);
+      const supports = result?.supportsPlugins ?? false;
       setSupportsPlugins(supports);
       
       // Get Minecraft version for Modrinth search - get from server config to ensure accuracy
       if (supports && window.electronAPI) {
         try {
           const servers = await window.electronAPI.server.listServers();
-          const server = servers.find((s: any) => s.name === serverName);
+          const server = servers.find((s: { name: string; version?: string }) => s.name === serverName);
           if (server && server.version && server.version !== 'manual' && server.version !== 'unknown') {
             // Use the exact version from the server config
             setMinecraftVersion(server.version);
           } else {
             // Try to get version from server config directly
             try {
-              const config = await window.electronAPI.server.getServerConfig?.(serverName);
+              const config = await window.electronAPI.server.getServerConfig(serverName);
               if (config?.version && config.version !== 'manual' && config.version !== 'unknown') {
                 setMinecraftVersion(config.version);
               }
@@ -127,7 +128,7 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
     setLoadingModrinth(true);
     try {
       const plugins = await window.electronAPI.server.getModrinthPlugins(minecraftVersion, modrinthLimit);
-      setModrinthPlugins(plugins || []);
+      setModrinthPlugins((plugins || []) as unknown as ModrinthPlugin[]);
     } catch (error) {
       console.error('Failed to load Modrinth plugins:', error);
     } finally {
@@ -189,11 +190,11 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
           message: result.error || "Unable to delete the plugin."
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       notify({
         type: "error",
         title: "Delete failed",
-        message: error.message || "Unable to delete the plugin."
+        message: error instanceof Error ? error.message : "Unable to delete the plugin."
       });
     } finally {
       setDeleting(null);
@@ -272,11 +273,11 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
           message: result.error || "Unable to install the plugin."
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       notify({
         type: "error",
         title: "Install failed",
-        message: error.message || "Unable to install the plugin."
+        message: error instanceof Error ? error.message : "Unable to install the plugin."
       });
     } finally {
       setInstalling(null);

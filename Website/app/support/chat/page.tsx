@@ -54,11 +54,11 @@ export default async function SupportChatPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold text-text-primary font-mono">Chat</h1>
+        <h1 className="text-xl font-semibold text-text-primary font-mono">DMs</h1>
         {isModOrAbove(user.role) && (
           <Link
             href="/support/chat/new"
-            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-md border border-transparent bg-accent px-4 py-2 text-sm font-medium text-accent-foreground shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
           >
             New DM
           </Link>

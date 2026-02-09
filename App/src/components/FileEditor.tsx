@@ -350,7 +350,7 @@ export default function FileEditor({ serverName, initialPath }: FileEditorProps)
                     <motion.button
                       onClick={() => {
                         setNbtData(null);
-                        window.electronAPI?.server.readServerFileBinary(serverName, selectedFile!).then((r) => {
+                        window.electronAPI?.server.readServerFileBinary(serverName, selectedFile!).then((r: { success: boolean; contentBase64?: string; wasGzipped?: boolean }) => {
                           if (r.success && r.contentBase64) {
                             setFileContentBase64(r.contentBase64);
                             setBinaryWasGzipped(r.wasGzipped === true);

@@ -100,7 +100,7 @@ npm run dev`}
         </div>
 
         <div className="mt-10 flex flex-wrap gap-4">
-          <Link href="/support" className="btn-secondary">
+          <Link href="/support" className="btn-primary">
             <span className="relative z-20 font-mono">SUPPORT FORUM</span>
           </Link>
           <a href="https://discord.gg/RVTAEbdDBJ" target="_blank" rel="noopener noreferrer" className="btn-discord">

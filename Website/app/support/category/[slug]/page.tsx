@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSession } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { supabase } from "@/lib/supabase";
 import { ensureCategories } from "@/lib/forum";
 import { NewThreadButton } from "../../NewThreadButton";
@@ -38,7 +38,7 @@ export default async function CategoryPage({ params }: Props) {
   await ensureCategories();
   const { slug } = params;
   if (!ALLOWED_CATEGORY_SLUGS.includes(slug)) notFound();
-  const session = await getSession();
+  const user = await getCurrentUser();
 
   const { data: category, error } = await supabase
     .from("Category")
@@ -84,7 +84,7 @@ export default async function CategoryPage({ params }: Props) {
             <p className="mt-0.5 text-sm text-text-muted">{category.description}</p>
           )}
         </div>
-        {session && (
+        {user && (
           <NewThreadButton categories={categories} />
         )}
       </div>

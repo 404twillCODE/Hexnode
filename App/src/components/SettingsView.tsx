@@ -5,7 +5,7 @@ import { useToast } from "./ToastProvider";
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<'general' | 'server' | 'console' | 'dev'>('general');
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<import("../hooks/useServerManager").AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [devMode, setDevMode] = useState(false);
   const [maxRAM, setMaxRAM] = useState(32); // Default, will be updated from system
@@ -98,7 +98,7 @@ export default function SettingsView() {
     }
   };
 
-  const saveSetting = async (key: string, value: any) => {
+  const saveSetting = async (key: string, value: unknown) => {
     if (!window.electronAPI) return;
 
     try {
@@ -112,7 +112,7 @@ export default function SettingsView() {
     }
   };
 
-  const saveNestedSetting = async (path: string[], value: any) => {
+  const saveNestedSetting = async (path: string[], value: unknown) => {
     if (!window.electronAPI) return;
 
     try {
@@ -121,10 +121,10 @@ export default function SettingsView() {
       const updated = { ...currentSettings };
       let current = updated;
       for (let i = 0; i < path.length - 1; i++) {
-        if (!current[path[i]]) current[path[i]] = {};
-        current = current[path[i]];
+        if (!current[path[i]]) (current as Record<string, unknown>)[path[i]] = {};
+        current = (current[path[i]] ?? {}) as import("../hooks/useServerManager").AppSettings;
       }
-      current[path[path.length - 1]] = value;
+      (current as Record<string, unknown>)[path[path.length - 1]] = value;
       const saved = await window.electronAPI.server.saveAppSettings(updated);
       setSettings(saved || updated);
     } catch (error) {
@@ -320,7 +320,7 @@ export default function SettingsView() {
                     <p className="text-xs text-text-muted">Minimize motion effects across the UI</p>
                   </div>
                   <ToggleSwitch
-                    checked={settings?.reduceAnimations || false}
+                    checked={Boolean(settings?.reduceAnimations)}
                     onChange={(checked) => saveSetting('reduceAnimations', checked)}
                     ariaLabel="Reduce animations"
                   />
@@ -331,7 +331,7 @@ export default function SettingsView() {
                     type="number"
                     min="1"
                     max="10"
-                    value={settings?.statusRefreshRate || 2}
+                    value={Number(settings?.statusRefreshRate) || 2}
                     onChange={(e) => saveSetting('statusRefreshRate', Math.max(1, Math.min(10, parseInt(e.target.value) || 2)))}
                     className="w-full bg-background-secondary border border-border px-3 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
                   />
@@ -369,7 +369,7 @@ export default function SettingsView() {
                         type="range"
                         min="1"
                         max={maxRAM}
-                        value={settings?.defaultRAM || 4}
+                        value={Number(settings?.defaultRAM) || 4}
                         onChange={(e) => saveSetting('defaultRAM', parseInt(e.target.value))}
                         className="absolute inset-0 w-full h-2 appearance-none cursor-pointer slider-custom bg-transparent"
                         style={{ zIndex: 5 }}
@@ -388,7 +388,7 @@ export default function SettingsView() {
                     type="number"
                     min="1024"
                     max="65535"
-                    value={settings?.defaultPort || 25565}
+                    value={Number(settings?.defaultPort) || 25565}
                     onChange={(e) => saveSetting('defaultPort', parseInt(e.target.value) || 25565)}
                     className="w-full bg-background-secondary border border-border px-3 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
                   />
@@ -413,7 +413,7 @@ export default function SettingsView() {
                         type="number"
                         min="1"
                         max="168"
-                        value={settings?.backupInterval || 24}
+                        value={Number(settings?.backupInterval) || 24}
                         onChange={(e) => saveSetting('backupInterval', parseInt(e.target.value) || 24)}
                         className="w-full bg-background-secondary border border-border px-3 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
                       />
@@ -424,7 +424,7 @@ export default function SettingsView() {
                         type="number"
                         min="1"
                         max="100"
-                        value={settings?.maxBackups || 10}
+                        value={Number(settings?.maxBackups) || 10}
                         onChange={(e) => saveSetting('maxBackups', parseInt(e.target.value) || 10)}
                         className="w-full bg-background-secondary border border-border px-3 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
                       />
@@ -468,7 +468,7 @@ export default function SettingsView() {
                     min="100"
                     max="10000"
                     step="100"
-                    value={settings?.maxConsoleLines || 1000}
+                    value={Number(settings?.maxConsoleLines) || 1000}
                     onChange={(e) => saveSetting('maxConsoleLines', parseInt(e.target.value) || 1000)}
                     className="w-full bg-background-secondary border border-border px-3 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
                   />
@@ -491,7 +491,7 @@ export default function SettingsView() {
                     <p className="text-xs text-text-muted">Wrap long lines in console</p>
                   </div>
                   <ToggleSwitch
-                    checked={settings?.consoleWordWrap || false}
+                    checked={Boolean(settings?.consoleWordWrap)}
                     onChange={(checked) => saveSetting('consoleWordWrap', checked)}
                     ariaLabel="Word wrap"
                   />
@@ -502,7 +502,7 @@ export default function SettingsView() {
                     type="number"
                     min="10"
                     max="20"
-                    value={settings?.consoleFontSize || 12}
+                    value={Number(settings?.consoleFontSize) || 12}
                     onChange={(e) => saveSetting('consoleFontSize', parseInt(e.target.value) || 12)}
                     className="w-full bg-background-secondary border border-border px-3 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded"
                   />
@@ -556,7 +556,7 @@ export default function SettingsView() {
                       <label className="block mb-2 text-text-primary">Config file location</label>
                       <input
                         type="text"
-                        value={settings?.serversDirectory ? `${settings.serversDirectory.replace(/\\servers$/, '')}\\servers.json` : 'AppData\\Roaming\\.nodexity\\servers.json'}
+                        value={settings?.serversDirectory ? String(settings.serversDirectory).replace(/\\servers$/, '') + '\\servers.json' : 'AppData\\Roaming\\.nodexity\\servers.json'}
                         readOnly
                         className="w-full bg-background-secondary border border-border px-3 py-2 text-text-primary font-mono text-xs focus:outline-none focus:border-accent/50 rounded"
                       />
@@ -568,7 +568,7 @@ export default function SettingsView() {
                         <p className="text-xs text-text-muted">Show detailed debug information</p>
                       </div>
                       <ToggleSwitch
-                        checked={settings?.debugLogging || false}
+                        checked={Boolean(settings?.debugLogging)}
                         onChange={(checked) => saveSetting('debugLogging', checked)}
                         ariaLabel="Enable debug logging"
                       />
@@ -579,7 +579,7 @@ export default function SettingsView() {
                         <p className="text-xs text-text-muted">Display performance information</p>
                       </div>
                       <ToggleSwitch
-                        checked={settings?.showPerformanceMetrics || false}
+                        checked={Boolean(settings?.showPerformanceMetrics)}
                         onChange={(checked) => saveSetting('showPerformanceMetrics', checked)}
                         ariaLabel="Show performance metrics"
                       />
@@ -587,7 +587,7 @@ export default function SettingsView() {
                     <div>
                       <label className="block mb-2 text-text-primary">Log level</label>
                       <select
-                        value={settings?.logLevel || 'info'}
+                        value={String(settings?.logLevel || 'info')}
                         onChange={(e) => saveSetting('logLevel', e.target.value)}
                         className="select-custom w-full"
                       >
