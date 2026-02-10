@@ -140,7 +140,7 @@ export default function SettingsView() {
   const handleResetSetup = async () => {
     if (!window.electronAPI) return;
     
-    const confirmed = confirm('This will reset the first-time setup. The app will restart to show the setup screen again. Continue?');
+    const confirmed = confirm('This will reset the first time setup. The app will restart and show the setup screen again. Continue?');
     if (!confirmed) return;
 
     try {
@@ -452,13 +452,13 @@ export default function SettingsView() {
               <div className="space-y-4 text-text-secondary font-mono text-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span>Auto-scroll by default</span>
+                    <span>Auto scroll by default</span>
                     <p className="text-xs text-text-muted">Automatically scroll console to bottom</p>
                   </div>
                   <ToggleSwitch
                     checked={settings?.consoleAutoScroll !== false}
                     onChange={(checked) => saveSetting('consoleAutoScroll', checked)}
-                    ariaLabel="Auto-scroll by default"
+                    ariaLabel="Auto scroll by default"
                   />
                 </div>
                 <div>
@@ -541,7 +541,7 @@ export default function SettingsView() {
                   <div className="pl-4 space-y-4 border-l-2 border-yellow-500/30 mt-4">
                     <div>
                       <p className="text-text-secondary font-mono text-sm mb-2">
-                        Reset first-time setup to show the setup screen again on next launch.
+                        Reset first time setup to show the setup screen again on next launch.
                       </p>
                       <motion.button
                         onClick={handleResetSetup}
@@ -618,32 +618,15 @@ export default function SettingsView() {
               About Nodexity
             </h2>
             <p className="text-sm text-text-secondary font-mono mb-4">
-              Nodexity is a local-first Minecraft server manager. Version 0.1.0.
+              Nodexity is a local first Minecraft server manager. Version 0.1.0.
             </p>
             <h3 className="text-sm font-semibold text-text-primary font-mono uppercase tracking-wider mb-3">
               Third-party licenses
             </h3>
             <p className="text-xs text-text-muted font-mono mb-4">
-              This application uses the following open-source software. Please see each project for full license text.
+              This app uses the following open source software. See each project for full license text.
             </p>
             <div className="space-y-4 text-sm font-mono">
-              <div className="border border-border rounded-lg p-4 bg-background-secondary">
-                <div className="font-semibold text-text-primary mb-1">playit-agent</div>
-                <p className="text-text-secondary text-xs mb-2">
-                  The playit.gg agent is used to provide optional external access tunneling. It is downloaded on demand when you enable &quot;External Access&quot; for a server.
-                </p>
-                <a
-                  href="https://github.com/playit-cloud/playit-agent"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent hover:underline text-xs"
-                >
-                  GitHub: playit-cloud/playit-agent
-                </a>
-                <p className="text-text-muted text-xs mt-2">
-                  Licensed under the Apache License 2.0 (or as stated in the repository). Not affiliated with Nodexity.
-                </p>
-              </div>
               <div className="border border-border rounded-lg p-4 bg-background-secondary">
                 <div className="font-semibold text-text-primary mb-1">Modrinth</div>
                 <p className="text-text-secondary text-xs mb-2">

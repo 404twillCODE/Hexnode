@@ -7,7 +7,6 @@ const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
 // Clear module cache and reload serverManager to ensure latest functions are available
 delete require.cache[require.resolve('./serverManager')];
 const serverManager = require('./serverManager');
-const playitManager = require('./playitManager');
 
 // Verify required serverManager functions are available (for debugging)
 if (!serverManager.checkJarSupportsPlugins) {
@@ -618,112 +617,6 @@ ipcMain.handle('get-servers-disk-usage', async () => {
   return await serverManager.getServersDiskUsage();
 });
 
-// Playit.gg tunneling
-ipcMain.handle('playit-ensure-installed', async (event, onProgressCallback) => {
-  try {
-    const progressCb = typeof onProgressCallback === 'function' ? onProgressCallback : null;
-    return await playitManager.ensurePlayitAgentInstalled(progressCb);
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('playit-start', async (event, serverName, options) => {
-  try {
-    return await playitManager.startPlayit(serverName, options || {}, mainWindow);
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('playit-stop', async (event, serverName) => {
-  try {
-    return playitManager.stopPlayit(serverName);
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('playit-restart', async (event, serverName) => {
-  try {
-    return await playitManager.restartPlayit(serverName, mainWindow);
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('playit-status', async (event, serverName) => {
-  try {
-    return playitManager.getPlayitStatus(serverName);
-  } catch (error) {
-    return { running: false, connected: false, publicAddress: null, lastError: error.message };
-  }
-});
-
-ipcMain.handle('playit-set-secret', async (event, serverName, secret) => {
-  try {
-    await playitManager.setStoredSecret(serverName, secret || '');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('playit-has-secret', async (event, serverName) => {
-  try {
-    return { hasSecret: await playitManager.hasPlayitSecret(serverName) };
-  } catch (error) {
-    return { hasSecret: false };
-  }
-});
-
-ipcMain.handle('playit-get-linked-server', async () => {
-  try {
-    return { serverId: await playitManager.getLinkedServer() };
-  } catch (error) {
-    return { serverId: null };
-  }
-});
-
-ipcMain.handle('playit-set-linked-server', async (event, serverId) => {
-  await playitManager.setLinkedServer(serverId || null);
-});
-
-ipcMain.handle('playit-import-config', async (event, serverName) => {
-  const win = BrowserWindow.getFocusedWindow() || mainWindow;
-  const result = await dialog.showOpenDialog(win, {
-    properties: ['openFile'],
-    title: 'Select playit config file',
-    filters: [
-      { name: 'Config files', extensions: ['toml', 'json', 'cfg'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
-  });
-  if (result.canceled || !result.filePaths.length) {
-    return { success: false, canceled: true };
-  }
-  const filePath = result.filePaths[0];
-  try {
-    const content = await fs.promises.readFile(filePath, 'utf8');
-    // TOML: secret_key = "xxx" or secret_key = 'xxx'
-    // JSON: "secret_key": "xxx"
-    let secret = null;
-    const tomlMatch = content.match(/secret_key\s*=\s*["']([^"']+)["']/);
-    if (tomlMatch) secret = tomlMatch[1];
-    if (!secret) {
-      const jsonMatch = content.match(/"secret_key"\s*:\s*["']([^"']+)["']/);
-      if (jsonMatch) secret = jsonMatch[1];
-    }
-    if (!secret || !secret.trim()) {
-      return { success: false, error: 'No secret_key found in the selected file. Make sure you selected the config file that playit created after you set it up.' };
-    }
-    await playitManager.setStoredSecret(serverName, secret.trim());
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message || 'Could not read file.' };
-  }
-});
-
 app.whenReady().then(() => {
   createWindow();
   serverManager.getAppSettings().then((settings) => {
@@ -739,17 +632,13 @@ app.whenReady().then(() => {
   });
 });
 
-// Stop all servers and playit agents before quitting
+// Stop all servers before quitting
 async function stopAllServers() {
   try {
     const servers = await serverManager.listServers();
     const stopPromises = servers
       .filter(server => server.status === 'RUNNING' || server.status === 'STARTING')
       .map(server => serverManager.stopServer(server.id));
-
-    if (playitManager && typeof playitManager.stopAllPlayit === 'function') {
-      playitManager.stopAllPlayit();
-    }
 
     // Stop all servers in parallel and wait for completion
     await Promise.allSettled(stopPromises);

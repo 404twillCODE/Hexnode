@@ -10,11 +10,11 @@ const features = [
     title: "Multiple Server Types",
     description: "Support for all major Minecraft server implementations including Paper, Spigot, Vanilla, Fabric, Forge, Purpur, Velocity, Waterfall, BungeeCord, and custom JAR files. Each server type is automatically configured with appropriate settings and version management.",
     details: [
-      "Paper - High-performance Spigot fork with optimizations",
+      "Paper - High performance Spigot fork with optimizations",
       "Spigot - Popular Bukkit fork with plugin support",
       "Vanilla - Official Minecraft server",
       "Fabric - Lightweight mod loader",
-      "Forge - Full-featured modding platform",
+      "Forge - Full featured modding platform",
       "Purpur - Paper fork with additional features",
       "Velocity - Modern proxy server",
       "Waterfall - BungeeCord fork",
@@ -39,11 +39,11 @@ const features = [
   },
   {
     title: "Integrated Server Console",
-    description: "Full-featured console interface with real-time output streaming, command execution, and log management. View server output, send commands, and monitor server activity all from within the application.",
+    description: "Full featured console with live output streaming, command execution, and log management. View server output, run commands, and monitor activity from inside the app.",
     details: [
-      "Real-time console output streaming",
+      "Live console output streaming",
       "Command input and execution",
-      "Auto-scroll to latest output",
+      "Scroll to latest output",
       "Console log history",
       "Filter by output type (stdout/stderr)",
       "Timestamp tracking for all messages",

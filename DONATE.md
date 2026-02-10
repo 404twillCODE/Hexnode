@@ -2,7 +2,7 @@
 
 Nodexity is free and local-first. If you want to support development before release:
 
-- Join the Discord and share feedback: `https://discord.gg/RVTAEbdDBJ`
+- Join the Discord and share feedback: `https://discord.gg/rFJeUQ6CbE`
 - Star the repo on GitHub
 
 ### Donation Links

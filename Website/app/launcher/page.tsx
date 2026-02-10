@@ -50,7 +50,7 @@ const launcherFeatures = [
       "Server favorites and history",
       "Direct server connection",
       "Server status indicators",
-      "One-click server joining"
+      "Join servers with one click"
     ]
   },
   {
@@ -60,7 +60,7 @@ const launcherFeatures = [
       "Resource pack management",
       "Shader pack support",
       "Pack organization and sorting",
-      "Per-profile pack configurations",
+      "Pack configuration per profile",
       "Pack preview and testing",
       "Automatic pack updates"
     ]
@@ -79,11 +79,11 @@ const launcherFeatures = [
   },
   {
     title: "Update Management",
-    description: "Automatic updates for Minecraft, mods, and the launcher itself. Stay up-to-date with the latest versions and features.",
+    description: "Automatic updates for Minecraft, mods, and the launcher. Stay up to date with the latest versions and features.",
     details: [
       "Automatic Minecraft updates",
       "Mod update notifications",
-      "Launcher auto-updates",
+      "Launcher updates itself",
       "Update scheduling options",
       "Update history and changelogs",
       "Rollback capabilities"

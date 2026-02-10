@@ -11,9 +11,9 @@ const hostingFeatures = [
     details: [
       "50+ edge locations across all continents",
       "Automatic routing to nearest data center",
-      "Low-latency connections worldwide",
+      "Low latency connections worldwide",
       "Geographic redundancy and failover",
-      "Real-time network monitoring",
+      "Live network monitoring",
       "Custom routing configurations"
     ]
   },
@@ -47,17 +47,17 @@ const hostingFeatures = [
     details: [
       "Automatic failover between regions",
       "Multi-region redundancy",
-      "Health monitoring and auto-recovery",
+      "Health monitoring and automatic recovery",
       "Backup and disaster recovery",
-      "Zero-downtime deployments",
-      "SLA-backed uptime guarantees"
+      "Zero downtime deployments",
+      "SLA backed uptime guarantees"
     ]
   },
   {
     title: "Monitoring & Analytics",
-    description: "Advanced monitoring dashboard with real-time metrics, performance analytics, and alerting. Track your server performance and resource usage.",
+    description: "Monitoring dashboard with live metrics, performance analytics, and alerts. Track server performance and resource usage.",
     details: [
-      "Real-time performance metrics",
+      "Live performance metrics",
       "Resource usage analytics",
       "Custom alerting and notifications",
       "Historical performance data",
@@ -84,7 +84,7 @@ const recycleHostFeatures = [
     title: "Sustainable Infrastructure",
     description: "Eco friendly hosting on repurposed enterprise hardware. Less waste, reliable hosting for your projects.",
     details: [
-      "Repurposed enterprise-grade hardware",
+      "Repurposed enterprise grade hardware",
       "Reduced environmental impact",
       "Carbon offset tracking",
       "Sustainable infrastructure practices",
@@ -98,8 +98,8 @@ const recycleHostFeatures = [
     details: [
       "Affordable pricing for all budgets",
       "Flexible resource allocation",
-      "Pay-as-you-go options",
-      "No long-term commitments required",
+      "Pay as you go options",
+      "No long term commitments required",
       "Transparent pricing structure",
       "Cost effective for small projects"
     ]
@@ -136,7 +136,7 @@ const recycleHostFeatures = [
       "Comprehensive documentation",
       "Standard support channels",
       "Knowledge base articles",
-      "Community-driven solutions",
+      "Community driven solutions",
       "Regular updates and announcements"
     ]
   },

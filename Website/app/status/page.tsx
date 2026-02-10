@@ -37,7 +37,7 @@ export default function StatusPage() {
         </p>
         <div className="mt-10 flex flex-wrap gap-4">
           <a
-            href="https://discord.gg/RVTAEbdDBJ"
+            href="https://discord.gg/rFJeUQ6CbE"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-discord"

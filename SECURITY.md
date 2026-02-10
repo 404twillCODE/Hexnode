@@ -4,7 +4,7 @@ If you believe you’ve found a security vulnerability in Nodexity, please **do 
 
 ### How to report
 - Prefer: open a private report via GitHub Security Advisories (once enabled), or
-- Contact via Discord: `https://discord.gg/RVTAEbdDBJ` and ask for the maintainer to handle a security report.
+- Contact via Discord: `https://discord.gg/rFJeUQ6CbE` and ask for the maintainer to handle a security report.
 
 ### What to include
 - A clear description of the issue

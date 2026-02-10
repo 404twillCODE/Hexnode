@@ -15,5 +15,5 @@ We want Nodexity’s community (GitHub + Discord) to be welcoming and respectful
 ### Enforcement
 If someone is behaving inappropriately, moderators/maintainers may remove content or restrict access.
 
-Discord: `https://discord.gg/RVTAEbdDBJ`
+Discord: `https://discord.gg/rFJeUQ6CbE`
 

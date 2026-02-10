@@ -331,7 +331,7 @@ export default function Home() {
                   </div>
                   <div>
                     <a
-                      href="https://discord.gg/RVTAEbdDBJ"
+                      href="https://discord.gg/rFJeUQ6CbE"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-discord block"

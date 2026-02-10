@@ -15,5 +15,5 @@
 - Premium Hosting
 - Billing + provisioning (private backend)
 
-Discord for updates: `https://discord.gg/RVTAEbdDBJ`
+Discord for updates: `https://discord.gg/rFJeUQ6CbE`
 

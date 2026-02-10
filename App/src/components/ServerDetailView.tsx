@@ -145,11 +145,10 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
   const [commandSuggestions, setCommandSuggestions] = useState<string[]>([]);
   const [chatMode, setChatMode] = useState(false);
   const [supportsPlugins, setSupportsPlugins] = useState<boolean | null>(null);
-  const [systemInfo, setSystemInfo] = useState<{ cpu: { tempCelsius?: number | null }; memory: { totalGB: number; freeGB: number; usedGB: number } } | null>(null);
+  const [systemInfo, setSystemInfo] = useState<{ cpu: { tempCelsius?: number | null }; memory: { totalGB: number; freeGB: number; usedGB: number }; localAddress?: string | null } | null>(null);
   const [playerCount, setPlayerCount] = useState<{ online: number; max: number } | null>(null);
   const [usageHistory, setUsageHistory] = useState<{ timestamps: number[]; cpu: number[]; ramMB: number[] }>({ timestamps: [], cpu: [], ramMB: [] });
   const [graphRange, setGraphRange] = useState<(typeof GRAPH_RANGE_OPTIONS)[number]['id']>('5m');
-  const [playitConnectAddress, setPlayitConnectAddress] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -206,7 +205,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
     });
   }, [activeTab, serverUsage?.cpu, serverUsage?.ramMB]);
 
-  // Load dashboard data when dashboard tab is active (system info, player count, playit link)
+  // Load dashboard data when dashboard tab is active (system info, player count)
   useEffect(() => {
     if (activeTab !== 'dashboard') return;
     let cancelled = false;
@@ -232,36 +231,6 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
       clearInterval(interval);
     };
   }, [activeTab, serverName, isRunning, getPlayerCount]);
-
-  // Playit: show connect address when this server is linked to the playit tunnel
-  useEffect(() => {
-    const playit = window.electronAPI?.playit;
-    if (!playit?.getStatus || !playit?.getLinkedServer) return;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const [status, link] = await Promise.all([
-          playit.getStatus('__playit_global__'),
-          playit.getLinkedServer()
-        ]);
-        if (cancelled) return;
-        const linkedId = link?.serverId ?? null;
-        if (linkedId === serverName && status?.publicAddress) {
-          setPlayitConnectAddress(status.publicAddress);
-        } else {
-          setPlayitConnectAddress(null);
-        }
-      } catch {
-        if (!cancelled) setPlayitConnectAddress(null);
-      }
-    };
-    load();
-    const interval = setInterval(load, 3000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [serverName]);
 
   // Initialize RAM from server
   useEffect(() => {
@@ -985,17 +954,18 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                     {systemInfo?.cpu.tempCelsius != null ? `${systemInfo.cpu.tempCelsius} °C` : '—'}
                   </div>
                 </div>
-                {playitConnectAddress && (
-                  <div className="border border-accent/30 rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden col-span-2 sm:col-span-3 lg:col-span-6">
-                    <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">Connect (playit.gg)</div>
-                    <div className="text-accent font-mono text-sm break-all truncate" title={playitConnectAddress}>
-                      {playitConnectAddress}
+                {systemInfo?.localAddress && (
+                  <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
+                    <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">LAN address</div>
+                    <div className="text-base text-accent font-mono truncate" title={`${systemInfo.localAddress}:${server?.port ?? 25565}`}>
+                      {systemInfo.localAddress}:{server?.port ?? 25565}
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText(playitConnectAddress);
-                        notify({ type: 'success', title: 'Copied', message: 'Address copied to clipboard.' });
+                        const addr = `${systemInfo.localAddress}:${server?.port ?? 25565}`;
+                        navigator.clipboard.writeText(addr);
+                        notify({ type: 'success', title: 'Copied', message: 'LAN address copied to clipboard.' });
                       }}
                       className="mt-1.5 text-xs text-accent hover:underline font-mono"
                     >
@@ -1280,7 +1250,7 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                     External access
                   </h3>
                   <p className="text-xs text-text-muted font-mono">
-                    To give this server a public address, use <strong className="text-text-secondary">Connect playit.gg</strong> in the sidebar. There you can run playit and add a Minecraft tunnel for port <strong className="text-text-primary">{server.port}</strong> in the playit.gg dashboard.
+                    To give this server a public address, use <strong className="text-text-secondary">Connect tunnels</strong> in the sidebar for instructions on using playit.gg, ngrok, Cloudflare Tunnel, or other tools. Point the tunnel at port <strong className="text-text-primary">{server.port}</strong>.
                   </p>
                 </div>
 

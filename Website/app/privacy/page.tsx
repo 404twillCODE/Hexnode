@@ -21,7 +21,7 @@ export default function PrivacyPage() {
             <span className="text-text-primary">Local storage:</span> All server data stays on your machine.
           </div>
           <div>
-            <span className="text-text-primary">Analytics:</span> The website does not use third-party trackers.
+            <span className="text-text-primary">Analytics:</span> The website does not use third party trackers.
           </div>
           <div>
             <span className="text-text-primary">Contact:</span> If you have concerns, reach out in Discord.

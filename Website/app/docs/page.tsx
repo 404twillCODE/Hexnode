@@ -67,7 +67,7 @@ npm run dev`}
                 {" — Get help and join the community on Discord (no extra account)."}
               </li>
               <li>
-                <a href="https://discord.gg/RVTAEbdDBJ" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Discord</a>
+                <a href="https://discord.gg/rFJeUQ6CbE" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Discord</a>
                 {" — Chat and quick help."}
               </li>
               <li>
@@ -102,7 +102,7 @@ npm run dev`}
           <Link href="/support" className="btn-primary">
             <span className="relative z-20 font-mono">SUPPORT</span>
           </Link>
-          <a href="https://discord.gg/RVTAEbdDBJ" target="_blank" rel="noopener noreferrer" className="btn-discord">
+          <a href="https://discord.gg/rFJeUQ6CbE" target="_blank" rel="noopener noreferrer" className="btn-discord">
             <span className="relative z-20 font-mono">DISCORD</span>
           </a>
           <a href="https://github.com/404twillCODE/Nodexity" target="_blank" rel="noopener noreferrer" className="btn-secondary">

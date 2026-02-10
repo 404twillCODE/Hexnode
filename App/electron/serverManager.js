@@ -369,6 +369,20 @@ async function getSystemInfo() {
       } catch (err) {}
     }
 
+    let localAddress = null;
+    try {
+      const ifaces = os.networkInterfaces();
+      for (const name of Object.keys(ifaces || {})) {
+        for (const iface of ifaces[name] || []) {
+          if (iface.family === 'IPv4' && !iface.internal && iface.address) {
+            localAddress = iface.address;
+            break;
+          }
+        }
+        if (localAddress) break;
+      }
+    } catch (e) { /* ignore */ }
+
     const payload = {
       cpu: {
         model: cpuModel,
@@ -384,7 +398,8 @@ async function getSystemInfo() {
       drives: drives,
       platform: os.platform(),
       arch: os.arch(),
-      hostname: os.hostname()
+      hostname: os.hostname(),
+      localAddress: localAddress || null
     };
     systemInfoCache.value = payload;
     systemInfoCache.timestamp = Date.now();
@@ -396,7 +411,8 @@ async function getSystemInfo() {
       storage: { totalGB: 0, freeGB: 0, usedGB: 0 },
       platform: os.platform(),
       arch: os.arch(),
-      hostname: os.hostname()
+      hostname: os.hostname(),
+      localAddress: null
     };
     systemInfoCache.value = payload;
     systemInfoCache.timestamp = Date.now();

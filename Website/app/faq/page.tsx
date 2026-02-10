@@ -23,7 +23,7 @@ const faqItems = [
   },
   {
     question: "What platforms are supported?",
-    answer: "The desktop app targets Windows first, with cross-platform support planned."
+    answer: "The desktop app targets Windows first. We plan to support other platforms later."
   },
   {
     question: "When is the release?",
@@ -58,7 +58,7 @@ export default function FaqPage() {
         </div>
         <div className="mt-10 flex flex-wrap gap-4">
           <a
-            href="https://discord.gg/RVTAEbdDBJ"
+            href="https://discord.gg/rFJeUQ6CbE"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-discord"

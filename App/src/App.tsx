@@ -7,7 +7,7 @@ import Sidebar from "./components/Sidebar";
 import ServerList from "./components/ServerList";
 import ServerDetailView from "./components/ServerDetailView";
 import SettingsView from "./components/SettingsView";
-import PlayitConnectView from "./components/PlayitConnectView";
+import ConnectTunnelsView from "./components/ConnectTunnelsView";
 import TitleBar from "./components/TitleBar";
 import { ToastProvider, useToast } from "./components/ToastProvider";
 
@@ -233,7 +233,7 @@ function App() {
       case "settings":
         return <SettingsView />;
       case "playit":
-        return <PlayitConnectView />;
+        return <ConnectTunnelsView />;
       default:
         return <ServerList onServerClick={handleServerClick} />;
     }

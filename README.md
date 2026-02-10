@@ -74,13 +74,13 @@ If you want to check out the desktop application in its current development stag
 
 ## Community
 
-- Discord: `https://discord.gg/RVTAEbdDBJ`
+- Discord: `https://discord.gg/rFJeUQ6CbE`
 
 ## Support
 
 Want to support Nodexity development? Here are ways you can help:
 
-- Join the Discord and share feedback: `https://discord.gg/RVTAEbdDBJ`
+- Join the Discord and share feedback: `https://discord.gg/rFJeUQ6CbE`
 - Star the repo on GitHub
 - Donate (coming soon):
   - GitHub Sponsors: [Coming soon](#)

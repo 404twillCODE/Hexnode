@@ -4,7 +4,7 @@
  * Cross-platform: Windows (hidden console), macOS, Linux.
  */
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
@@ -210,13 +210,22 @@ function httpsGet(url) {
   });
 }
 
+function getPlayitBinaryPath() {
+  return path.join(PLAYIT_BIN_DIR, process.platform === 'win32' ? 'playit.exe' : 'playit');
+}
+
+async function isPlayitBinaryInstalled() {
+  const binaryPath = getPlayitBinaryPath();
+  return fs.access(binaryPath).then(() => true).catch(() => false);
+}
+
 async function ensurePlayitAgentInstalled(onProgress) {
   await fs.mkdir(PLAYIT_BIN_DIR, { recursive: true });
   const assetName = getPlayitAsset();
   if (!assetName) {
     throw new Error(`Unsupported platform: ${process.platform}/${process.arch}`);
   }
-  const finalPath = path.join(PLAYIT_BIN_DIR, process.platform === 'win32' ? 'playit.exe' : 'playit');
+  const finalPath = getPlayitBinaryPath();
   const exists = await fs.access(finalPath).then(() => true).catch(() => false);
   if (exists) {
     return { success: true, path: finalPath, alreadyInstalled: true };
@@ -384,15 +393,9 @@ function parsePlayitLine(line, state) {
   // Claim/join URL: https://playit.gg/... (for first-time setup)
   const claimMatch = s.match(/https?:\/\/[^\s"'<>)\]]+playit\.gg[^\s"'<>)\]]*/i);
   if (claimMatch) state.claimUrl = claimMatch[0].trim();
-  // Public address: playit tunnel host (e.g. ability-personality.gl.joinmc.link or xxx.playit.gg)
-  const joinMcMatch = s.match(/([a-z0-9][a-z0-9.-]*\.(?:gl\.)?joinmc\.link)(?::\d+)?(?:\s*=>|$)/i);
-  if (joinMcMatch) state.publicAddress = joinMcMatch[1].trim();
-  const playitAddrMatch = s.match(/(?:connection|address|connect to|join|tunnel|your (?:server )?address is?)[:\s]+([a-z0-9.-]+\.playit\.gg(?::\d+)?)/i)
-    || s.match(/([a-z0-9.-]+\.playit\.gg(?::\d+)?)/i)
-    || s.match(/playit\.gg[:\s]+([a-z0-9.-]+(?::\d+)?)/i)
-    || s.match(/([a-z0-9][a-z0-9.-]*\.playit\.gg(?::\d+)?)/i)
-    || s.match(/(?:address|connect|join)[:\s]+([a-z0-9][a-z0-9.-]*(?::\d+)?)/i);
-  if (playitAddrMatch) state.publicAddress = playitAddrMatch[1].trim();
+  // Public address: detect tunnel line format "public_host => local_ip:port" (any domain, e.g. infinitecraftdev.playit.plus => 127.0.0.1:25595)
+  const tunnelMatch = s.match(/([a-z0-9][a-z0-9.-]*\.[a-z0-9.-]+)(?::\d+)?\s*=>\s*[\d.:]+/i);
+  if (tunnelMatch) state.publicAddress = tunnelMatch[1].trim();
   if (/connected|running|ready|listening|logged in|authenticated|tunnel (?:is )?active|=>\s*\d/i.test(s)) state.connected = true;
 }
 
@@ -499,14 +502,32 @@ async function startPlayit(serverName, options, mainWindow) {
 
 function stopPlayit(serverName) {
   const state = getAgentState(serverName);
-  if (!state.process) {
-    return { success: true, wasRunning: false };
-  }
-  state.process.kill('SIGTERM');
+  const wasRunning = !!state.process;
+  const child = state.process;
+  const pid = child ? child.pid : null;
   state.process = null;
   state.running = false;
   state.connected = false;
-  return { success: true, wasRunning: true };
+
+  if (child) {
+    try {
+      child.kill('SIGTERM');
+    } catch (e) { /* ignore */ }
+  }
+
+  if (process.platform === 'win32' && wasRunning) {
+    if (pid != null) {
+      try {
+        execSync(`taskkill /pid ${pid} /T /F`, { windowsHide: true, timeout: 3000 });
+      } catch (e) { /* ignore */ }
+    }
+    try {
+      execSync('taskkill /IM playit.exe /F /T', { windowsHide: true, timeout: 5000 });
+    } catch (e) {
+      /* no playit.exe running or already exited */
+    }
+  }
+  return { success: true, wasRunning };
 }
 
 async function restartPlayit(serverName, mainWindow) {
@@ -564,6 +585,7 @@ async function setLinkedServer(serverId) {
 
 module.exports = {
   ensurePlayitAgentInstalled,
+  isPlayitBinaryInstalled,
   startPlayit,
   stopPlayit,
   restartPlayit,

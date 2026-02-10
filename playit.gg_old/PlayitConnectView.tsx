@@ -6,10 +6,30 @@ const PLAYIT_GLOBAL_ID = "__playit_global__";
 const MAX_LOG_LINES = 200;
 const PLAYIT_DOWNLOAD = "https://playit.gg/download";
 const PLAYIT_DASHBOARD = "https://playit.gg/account/agents";
+const PLAYIT_SETUP_COMPLETE_KEY = "playit-setup-complete";
+
+function getStoredSetupComplete(): boolean {
+  try {
+    return localStorage.getItem(PLAYIT_SETUP_COMPLETE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setStoredSetupComplete(value: boolean): void {
+  try {
+    if (value) localStorage.setItem(PLAYIT_SETUP_COMPLETE_KEY, "true");
+    else localStorage.removeItem(PLAYIT_SETUP_COMPLETE_KEY);
+  } catch {}
+}
 
 type ServerItem = { id: string; name: string };
+type SetupStep = 1 | 2 | 3;
 
 export default function PlayitConnectView() {
+  const [setupComplete, setSetupComplete] = useState(getStoredSetupComplete);
+  const [setupStep, setSetupStep] = useState<SetupStep>(1);
+  const [playitInstalled, setPlayitInstalled] = useState(false);
   const [status, setStatus] = useState<{
     running: boolean;
     connected: boolean;
@@ -38,6 +58,21 @@ export default function PlayitConnectView() {
     }, 2000);
     return () => clearInterval(interval);
   }, [api]);
+
+  useEffect(() => {
+    if (!api?.isInstalled || setupComplete) return;
+    api.isInstalled().then(setPlayitInstalled);
+    const interval = setInterval(() => api.isInstalled().then(setPlayitInstalled), 2000);
+    return () => clearInterval(interval);
+  }, [api, setupComplete]);
+
+  useEffect(() => {
+    if (setupComplete) return;
+    if (setupStep === 3 && status.running) {
+      setStoredSetupComplete(true);
+      setSetupComplete(true);
+    }
+  }, [setupComplete, setupStep, status.running]);
 
   useEffect(() => {
     if (!serverApi?.listServers) return;
@@ -151,38 +186,87 @@ export default function PlayitConnectView() {
     );
   }
 
+  if (!setupComplete) {
+    return (
+      <div className="h-full overflow-y-auto p-6 font-mono flex min-h-full items-center justify-center">
+        <div className="max-w-lg w-full mx-auto space-y-6 text-center">
+          <h1 className="text-2xl font-semibold text-text-primary uppercase tracking-wider">
+            Connect playit.gg
+          </h1>
+          <p className="text-sm text-text-secondary">
+            Give your Minecraft servers a public address without port forwarding. Install playit once, set up your tunnel, then close the playit app and run it through Nodexity here — we'll launch and manage it in the background.
+          </p>
+
+          <div className="system-card p-6 border-l-4 border-accent text-left">
+            <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
+              Setup (one time)
+            </h2>
+            {setupStep === 1 && (
+              <div className="space-y-4">
+                <p className="text-sm text-text-secondary">
+                  <strong className="text-text-primary">1. Install playit</strong> from{" "}
+                  <a href={PLAYIT_DOWNLOAD} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                    playit.gg/download
+                  </a>
+                  . Run the app and sign in or create an account.
+                </p>
+                {playitInstalled && (
+                  <p className="text-sm text-green-400 font-medium">Playit is installed.</p>
+                )}
+                <div className="flex justify-end">
+                  <motion.button
+                    onClick={() => setSetupStep(2)}
+                    className="btn-primary text-sm px-4 py-2"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Next
+                  </motion.button>
+                </div>
+              </div>
+            )}
+            {setupStep === 2 && (
+              <div className="space-y-4">
+                <p className="text-sm text-text-secondary">
+                  <strong className="text-text-primary">2. Set up your tunnel</strong> in the playit app (claim your agent in the browser if asked, then add a Minecraft tunnel for port 25565 or your server's port).
+                </p>
+                <div className="flex justify-end">
+                  <motion.button
+                    onClick={() => setSetupStep(3)}
+                    className="btn-primary text-sm px-4 py-2"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Next
+                  </motion.button>
+                </div>
+              </div>
+            )}
+            {setupStep === 3 && (
+              <div className="space-y-4">
+                <p className="text-sm text-text-secondary">
+                  <strong className="text-text-primary">3. Close the playit app</strong> completely. Then click <strong className="text-text-primary">Start agent</strong> below — Nodexity will find your playit setup and run the agent in the background. The address connected to your playit account will appear once the agent is running.
+                </p>
+                <motion.button
+                  onClick={handleStart}
+                  disabled={starting}
+                  className="btn-primary text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {starting ? "STARTING…" : "START AGENT"}
+                </motion.button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full overflow-y-auto p-6 font-mono">
       <div className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-2xl font-semibold text-text-primary uppercase tracking-wider">
-          Connect playit.gg
-        </h1>
-        <p className="text-sm text-text-secondary">
-          Give your Minecraft servers a public address without port forwarding. Install playit once, set up your tunnel, then close the playit app and run it through Nodexity here — we’ll launch and manage it in the background.
-        </p>
-
-        {/* Setup steps */}
-        <div className="system-card p-6 border-l-4 border-accent">
-          <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
-            Setup (one time)
-          </h2>
-          <ol className="space-y-3 text-sm text-text-secondary list-decimal list-inside">
-            <li>
-              <strong className="text-text-primary">Install playit</strong> from{" "}
-              <a href={PLAYIT_DOWNLOAD} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-                playit.gg/download
-              </a>
-              . Run the app and sign in or create an account.
-            </li>
-            <li>
-              <strong className="text-text-primary">Set up your tunnel</strong> in the playit app (claim your agent in the browser if asked, then add a Minecraft tunnel for port 25565 or your server’s port).
-            </li>
-            <li>
-              <strong className="text-text-primary">Close the playit app</strong> completely. Then click <strong className="text-text-primary">Start agent</strong> below — Nodexity will find your playit setup and run the agent in the background. The address connected to your playit account will appear here when the agent is running.
-            </li>
-          </ol>
-        </div>
-
         {/* Start / Stop */}
         <div className="system-card p-6">
           <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">

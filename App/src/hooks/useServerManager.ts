@@ -55,6 +55,7 @@ declare global {
           platform: string;
           arch: string;
           hostname: string;
+          localAddress?: string | null;
         }>;
         isSetupComplete: () => Promise<boolean>;
         getAppSettings: () => Promise<AppSettings>;
@@ -100,17 +101,6 @@ declare global {
         removeServerLogListener: () => void;
         onAppSettingsUpdated: (callback: (data: AppSettings) => void) => () => void;
         onUpdateAvailable: (callback: (data: { version: string; url: string }) => void) => () => void;
-      };
-      playit?: {
-        ensureInstalled: () => Promise<{ success: boolean; path?: string; alreadyInstalled?: boolean; error?: string }>;
-        start: (serverName: string, options?: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>;
-        stop: (serverName: string) => Promise<{ success: boolean; wasRunning?: boolean; error?: string }>;
-        restart: (serverName: string) => Promise<{ success: boolean; error?: string }>;
-        getStatus: (serverName: string) => Promise<{ running: boolean; connected: boolean; publicAddress: string | null; lastError: string | null; claimUrl?: string | null }>;
-        setSecret: (serverName: string, secret: string) => Promise<{ success: boolean; error?: string }>;
-        hasSecret: (serverName: string) => Promise<{ hasSecret: boolean }>;
-        importConfigFromFile: (serverName: string) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
-        onLog: (callback: (serverName: string, line: string, type: string) => void) => () => void;
       };
     };
   }

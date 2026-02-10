@@ -82,22 +82,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('update-available', handler);
       return () => ipcRenderer.removeListener('update-available', handler);
     }
-  },
-  playit: {
-    ensureInstalled: () => ipcRenderer.invoke('playit-ensure-installed'),
-    start: (serverName, options) => ipcRenderer.invoke('playit-start', serverName, options),
-    stop: (serverName) => ipcRenderer.invoke('playit-stop', serverName),
-    restart: (serverName) => ipcRenderer.invoke('playit-restart', serverName),
-    getStatus: (serverName) => ipcRenderer.invoke('playit-status', serverName),
-    setSecret: (serverName, secret) => ipcRenderer.invoke('playit-set-secret', serverName, secret),
-    hasSecret: (serverName) => ipcRenderer.invoke('playit-has-secret', serverName),
-    importConfigFromFile: (serverName) => ipcRenderer.invoke('playit-import-config', serverName),
-    getLinkedServer: () => ipcRenderer.invoke('playit-get-linked-server'),
-    setLinkedServer: (serverId) => ipcRenderer.invoke('playit-set-linked-server', serverId),
-    onLog: (callback) => {
-      const handler = (event, data) => callback(data.serverName, data.line, data.type);
-      ipcRenderer.on('playit-log', handler);
-      return () => ipcRenderer.removeListener('playit-log', handler);
-    },
-  },
+  }
 });

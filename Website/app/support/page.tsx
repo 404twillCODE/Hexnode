@@ -5,7 +5,7 @@ export const metadata = {
   description: "Get help and join the community on Discord",
 };
 
-const DISCORD_URL = "https://discord.gg/RVTAEbdDBJ";
+const DISCORD_URL = "https://discord.gg/rFJeUQ6CbE";
 
 export default function SupportPage() {
   return (

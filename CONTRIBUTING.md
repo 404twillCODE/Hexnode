@@ -3,7 +3,7 @@
 Thanks for wanting to help.
 
 ### Before you start
-- Check existing issues (or ask in Discord): `https://discord.gg/RVTAEbdDBJ`
+- Check existing issues (or ask in Discord): `https://discord.gg/rFJeUQ6CbE`
 - Keep PRs small and focused.
 
 ### Project structure

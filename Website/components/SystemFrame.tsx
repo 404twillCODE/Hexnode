@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useBootComplete } from "@/components/BootCompleteContext";
 
-const DISCORD_URL = "https://discord.gg/RVTAEbdDBJ";
+const DISCORD_URL = "https://discord.gg/rFJeUQ6CbE";
 
 type NavItem = {
   href: string;
@@ -123,7 +123,7 @@ export function SystemFooter() {
           </p>
           <div className="flex gap-6">
             <a
-              href="https://discord.gg/RVTAEbdDBJ"
+              href="https://discord.gg/rFJeUQ6CbE"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-text-muted transition-colors hover:text-accent"
