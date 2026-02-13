@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Terms",
+  description: "Nodexity terms of use — pre-release software provided as-is.",
+};
 
 export default function TermsPage() {
   return (

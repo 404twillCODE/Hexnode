@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import BootSequence from "@/components/BootSequence";
 import NodexityTyping from "@/components/NodexityTyping";
@@ -204,10 +204,10 @@ export default function Home() {
     if (!settings.showBootSequence) setBootComplete(true);
   }, [settings.showBootSequence]);
 
-  const handleBootComplete = () => {
+  const handleBootComplete = useCallback(() => {
     setBootComplete(true);
     setGlobalBootComplete(true);
-  };
+  }, [setGlobalBootComplete]);
 
   const scrollDirection = useScrollDirection();
 
@@ -233,6 +233,11 @@ export default function Home() {
     [0, 1, 1, 0.8]
   );
 
+  // Hoisted parallax transforms (moved out of JSX to satisfy React hooks rules)
+  const heroOverlayY = useTransform(containerScroll, [0, 1], ["0%", "10%"]);
+  const sectionBgY12 = useTransform(containerScroll, [0, 1], ["0%", "12%"]);
+  const sectionBgY8 = useTransform(containerScroll, [0, 1], ["0%", "8%"]);
+
   return (
     <div ref={containerRef} className="relative flex flex-col">
       {settings.showBootSequence && (
@@ -254,7 +259,7 @@ export default function Home() {
           className="section-background depth-layer"
         />
         <motion.div
-          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "10%"]) }}
+          style={{ y: heroOverlayY }}
           className="absolute inset-0 opacity-20 pointer-events-none"
         >
           <div
@@ -444,11 +449,11 @@ export default function Home() {
       {/* Module: Server Manager */}
       <AnimatedSection bootComplete={bootComplete} scrollDirection={scrollDirection} id="software-section" className="full-width-section relative bg-background-secondary">
         <motion.div
-          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
+          style={{ y: sectionBgY12 }}
           className="section-background depth-layer"
         />
         <motion.div
-          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "8%"]) }}
+          style={{ y: sectionBgY8 }}
           className="absolute inset-0 opacity-15 pointer-events-none"
         >
           <div
@@ -633,11 +638,11 @@ export default function Home() {
       {/* Module: Launcher */}
       <AnimatedSection bootComplete={bootComplete} scrollDirection={scrollDirection} className="full-width-section relative">
         <motion.div
-          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
+          style={{ y: sectionBgY12 }}
           className="section-background depth-layer"
         />
         <motion.div
-          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "8%"]) }}
+          style={{ y: sectionBgY8 }}
           className="absolute inset-0 opacity-15 pointer-events-none"
         >
           <div
@@ -985,11 +990,11 @@ export default function Home() {
       {/* Module: Premium Hosting */}
       <AnimatedSection bootComplete={bootComplete} scrollDirection={scrollDirection} className="full-width-section relative">
         <motion.div
-          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "12%"]) }}
+          style={{ y: sectionBgY12 }}
           className="section-background depth-layer"
         />
         <motion.div
-          style={{ y: useTransform(containerScroll, [0, 1], ["0%", "8%"]) }}
+          style={{ y: sectionBgY8 }}
           className="absolute inset-0 opacity-15 pointer-events-none"
         >
           <div

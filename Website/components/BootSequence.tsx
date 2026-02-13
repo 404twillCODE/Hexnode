@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface BootLine {
@@ -62,6 +62,12 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
   const [isComplete, setIsComplete] = useState(false);
   const [isSkipped, setIsSkipped] = useState(false);
 
+  // Stable ref for callback — prevents effect re-runs when parent re-renders
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
   useEffect(() => {
     setIsVisible(true);
 
@@ -74,9 +80,7 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
           // Wait for typing to complete + a bit more
           setTimeout(() => {
             setIsComplete(true);
-            if (onComplete) {
-              onComplete();
-            }
+            onCompleteRef.current?.();
           }, 500);
         }
       }, line.delay);
@@ -86,24 +90,20 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
     // Auto-complete after max duration (accounting for typing)
     const maxTimeout = setTimeout(() => {
       setIsComplete(true);
-      if (onComplete) {
-        onComplete();
-      }
+      onCompleteRef.current?.();
     }, 5500);
 
     return () => {
       timeouts.forEach(clearTimeout);
       clearTimeout(maxTimeout);
     };
-  }, [onComplete]);
+  }, []);
 
   const handleSkip = useCallback(() => {
     setIsSkipped(true);
     setIsComplete(true);
-    if (onComplete) {
-      onComplete();
-    }
-  }, [onComplete]);
+    onCompleteRef.current?.();
+  }, []);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {

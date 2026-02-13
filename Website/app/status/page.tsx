@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Status",
+  description: "Nodexity service status — current state of the website, desktop app, and planned services.",
+};
 
 export default function StatusPage() {
   return (

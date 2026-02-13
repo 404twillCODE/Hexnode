@@ -1,26 +1,10 @@
-const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
 
-// Clear module cache and reload serverManager to ensure latest functions are available
-delete require.cache[require.resolve('./serverManager')];
 const serverManager = require('./serverManager');
-
-// Verify required serverManager functions are available (for debugging)
-if (!serverManager.checkJarSupportsPlugins) {
-  console.warn('WARNING: checkJarSupportsPlugins not found in serverManager');
-}
-if (!serverManager.getModrinthPlugins) {
-  console.warn('WARNING: getModrinthPlugins not found in serverManager');
-}
-if (!serverManager.readServerFileBinary) {
-  console.warn('WARNING: readServerFileBinary not found in serverManager - restart the app to load binary file support');
-}
-if (!serverManager.writeServerFileBinary) {
-  console.warn('WARNING: writeServerFileBinary not found in serverManager - restart the app to load binary file support');
-}
 
 let mainWindow = null;
 let tray = null;
@@ -618,6 +602,19 @@ ipcMain.handle('get-servers-disk-usage', async () => {
 });
 
 app.whenReady().then(() => {
+  // Set Content Security Policy
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const csp = isDev
+      ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws://localhost:* http://localhost:*"
+      : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'";
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp]
+      }
+    });
+  });
+
   createWindow();
   serverManager.getAppSettings().then((settings) => {
     applyAppSettings(settings);
@@ -633,6 +630,8 @@ app.whenReady().then(() => {
 });
 
 // Stop all servers before quitting
+let shutdownInProgress = false;
+
 async function stopAllServers() {
   try {
     const servers = await serverManager.listServers();
@@ -650,6 +649,8 @@ async function stopAllServers() {
 // Handle before-quit event (more reliable than window-all-closed)
 app.on('before-quit', async (event) => {
   isQuitting = true;
+  if (shutdownInProgress) return;
+  shutdownInProgress = true;
   event.preventDefault(); // Prevent immediate quit
   await stopAllServers();
   app.exit(0); // Force exit after stopping servers
@@ -657,7 +658,9 @@ app.on('before-quit', async (event) => {
 
 app.on('window-all-closed', async () => {
   // Stop all servers before quitting
-  await stopAllServers();
+  if (!shutdownInProgress) {
+    await stopAllServers();
+  }
   
   if (process.platform !== 'darwin') {
     app.quit();

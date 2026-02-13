@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "FAQ",
+  description: "Frequently asked questions about Nodexity — what it is, how it works, platform support, and how to help.",
+};
 
 const faqItems = [
   {

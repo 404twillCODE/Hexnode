@@ -55,8 +55,6 @@ export default function CustomCursor() {
 
   if (!isDesktop) return null;
 
-  if (!isDesktop) return null;
-
   return (
     <>
       {/* Cursor trail - interacts with grid */}

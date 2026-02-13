@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Privacy",
+  description: "Nodexity privacy policy — local-first, no trackers, your data stays on your machine.",
+};
 
 export default function PrivacyPage() {
   return (

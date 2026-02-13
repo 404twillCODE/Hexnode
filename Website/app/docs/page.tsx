@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Documentation",
+  description: "Get started with Nodexity — setup guides, project structure, and known limitations for the early access release.",
+};
 
 export default function DocsPage() {
   return (

@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Support | Nodexity",
-  description: "Get help and join the community on Discord",
+  title: "Support",
+  description: "Get help and join the Nodexity community on Discord.",
 };
 
 const DISCORD_URL = "https://discord.gg/rFJeUQ6CbE";
