@@ -27,11 +27,11 @@ function compareVersions(a, b) {
   return 0;
 }
 
-function resolveTrayIcon() {
+function resolveAppIcon() {
   const candidates = [
-    path.join(app.getAppPath(), 'Graphics', 'Logo.png'),
-    path.join(app.getAppPath(), '..', 'Graphics', 'Logo.png'),
-    path.join(__dirname, '..', '..', 'Graphics', 'Logo.png')
+    path.join(app.getAppPath(), 'logo', 'icon.png'),
+    path.join(app.getAppPath(), '..', 'logo', 'icon.png'),
+    path.join(__dirname, '..', 'logo', 'icon.png'),
   ];
   const iconPath = candidates.find((candidate) => fs.existsSync(candidate));
   if (!iconPath) return nativeImage.createEmpty();
@@ -40,7 +40,7 @@ function resolveTrayIcon() {
 
 function ensureTray() {
   if (tray) return;
-  const icon = resolveTrayIcon();
+  const icon = resolveAppIcon();
   tray = new Tray(icon);
   tray.setToolTip('Nodexity');
   const contextMenu = Menu.buildFromTemplate([
@@ -154,6 +154,7 @@ function createWindow() {
     backgroundColor: '#0a0a0a',
     frame: false,
     titleBarStyle: 'hidden',
+    icon: resolveAppIcon(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -605,8 +606,8 @@ app.whenReady().then(() => {
   // Set Content Security Policy
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const csp = isDev
-      ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws://localhost:* http://localhost:*"
-      : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'";
+      ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ws://localhost:* http://localhost:*"
+      : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'";
     callback({
       responseHeaders: {
         ...details.responseHeaders,

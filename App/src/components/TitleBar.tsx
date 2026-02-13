@@ -15,8 +15,8 @@ export default function TitleBar() {
 
   return (
     <div className="h-10 bg-background-secondary border-b border-border flex items-center justify-between px-4 -webkit-app-region-drag">
-      <div className="flex items-center gap-2 -webkit-app-region-drag">
-        <div className="h-2 w-2 bg-accent rounded-sm"></div>
+      <div className="flex items-center gap-2.5 -webkit-app-region-drag">
+        <img src="/icon.png" alt="" className="h-5 w-5 shrink-0 object-contain" aria-hidden />
         <span className="text-xs font-mono text-text-secondary tracking-[0.2em]">NODEXITY</span>
       </div>
       <div className="flex items-center gap-2 -webkit-app-region-no-drag">

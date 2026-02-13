@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 
 type View = "servers" | "settings" | "playit";
@@ -7,25 +8,40 @@ interface SidebarProps {
   onViewChange: (view: View) => void;
 }
 
-const menuItems: { id: View; label: string }[] = [
-  { id: "servers", label: "SERVERS" },
-  { id: "settings", label: "SETTINGS" },
+const menuItems: { id: View; label: string; icon: React.ReactNode }[] = [
+  {
+    id: "servers",
+    label: "SERVERS",
+    icon: (
+      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+      </svg>
+    ),
+  },
+  {
+    id: "settings",
+    label: "SETTINGS",
+    icon: (
+      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
 ];
 
 export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
-    <div className="w-64 border-r border-border bg-background-secondary h-full flex flex-col">
-      <div className="p-6 border-b border-border">
-        <motion.h2
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 100, damping: 15 }}
-          className="text-lg font-semibold text-text-primary font-mono"
-        >
-          NODEXITY
-        </motion.h2>
-      </div>
-      <nav className="flex-1 p-4 space-y-1">
+    <motion.div
+      layout
+      initial={false}
+      animate={{ width: collapsed ? 56 : 256 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className="shrink-0 border-r border-border bg-background-secondary h-full flex flex-col overflow-hidden"
+    >
+      <nav className="flex-1 p-2 pt-4 space-y-0.5">
         {menuItems.map((item, index) => (
           <motion.button
             key={item.id}
@@ -38,7 +54,10 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
               damping: 25,
             }}
             onClick={() => onViewChange(item.id)}
-            className={`w-full text-left px-4 py-3 text-sm font-mono uppercase tracking-wider transition-all ${
+            title={collapsed ? item.label : undefined}
+            className={`w-full text-left flex items-center gap-3 px-3 py-3 text-sm font-mono uppercase tracking-wider transition-all ${
+              collapsed ? "justify-center px-2" : ""
+            } ${
               currentView === item.id
                 ? "text-accent bg-accent/10 border-l-2 border-accent"
                 : "text-text-secondary hover:text-text-primary hover:bg-background"
@@ -46,34 +65,43 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            {item.label}
+            {item.icon}
+            {!collapsed && <span>{item.label}</span>}
           </motion.button>
         ))}
       </nav>
-      <div>
-        <div className="px-3 pt-3 pb-2">
+      <div className="shrink-0">
+        <div className="px-2 pt-2 pb-1">
           <button
             type="button"
+            title={collapsed ? "Connect tunnels" : undefined}
             onClick={(e) => {
               e.preventDefault();
               onViewChange("playit");
               (e.currentTarget as HTMLButtonElement).blur();
             }}
-            className={`w-full text-center px-3 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-all duration-150 border ${
+            className={`w-full text-center flex items-center gap-3 rounded-md text-xs font-mono uppercase tracking-wider transition-all duration-150 border ${
+              collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2"
+            } ${
               currentView === "playit"
                 ? "text-accent border-accent/50 bg-accent/10"
                 : "text-text-secondary border-border bg-background/50 hover:border-accent/30 hover:text-text-primary hover:bg-background"
             }`}
           >
-            Connect tunnels
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            {!collapsed && <span>Connect tunnels</span>}
           </button>
         </div>
-        <div className="px-3 py-2 bg-background/30 flex items-center justify-between gap-1.5 flex-wrap">
-          <div className="text-[10px] text-text-muted font-mono uppercase tracking-wider leading-tight">
-            <span>v0.1.0</span>
-            <span className="opacity-50 mx-1">·</span>
-            <a href="https://modrinth.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">Modrinth</a>
-          </div>
+        <div className={`py-2 bg-background/30 flex items-center gap-1.5 flex-wrap ${collapsed ? "justify-center px-1" : "px-3 justify-between"}`}>
+          {!collapsed && (
+            <div className="text-[10px] text-text-muted font-mono uppercase tracking-wider leading-tight">
+              <span>v0.1.0</span>
+              <span className="opacity-50 mx-1">·</span>
+              <a href="https://modrinth.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">Modrinth</a>
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <a href="https://discord.gg/rFJeUQ6CbE" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-[#5865F2] transition-colors p-0.5" title="Discord" aria-label="Discord">
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -87,8 +115,25 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
             </a>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="w-full flex items-center justify-center gap-2 py-2 text-text-muted hover:text-text-primary hover:bg-background/50 transition-colors border-t border-border"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <motion.span
+            animate={{ rotate: collapsed ? 180 : 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </motion.span>
+          {!collapsed && <span className="text-[10px] font-mono uppercase tracking-wider">Collapse</span>}
+        </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
