@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useBootComplete } from "@/components/BootCompleteContext";
 
@@ -15,7 +16,6 @@ type NavItem = {
 };
 
 const mainNav: NavItem[] = [
-  { href: "/compare", label: "Compare", icon: "M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" },
   { href: "/docs", label: "Docs", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
   { href: DISCORD_URL, label: "Support", icon: "M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z", external: true },
   { href: "/status", label: "Status", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
@@ -39,7 +39,8 @@ export function SystemTopBar() {
       className="w-full shrink-0 px-4 pt-4 pb-1 sm:px-6 lg:px-8"
     >
       <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-lg border border-[#333] bg-[#141414]/95 px-5 py-3 sm:px-6 lg:px-8 shadow-sm">
-        <Link href="/" className="shrink-0 text-sm font-semibold text-accent hover:text-accent/80 transition-colors font-mono">
+        <Link href="/" className="shrink-0 flex items-center gap-3.5 py-0.5 text-sm font-semibold text-accent hover:text-accent/80 transition-colors font-mono">
+          <Image src="/nodexity-logo.png" alt="" width={28} height={28} className="h-7 w-7 shrink-0 object-contain" aria-hidden />
           Nodexity
         </Link>
 
@@ -136,6 +137,12 @@ export function SystemFooter() {
               className="text-sm text-text-muted transition-colors hover:text-accent"
             >
               Changelog
+            </Link>
+            <Link
+              href="/compare"
+              className="text-sm text-text-muted transition-colors hover:text-accent"
+            >
+              Compare
             </Link>
             <Link
               href="/newsletter"
