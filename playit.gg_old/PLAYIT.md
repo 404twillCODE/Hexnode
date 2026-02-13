@@ -6,7 +6,7 @@ Nodexity optionally uses [playit.gg](https://playit.gg) to give your Minecraft s
 
 - **One agent per server**: Each server can have its own playit agent. The agent is tied to that server’s Minecraft port (from server config, default 25565).
 - **Your credentials**: You use your own playit.gg account. Get a secret key from [playit.gg/account/agents](https://playit.gg/account/agents). Nodexity never uses shared credentials.
-- **Secret storage**: The app stores the secret in the OS keychain when possible (via `keytar`). If keytar is not available, it falls back to an encrypted file under app data (e.g. `AppData/Roaming/.hexnode/playit/secrets.enc`). The secret is never logged or sent to the renderer after saving.
+- **Secret storage**: The app stores the secret in the OS keychain when possible (via `keytar`). If keytar is not available, it falls back to an encrypted file under app data (e.g. `AppData/Roaming/.nodexity/playit/secrets.enc`). The secret is never logged or sent to the renderer after saving.
 - **Agent binary**: On first use, Nodexity downloads the correct playit-agent build for your OS/arch from the [playit-agent releases](https://github.com/playit-cloud/playit-agent/releases) into `userData/playit/bin/`. On Windows the process is started with a hidden window (no console).
 
 ## Where to use it

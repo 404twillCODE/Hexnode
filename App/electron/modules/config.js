@@ -8,23 +8,23 @@ const os = require('os');
 // Get AppData\Roaming path (like Minecraft)
 function getAppDataPath() {
   if (process.platform === 'win32') {
-    return path.join(os.homedir(), 'AppData', 'Roaming', '.hexnode');
+    return path.join(os.homedir(), 'AppData', 'Roaming', '.nodexity');
   } else if (process.platform === 'darwin') {
-    return path.join(os.homedir(), 'Library', 'Application Support', '.hexnode');
+    return path.join(os.homedir(), 'Library', 'Application Support', '.nodexity');
   } else {
     // Linux
-    return path.join(os.homedir(), '.hexnode');
+    return path.join(os.homedir(), '.nodexity');
   }
 }
 
-const HEXNODE_DIR = getAppDataPath();
-const SERVERS_DIR = path.join(HEXNODE_DIR, 'servers');
-const BACKUPS_DIR = path.join(HEXNODE_DIR, 'backups');
-const CONFIG_FILE = path.join(HEXNODE_DIR, 'servers.json');
+const NODEXITY_DIR = getAppDataPath();
+const SERVERS_DIR = path.join(NODEXITY_DIR, 'servers');
+const BACKUPS_DIR = path.join(NODEXITY_DIR, 'backups');
+const CONFIG_FILE = path.join(NODEXITY_DIR, 'servers.json');
 
 // Ensure directories exist
 async function ensureDirectories() {
-  await fs.mkdir(HEXNODE_DIR, { recursive: true });
+  await fs.mkdir(NODEXITY_DIR, { recursive: true });
   await fs.mkdir(SERVERS_DIR, { recursive: true });
   await fs.mkdir(BACKUPS_DIR, { recursive: true });
 }
@@ -169,9 +169,9 @@ async function resetSetup() {
   await saveServerConfigs(configs);
 }
 
-// Get HexNode directory
-function getHexnodeDir() {
-  return HEXNODE_DIR;
+// Get Nodexity data directory
+function getNodexityDir() {
+  return NODEXITY_DIR;
 }
 
 // Show folder dialog (placeholder - actual implementation is in main.js via IPC)
@@ -180,7 +180,7 @@ async function showFolderDialog() {
 }
 
 module.exports = {
-  HEXNODE_DIR,
+  NODEXITY_DIR,
   SERVERS_DIR,
   BACKUPS_DIR,
   CONFIG_FILE,
@@ -195,6 +195,6 @@ module.exports = {
   saveAppSettings,
   completeSetup,
   resetSetup,
-  getHexnodeDir,
+  getNodexityDir,
   showFolderDialog,
 };

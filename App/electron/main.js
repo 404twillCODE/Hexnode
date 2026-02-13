@@ -4,6 +4,10 @@ const fs = require('fs');
 const https = require('https');
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
 
+// Use .nodexity for all app data (config + Electron userData) so only one folder is created
+const config = require('./modules/config');
+app.setPath('userData', config.NODEXITY_DIR);
+
 const serverManager = require('./serverManager');
 
 let mainWindow = null;

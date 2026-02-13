@@ -20,7 +20,7 @@ module.exports = {
   completeSetup: config.completeSetup,
   resetSetup: config.resetSetup,
   getServerConfig: config.getServerConfig,
-  getHexnodeDir: config.getHexnodeDir,
+  getNodexityDir: config.getNodexityDir,
   showFolderDialog: config.showFolderDialog,
   isPortAvailable: serverLifecycle.isPortAvailable,
   findAvailablePort: serverLifecycle.findAvailablePort,

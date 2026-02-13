@@ -23,12 +23,12 @@ function getServerConfig(serverName) {
 
 function getAppDataPath() {
   if (process.platform === 'win32') {
-    return path.join(os.homedir(), 'AppData', 'Roaming', '.hexnode');
+    return path.join(os.homedir(), 'AppData', 'Roaming', '.nodexity');
   }
   if (process.platform === 'darwin') {
-    return path.join(os.homedir(), 'Library', 'Application Support', '.hexnode');
+    return path.join(os.homedir(), 'Library', 'Application Support', '.nodexity');
   }
-  return path.join(os.homedir(), '.hexnode');
+  return path.join(os.homedir(), '.nodexity');
 }
 
 const APP_DATA = getAppDataPath();
