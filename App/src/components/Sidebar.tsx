@@ -6,6 +6,8 @@ type View = "servers" | "settings" | "playit";
 interface SidebarProps {
   currentView: View;
   onViewChange: (view: View) => void;
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 const menuItems: { id: View; label: string; icon: React.ReactNode }[] = [
@@ -30,12 +32,15 @@ const menuItems: { id: View; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+export default function Sidebar({ currentView, onViewChange, collapsed: controlledCollapsed, onCollapsedChange }: SidebarProps) {
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed = onCollapsedChange ? (controlledCollapsed ?? false) : internalCollapsed;
+  const setCollapsed = onCollapsedChange
+    ? (value: boolean | ((prev: boolean) => boolean)) => onCollapsedChange(typeof value === "function" ? value(controlledCollapsed ?? false) : value)
+    : setInternalCollapsed;
 
   return (
     <motion.div
-      layout
       initial={false}
       animate={{ width: collapsed ? 56 : 256 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -45,10 +50,9 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
         {menuItems.map((item, index) => (
           <motion.button
             key={item.id}
-            initial={{ opacity: 0, x: -20 }}
+            initial={false}
             animate={{ opacity: 1, x: 0 }}
             transition={{
-              delay: index * 0.1,
               type: "spring",
               stiffness: 200,
               damping: 25,
@@ -117,7 +121,7 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
         </div>
         <button
           type="button"
-          onClick={() => setCollapsed((c) => !c)}
+          onClick={() => setCollapsed((c: boolean) => !c)}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="w-full flex items-center justify-center gap-2 py-2 text-text-muted hover:text-text-primary hover:bg-background/50 transition-colors border-t border-border"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

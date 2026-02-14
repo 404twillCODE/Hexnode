@@ -330,18 +330,28 @@ function App() {
                 <TitleBar />
                 <div className="flex flex-1 min-h-0 overflow-hidden">
                   {currentView !== "server-detail" && (
-                    <Sidebar currentView={sidebarView as "servers" | "settings" | "playit"} onViewChange={(v) => setCurrentView(v)} />
+                    <Sidebar
+                      currentView={sidebarView as "servers" | "settings" | "playit"}
+                      onViewChange={(v) => setCurrentView(v)}
+                      collapsed={appSettings?.sidebarCollapsed ?? false}
+                      onCollapsedChange={(collapsed) => {
+                        setAppSettings((prev) => ({ ...prev, sidebarCollapsed: collapsed }));
+                        window.electronAPI?.server?.saveAppSettings?.({ ...appSettings, sidebarCollapsed: collapsed });
+                      }}
+                    />
                   )}
-                  <motion.main
-                    key={currentView + (selectedServer || '')}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                    className="flex-1 min-h-0 overflow-hidden"
-                  >
-                    {renderView()}
-                  </motion.main>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.main
+                      key={currentView + (selectedServer || '')}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                      className="flex-1 min-h-0 overflow-hidden"
+                    >
+                      {renderView()}
+                    </motion.main>
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}

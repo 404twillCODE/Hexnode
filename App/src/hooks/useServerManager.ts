@@ -23,6 +23,7 @@ export interface AppSettings {
   consoleWordWrap?: boolean;
   consoleFontSize?: number;
   notifications?: { updates?: boolean; statusChanges?: boolean; crashes?: boolean };
+  sidebarCollapsed?: boolean;
   [key: string]: unknown;
 }
 

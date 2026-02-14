@@ -738,6 +738,23 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                 <span className="whitespace-nowrap">Version: {server.version}</span>
                 <span className="whitespace-nowrap">Port: {server.port}</span>
                 {server.ramGB && <span className="whitespace-nowrap">RAM: {server.ramGB}GB</span>}
+                {systemInfo?.localAddress && (
+                  <>
+                    <span className="text-accent flex-shrink-0">•</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const addr = `${systemInfo.localAddress}:${server?.port ?? 25565}`;
+                        navigator.clipboard.writeText(addr);
+                        notify({ type: 'success', title: 'Copied', message: 'LAN address copied to clipboard.' });
+                      }}
+                      title="Click to copy"
+                      className="whitespace-nowrap text-xs sm:text-sm font-mono px-2 py-1 rounded border border-accent/40 text-accent bg-accent/5 hover:bg-accent/10 hover:border-accent/60 transition-colors"
+                    >
+                      {systemInfo.localAddress}:{server?.port ?? 25565}
+                    </button>
+                  </>
+                )}
                 {isRunning && serverUsage && (
                   <>
                     <span className="text-accent flex-shrink-0">•</span>
@@ -954,25 +971,6 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                     {systemInfo?.cpu.tempCelsius != null ? `${systemInfo.cpu.tempCelsius} °C` : '—'}
                   </div>
                 </div>
-                {systemInfo?.localAddress && (
-                  <div className="border border-border rounded-lg p-2.5 bg-background-secondary min-w-0 overflow-hidden">
-                    <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5 truncate">LAN address</div>
-                    <div className="text-base text-accent font-mono truncate" title={`${systemInfo.localAddress}:${server?.port ?? 25565}`}>
-                      {systemInfo.localAddress}:{server?.port ?? 25565}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const addr = `${systemInfo.localAddress}:${server?.port ?? 25565}`;
-                        navigator.clipboard.writeText(addr);
-                        notify({ type: 'success', title: 'Copied', message: 'LAN address copied to clipboard.' });
-                      }}
-                      className="mt-1.5 text-xs text-accent hover:underline font-mono"
-                    >
-                      Copy address
-                    </button>
-                  </div>
-                )}
               </div>
           </div>
         )}
@@ -1019,38 +1017,6 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                   <option value="stderr">Errors</option>
                   <option value="command">Commands</option>
                 </select>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-text-secondary font-mono text-xs">
-                    <span>Auto-scroll</span>
-                    <ToggleSwitch
-                      checked={autoScroll}
-                      onChange={(checked) => {
-                        setAutoScroll(checked);
-                        if (window.electronAPI && settings) {
-                          window.electronAPI.server.saveAppSettings({
-                            ...settings,
-                            consoleAutoScroll: checked
-                          }).then((saved) => {
-                            setSettings(saved || { ...settings, consoleAutoScroll: checked });
-                          });
-                        }
-                      }}
-                      ariaLabel="Auto-scroll console"
-                    />
-                  </div>
-                  <span className="text-text-muted font-mono text-xs">
-                    {filteredLines.length} / {lines.length} lines
-                    {searchQuery && ` (filtered)`}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setLines([])}
-                  className="text-xs text-text-muted font-mono hover:text-text-primary transition-colors px-3 py-1 rounded border border-border hover:border-accent/30"
-                >
-                  Clear (Ctrl+K)
-                </button>
               </div>
             </div>
 
@@ -1189,23 +1155,54 @@ export default function ServerDetailView({ serverName, onBack }: ServerDetailVie
                     SEND
                   </motion.button>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-4 text-xs text-text-muted font-mono">
                     <span>↑↓ History</span>
                     <span>•</span>
                     <span>Tab Autocomplete</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setChatMode(!chatMode)}
-                    className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
-                      chatMode
-                        ? 'bg-accent/20 border border-accent/40 text-accent'
-                        : 'bg-background-secondary/50 border border-border text-text-secondary hover:border-accent/30'
-                    }`}
-                  >
-                    {chatMode ? '💬 Chat' : '⚙️ Command'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 text-text-secondary font-mono text-xs">
+                      <span>Auto-scroll</span>
+                      <ToggleSwitch
+                        checked={autoScroll}
+                        onChange={(checked) => {
+                          setAutoScroll(checked);
+                          if (window.electronAPI && settings) {
+                            window.electronAPI.server.saveAppSettings({
+                              ...settings,
+                              consoleAutoScroll: checked
+                            }).then((saved) => {
+                              setSettings(saved || { ...settings, consoleAutoScroll: checked });
+                            });
+                          }
+                        }}
+                        ariaLabel="Auto-scroll console"
+                      />
+                    </div>
+                    <span className="text-text-muted font-mono text-xs">
+                      {filteredLines.length} / {lines.length} lines
+                      {searchQuery && ` (filtered)`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLines([])}
+                      className="text-xs text-text-muted font-mono hover:text-text-primary transition-colors px-3 py-1 rounded border border-border hover:border-accent/30"
+                    >
+                      Clear (Ctrl+K)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChatMode(!chatMode)}
+                      className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
+                        chatMode
+                          ? 'bg-accent/20 border border-accent/40 text-accent'
+                          : 'bg-background-secondary/50 border border-border text-text-secondary hover:border-accent/30'
+                      }`}
+                    >
+                      {chatMode ? '💬 Chat' : '⚙️ Command'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

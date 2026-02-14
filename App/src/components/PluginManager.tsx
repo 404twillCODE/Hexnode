@@ -37,6 +37,7 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
   const [configPath, setConfigPath] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [configKey, setConfigKey] = useState(0);
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const { notify } = useToast();
   const modrinthListRef = useRef<HTMLDivElement | null>(null);
   const restoreScrollRef = useRef<number | null>(null);
@@ -48,9 +49,14 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
   useEffect(() => {
     if (supportsPlugins) {
       loadPlugins();
+    }
+  }, [serverName, supportsPlugins]);
+
+  useEffect(() => {
+    if (showInstallModal && supportsPlugins) {
       loadModrinthPlugins();
     }
-  }, [serverName, supportsPlugins, modrinthLimit]);
+  }, [showInstallModal, supportsPlugins, modrinthLimit]);
 
   const checkPluginSupport = async () => {
     if (!window.electronAPI || !window.electronAPI.server) return;
@@ -326,10 +332,20 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
         </div>
 
         {/* Installed Plugins Section */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-text-primary font-mono mb-4">
-            Installed Plugins
-          </h3>
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-text-primary font-mono">
+              Installed Plugins
+            </h3>
+            <motion.button
+              onClick={() => setShowInstallModal(true)}
+              className="btn-primary text-sm px-4 py-2"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Install plugins
+            </motion.button>
+          </div>
           {loading ? (
             <div className="text-center py-8">
               <div className="text-text-muted font-mono text-sm">Loading plugins...</div>
@@ -391,18 +407,26 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Modrinth Plugins Section */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-text-primary font-mono">
-              Available on Modrinth
-            </h3>
-          </div>
-          
-          {/* Search Bar */}
-          {modrinthPlugins.length > 0 && (
-            <div className="mb-4">
+      {/* Install plugins modal */}
+      {showInstallModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6">
+          <div className="system-card w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-background border border-border rounded-lg shadow-xl">
+            <div className="flex items-center justify-between border-b border-border bg-background-secondary px-4 py-3 flex-shrink-0">
+              <h3 className="text-lg font-semibold text-text-primary font-mono">
+                Install plugins from Modrinth
+              </h3>
+              <motion.button
+                onClick={() => setShowInstallModal(false)}
+                className="btn-secondary text-xs px-3 py-2"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                CLOSE
+              </motion.button>
+            </div>
+            <div className="p-4 flex-shrink-0">
               <input
                 type="text"
                 value={searchQuery}
@@ -411,105 +435,114 @@ export default function PluginManager({ serverName }: PluginManagerProps) {
                 className="w-full bg-background border border-border px-4 py-2 text-text-primary font-mono text-sm focus:outline-none focus:border-accent/50 rounded transition-colors"
               />
             </div>
-          )}
-          {loadingModrinth ? (
-            <div className="text-center py-8">
-              <div className="text-text-muted font-mono text-sm">Loading all Modrinth plugins...</div>
-              <div className="text-xs text-text-muted font-mono mt-2">This may take a moment</div>
-            </div>
-          ) : modrinthPlugins.length === 0 ? (
-            <div className="system-card p-8 text-center">
-              <div className="text-3xl mb-3 opacity-20">📦</div>
-              <h4 className="text-md font-semibold text-text-primary font-mono mb-2">
-                NO PLUGINS FOUND
-              </h4>
-              <p className="text-text-muted font-mono text-sm">
-                {minecraftVersion ? `No plugins found for Minecraft ${minecraftVersion}` : 'Unable to determine Minecraft version'}
-              </p>
-            </div>
-          ) : (
-            <div ref={modrinthListRef} className="space-y-3 max-h-[calc(100vh-420px)] overflow-y-auto custom-scrollbar">
-              {filteredModrinthPlugins.map((plugin) => (
-                <motion.div
-                  key={plugin.project_id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="system-card p-4"
-                >
-                  <div className="flex items-center gap-4">
-                    {plugin.icon_url && (
-                      <img 
-                        src={plugin.icon_url} 
-                        alt={plugin.title}
-                        className="w-12 h-12 rounded"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-lg font-semibold text-text-primary font-mono truncate mb-1">
-                        {plugin.title}
-                      </h4>
-                      <p className="text-sm text-text-secondary font-mono line-clamp-2 mb-2">
-                        {plugin.description}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-text-muted font-mono">
-                        <span>Downloads: {plugin.downloads.toLocaleString()}</span>
-                        <a 
-                          href={`https://modrinth.com/plugin/${plugin.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-accent hover:underline"
-                        >
-                          View on Modrinth →
-                        </a>
-                      </div>
-                    </div>
-                    <motion.button
-                      onClick={() => handleInstall(plugin.project_id, plugin.title)}
-                      disabled={installing === plugin.project_id || !minecraftVersion}
-                      className="btn-primary text-xs px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                      whileHover={{ scale: installing === plugin.project_id ? 1 : 1.02 }}
-                      whileTap={{ scale: installing === plugin.project_id ? 1 : 0.98 }}
-                    >
-                      {installing === plugin.project_id ? 'INSTALLING...' : 'INSTALL'}
-                    </motion.button>
-                  </div>
-                </motion.div>
-              ))}
-              {filteredModrinthPlugins.length === 0 && searchQuery.trim() && (
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 pt-0 custom-scrollbar">
+              {loadingModrinth && modrinthPlugins.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-text-muted font-mono text-sm">Loading plugins from Modrinth...</div>
+                  <div className="text-xs text-text-muted font-mono mt-2">This may take a moment</div>
+                </div>
+              ) : modrinthPlugins.length === 0 ? (
                 <div className="system-card p-8 text-center">
-                  <div className="text-3xl mb-3 opacity-20">🔍</div>
+                  <div className="text-3xl mb-3 opacity-20">📦</div>
                   <h4 className="text-md font-semibold text-text-primary font-mono mb-2">
-                    NO RESULTS FOUND
+                    NO PLUGINS FOUND
                   </h4>
                   <p className="text-text-muted font-mono text-sm">
-                    No plugins match "{searchQuery}"
+                    {minecraftVersion ? `No plugins found for Minecraft ${minecraftVersion}` : 'Unable to determine Minecraft version'}
                   </p>
                 </div>
-              )}
-              {!searchQuery.trim() && modrinthPlugins.length >= modrinthLimit && (
-                <div className="flex justify-center">
-                  <motion.button
-                    onClick={() => {
-                      if (modrinthListRef.current) {
-                        restoreScrollRef.current = modrinthListRef.current.scrollTop;
-                      }
-                      setModrinthLimit((prev) => prev + 200);
-                    }}
-                    className="btn-secondary text-xs px-4 py-2"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    LOAD MORE
-                  </motion.button>
+              ) : (
+                <div ref={modrinthListRef} className="space-y-3">
+                  {filteredModrinthPlugins.map((plugin) => (
+                    <motion.div
+                      key={plugin.project_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="system-card p-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        {plugin.icon_url && (
+                          <img 
+                            src={plugin.icon_url} 
+                            alt={plugin.title}
+                            className="w-12 h-12 rounded"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-lg font-semibold text-text-primary font-mono truncate mb-1">
+                            {plugin.title}
+                          </h4>
+                          <p className="text-sm text-text-secondary font-mono line-clamp-2 mb-2">
+                            {plugin.description}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-text-muted font-mono">
+                            <span>Downloads: {plugin.downloads.toLocaleString()}</span>
+                            <a 
+                              href={`https://modrinth.com/plugin/${plugin.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-accent hover:underline"
+                            >
+                              View on Modrinth →
+                            </a>
+                          </div>
+                        </div>
+                        <motion.button
+                          onClick={() => handleInstall(plugin.project_id, plugin.title)}
+                          disabled={installing === plugin.project_id || !minecraftVersion}
+                          className="btn-primary text-xs px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          whileHover={{ scale: installing === plugin.project_id ? 1 : 1.02 }}
+                          whileTap={{ scale: installing === plugin.project_id ? 1 : 0.98 }}
+                        >
+                          {installing === plugin.project_id ? 'INSTALLING...' : 'INSTALL'}
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  ))}
+                  {filteredModrinthPlugins.length === 0 && searchQuery.trim() && (
+                    <div className="system-card p-8 text-center">
+                      <div className="text-3xl mb-3 opacity-20">🔍</div>
+                      <h4 className="text-md font-semibold text-text-primary font-mono mb-2">
+                        NO RESULTS FOUND
+                      </h4>
+                      <p className="text-text-muted font-mono text-sm">
+                        No plugins match "{searchQuery}"
+                      </p>
+                    </div>
+                  )}
+                  {!searchQuery.trim() && (
+                    <div className="flex justify-center pt-2">
+                      {loadingModrinth && modrinthPlugins.length > 0 ? (
+                        <div className="text-text-muted font-mono text-sm py-2 flex items-center gap-2">
+                          <span className="h-4 w-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                          Loading more...
+                        </div>
+                      ) : modrinthPlugins.length >= modrinthLimit ? (
+                        <motion.button
+                          onClick={() => {
+                            if (modrinthListRef.current) {
+                              restoreScrollRef.current = modrinthListRef.current.scrollTop;
+                            }
+                            setModrinthLimit((prev) => prev + 200);
+                          }}
+                          className="btn-secondary text-xs px-4 py-2"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          LOAD MORE
+                        </motion.button>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {configPath && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6">
